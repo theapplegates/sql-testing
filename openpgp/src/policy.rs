@@ -766,7 +766,7 @@ a_cutoff_list!(AEADAlgorithmCutoffList, AEADAlgorithm, 4,
                    ACCEPT,                 // 3. GCM.
                ]);
 
-a_versioned_cutoff_list!(PacketTagCutoffList, Tag, 21,
+a_versioned_cutoff_list!(PacketTagCutoffList, Tag, 22,
     [
         REJECT,                   // 0. Reserved.
         ACCEPT,                   // 1. PKESK.
@@ -789,6 +789,7 @@ a_versioned_cutoff_list!(PacketTagCutoffList, Tag, 21,
         ACCEPT,                   // 18. SEIP.
         ACCEPT,                   // 19. MDC.
         REJECT,                   // 20. "v5" AED.
+        ACCEPT,                   // 21. Padding.
     ],
     // The versioned list overrides the unversioned list.  So we only
     // need to tweak the above.

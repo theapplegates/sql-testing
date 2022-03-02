@@ -75,6 +75,9 @@
    - HashAlgorithm::salt_size
    - OnePassSig::V6
    - OnePassSig6
+   - Packet::Padding
+   - Padding
+   - Tag::Padding
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms

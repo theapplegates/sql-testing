@@ -3671,6 +3671,19 @@ impl AED1 {
     }
 }
 
+impl Padding {
+    /// Parses the body of a padding packet.
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "Padding::parse", php.recursion_depth());
+        make_php_try!(php);
+        // XXX: I don't think we should capture the body.
+        let value = php_try!(php.parse_bytes_eof("value"));
+        php.ok(Packet::Padding(Padding::from(value)))
+    }
+}
+
+impl_parse_with_buffered_reader!(Padding);
+
 impl MPI {
     /// Parses an OpenPGP MPI.
     ///
@@ -5016,6 +5029,16 @@ impl <'a> PacketParser<'a> {
                 Err(Error::MalformedPacket("Looks like garbage".into()).into()),
 
             Tag::Marker => Marker::plausible(bio, header),
+            Tag::Padding => {
+                // Even though a padding packet may occur here, it has
+                // so little structure, that we're likely better off
+                // trying to find the next packet.
+                //
+                // XXX: We could optimize that though, by using the
+                // potential padding packet's length to see if the
+                // next packet is plausible.
+                bad
+            },
             Tag::Signature => Signature::plausible(bio, header),
 
             Tag::SecretKey => Key::plausible(bio, header),
@@ -5276,6 +5299,7 @@ impl <'a> PacketParser<'a> {
             Tag::MDC =>                 MDC::parse(parser),
             Tag::PKESK =>               PKESK::parse(parser),
             Tag::AED =>                 AED::parse(parser),
+            Tag::Padding =>             Padding::parse(parser),
             _ => Unknown::parse(parser,
                                 Error::UnsupportedPacketType(tag).into()),
         }?;
@@ -5561,7 +5585,8 @@ impl <'a> PacketParser<'a> {
                 | Packet::UserID(_) | Packet::UserAttribute(_)
                 | Packet::Literal(_) | Packet::PKESK(_) | Packet::SKESK(_)
                 | Packet::SEIP(_) | Packet::MDC(_) | Packet::AED(_)
-                | Packet::CompressedData(_) => {
+                | Packet::CompressedData(_)
+                | Packet::Padding(_) => {
                 // Drop through.
                 t!("A {:?} packet is not a container, not recursing.",
                    self.packet.tag());

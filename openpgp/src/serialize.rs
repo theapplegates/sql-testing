@@ -3079,6 +3079,30 @@ impl MarshalInto for AED1 {
         generic_serialize_into(self, MarshalInto::serialized_len(self), buf)
     }
 }
+
+impl seal::Sealed for Padding {}
+impl Marshal for Padding {
+    fn serialize(&self, o: &mut dyn std::io::Write) -> Result<()> {
+        o.write_all(self.value())?;
+        Ok(())
+    }
+}
+
+impl NetLength for Padding {
+    fn net_len(&self) -> usize {
+        self.value().len()
+    }
+}
+
+impl MarshalInto for Padding {
+    fn serialized_len(&self) -> usize {
+        self.net_len()
+    }
+
+    fn serialize_into(&self, buf: &mut [u8]) -> Result<usize> {
+        generic_serialize_into(self, MarshalInto::serialized_len(self), buf)
+    }
+}
 
 impl Serialize for Packet {}
 impl seal::Sealed for Packet {}
@@ -3122,6 +3146,7 @@ impl Marshal for Packet {
             #[allow(deprecated)]
             Packet::MDC(ref p) => p.serialize(o),
             Packet::AED(ref p) => p.serialize(o),
+            Packet::Padding(p) => p.serialize(o),
         }
     }
 
@@ -3164,6 +3189,7 @@ impl Marshal for Packet {
             #[allow(deprecated)]
             Packet::MDC(ref p) => p.export(o),
             Packet::AED(ref p) => p.export(o),
+            Packet::Padding(p) => p.export(o),
         }
     }
 }
@@ -3190,6 +3216,7 @@ impl NetLength for Packet {
             #[allow(deprecated)]
             Packet::MDC(ref p) => p.net_len(),
             Packet::AED(AED::V1(p)) => p.net_len(),
+            Packet::Padding(p) => p.net_len(),
         }
     }
 }
@@ -3256,6 +3283,8 @@ enum PacketRef<'a> {
     MDC(&'a packet::MDC),
     /// AEAD Encrypted Data Packet.
     AED(&'a packet::AED),
+    /// Padding packet.
+    Padding(&'a packet::Padding),
 }
 
 impl<'a> PacketRef<'a> {
@@ -3284,6 +3313,7 @@ impl<'a> PacketRef<'a> {
             PacketRef::SEIP(_) => Tag::SEIP,
             PacketRef::MDC(_) => Tag::MDC,
             PacketRef::AED(_) => Tag::AED,
+            PacketRef::Padding(_) => Tag::Padding,
         }
     }
 }
@@ -3329,6 +3359,7 @@ impl<'a> Marshal for PacketRef<'a> {
             PacketRef::SEIP(p) => p.serialize(o),
             PacketRef::MDC(p) => p.serialize(o),
             PacketRef::AED(p) => p.serialize(o),
+            PacketRef::Padding(p) => p.serialize(o),
         }
     }
 
@@ -3370,6 +3401,7 @@ impl<'a> Marshal for PacketRef<'a> {
             PacketRef::SEIP(p) => p.export(o),
             PacketRef::MDC(p) => p.export(o),
             PacketRef::AED(p) => p.export(o),
+            PacketRef::Padding(p) => p.export(o),
         }
     }
 }
@@ -3395,6 +3427,7 @@ impl<'a> NetLength for PacketRef<'a> {
             PacketRef::SEIP(p) => p.net_len(),
             PacketRef::MDC(p) => p.net_len(),
             PacketRef::AED(AED::V1(p)) => p.net_len(),
+            PacketRef::Padding(p) => p.net_len(),
         }
     }
 }
