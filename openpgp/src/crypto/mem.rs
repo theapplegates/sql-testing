@@ -418,7 +418,7 @@ mod has_access_to_prekey {
             let mut plaintext = Protected::new(self.plaintext_len);
 
             let mut decryptor =
-                aead::Decryptor::from_buffered_reader(
+                aead::Decryptor::from_cookie_reader(
                                      SYMMETRIC_ALGO,
                                      AEAD_ALGO,
                                      self.plaintext_len,

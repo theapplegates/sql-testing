@@ -617,7 +617,7 @@ impl<'a> RawCertParser<'a> {
         let mut reader = dup.into_boxed().into_inner().expect("inner");
 
         if dearmor {
-            reader = armor::Reader::from_buffered_reader(
+            reader = armor::Reader::from_cookie_reader(
                 reader, armor::ReaderMode::Tolerant(None),
                 Default::default()).into_boxed();
 
@@ -709,7 +709,7 @@ impl<'a> Iterator for RawCertParser<'a>
             let reader = reader.into_inner().expect("the armor reader");
 
             // and install a new one!
-            self.reader = armor::Reader::from_buffered_reader(
+            self.reader = armor::Reader::from_cookie_reader(
                 reader, armor::ReaderMode::Tolerant(None),
                 Default::default()).into_boxed();
         }
