@@ -1534,12 +1534,6 @@ impl<'a> Reader<'a> {
            self.cursor,
            self.buffer.as_ref().map(|buffer| buffer.len()));
 
-        // See if there is an error from the last invocation.
-        if let Some(e) = self.error.take() {
-            t!("Returning stashed error: {}", e);
-            return Err(e);
-        }
-
         if let Some(ref buffer) = self.buffer {
             // We have a buffer.  Make sure `cursor` is sane.
             assert!(self.cursor <= buffer.len());
@@ -1572,6 +1566,12 @@ impl<'a> Reader<'a> {
 
                 if self.eof {
                     t!("Hit EOF on the underlying reader, don't poll again.");
+                    break;
+                }
+
+                // See if there is an error from the last invocation.
+                if let Some(e) = &self.error {
+                    t!("We have a stashed error, don't poll again: {}", e);
                     break;
                 }
 
