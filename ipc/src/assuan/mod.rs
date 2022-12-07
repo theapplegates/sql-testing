@@ -101,6 +101,11 @@ impl Client {
     /// For the command to be actually executed, stream the responses
     /// using this objects [`Stream`] implementation.
     ///
+    /// Note: It is very important to poll the client object until it
+    /// returns `None`.  Otherwise, the server and client will lose
+    /// synchronization, and requests and responses will no longer be
+    /// correctly associated.
+    ///
     /// [`Stream`]: #impl-Stream
     ///
     /// The response stream ends in either a [`Response::Ok`],
