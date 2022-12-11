@@ -6,13 +6,95 @@ use std::fmt;
 use buffered_reader::BufferedReader;
 use buffered_reader::buffered_reader_generic_read_impl;
 
-use crate::{
-    Result,
-    types::HashAlgorithm,
-};
-use crate::parse::{Cookie, HashesFor, Hashing, HashingMode};
+use crate::Result;
+use crate::parse::{Cookie, HashesFor, Hashing};
+use crate::types::HashAlgorithm;
+use crate::types::SignatureType;
 
 const TRACE : bool = false;
+
+/// Controls line-ending normalization during hashing.
+///
+/// OpenPGP normalizes line endings when signing or verifying text
+/// signatures.
+pub(crate) enum HashingMode<T> {
+    /// Hash for a binary signature.
+    ///
+    /// The data is hashed as-is.
+    Binary(T),
+
+    /// Hash for a text signature.
+    ///
+    /// The data is hashed with line endings normalized to `\r\n`.
+    Text(T),
+}
+
+impl<T: Clone> Clone for HashingMode<T> {
+    fn clone(&self) -> Self {
+        use self::HashingMode::*;
+        match self {
+            Binary(t) => Binary(t.clone()),
+            Text(t) => Text(t.clone()),
+        }
+    }
+}
+
+impl<T: std::fmt::Debug> std::fmt::Debug for HashingMode<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use self::HashingMode::*;
+        match self {
+            Binary(t) => write!(f, "Binary({:?})", t),
+            Text(t) => write!(f, "Text({:?})", t),
+        }
+    }
+}
+
+impl<T: PartialEq> PartialEq for HashingMode<T> {
+    fn eq(&self, other: &Self) -> bool {
+        use self::HashingMode::*;
+        match (self, other) {
+            (Binary(s), Binary(o)) => s.eq(o),
+            (Text(s), Text(o)) => s.eq(o),
+            _ => false,
+        }
+    }
+}
+
+impl<T: Eq> Eq for HashingMode<T> { }
+
+impl<T> HashingMode<T> {
+    pub(crate) fn map<U, F: Fn(&T) -> U>(&self, f: F) -> HashingMode<U> {
+        use self::HashingMode::*;
+        match self {
+            Binary(t) => Binary(f(t)),
+            Text(t) => Text(f(t)),
+        }
+    }
+
+    pub(crate) fn as_ref(&self) -> &T {
+        use self::HashingMode::*;
+        match self {
+            Binary(t) => t,
+            Text(t) => t,
+        }
+    }
+
+    pub(crate) fn as_mut(&mut self) -> &mut T {
+        use self::HashingMode::*;
+        match self {
+            Binary(t) => t,
+            Text(t) => t,
+        }
+    }
+
+    pub(crate) fn for_signature(t: T, typ: SignatureType) -> Self {
+        if typ == SignatureType::Text {
+            HashingMode::Text(t)
+        } else {
+            HashingMode::Binary(t)
+        }
+    }
+}
 
 pub(crate) struct HashedReader<R: BufferedReader<Cookie>> {
     reader: R,
