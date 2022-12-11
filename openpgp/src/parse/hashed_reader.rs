@@ -17,6 +17,7 @@ const TRACE : bool = false;
 ///
 /// OpenPGP normalizes line endings when signing or verifying text
 /// signatures.
+#[derive(Clone, Eq)]
 pub(crate) enum HashingMode<T> {
     /// Hash for a binary signature.
     ///
@@ -27,16 +28,6 @@ pub(crate) enum HashingMode<T> {
     ///
     /// The data is hashed with line endings normalized to `\r\n`.
     Text(T),
-}
-
-impl<T: Clone> Clone for HashingMode<T> {
-    fn clone(&self) -> Self {
-        use self::HashingMode::*;
-        match self {
-            Binary(t) => Binary(t.clone()),
-            Text(t) => Text(t.clone()),
-        }
-    }
 }
 
 impl<T: std::fmt::Debug> std::fmt::Debug for HashingMode<T> {
@@ -59,8 +50,6 @@ impl<T: PartialEq> PartialEq for HashingMode<T> {
         }
     }
 }
-
-impl<T: Eq> Eq for HashingMode<T> { }
 
 impl<T> HashingMode<T> {
     pub(crate) fn map<U, F: Fn(&T) -> U>(&self, f: F) -> HashingMode<U> {
