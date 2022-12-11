@@ -135,6 +135,7 @@ use crate::{
 };
 use crate::packet::header::CTB;
 use crate::packet::header::BodyLength;
+use crate::parse::HashingMode;
 use super::{
     Marshal,
 };
@@ -636,7 +637,7 @@ pub struct Signer<'a> {
     mode: SignatureMode,
     template: signature::SignatureBuilder,
     creation_time: Option<SystemTime>,
-    hash: Box<dyn crypto::hash::Digest>,
+    hash: HashingMode<Box<dyn crypto::hash::Digest>>,
     cookie: Cookie,
     position: u64,
 
@@ -813,7 +814,8 @@ impl<'a> Signer<'a> {
             mode: SignatureMode::Inline,
             template: template.into(),
             creation_time: None,
-            hash: HashAlgorithm::default().context().unwrap(),
+            hash: HashingMode::Binary(
+                HashAlgorithm::default().context().unwrap()),
             cookie: Cookie {
                 level,
                 private: Private::Signer,
@@ -1147,7 +1149,7 @@ impl<'a> Signer<'a> {
     /// # Ok(()) }
     /// ```
     pub fn hash_algo(mut self, algo: HashAlgorithm) -> Result<Self> {
-        self.hash = algo.context()?;
+        self.hash = HashingMode::Binary(algo.context()?);
         Ok(self)
     }
 
@@ -1265,7 +1267,14 @@ impl<'a> Signer<'a> {
         }
 
         if let Some(hash) = acceptable_hashes.first() {
-            self.hash = hash.context().unwrap();
+            let ctx = hash.context().unwrap();
+            self.hash = if self.template.typ() == SignatureType::Text
+                || self.mode == SignatureMode::Cleartext
+            {
+                HashingMode::Text(ctx)
+            } else {
+                HashingMode::Binary(ctx)
+            };
         } else {
             return Err(Error::NoAcceptableHash.into());
         }
@@ -1278,7 +1287,7 @@ impl<'a> Signer<'a> {
                     let key = keypair.public();
                     let mut ops = OnePassSig3::new(self.template.typ());
                     ops.set_pk_algo(key.pk_algo());
-                    ops.set_hash_algo(self.hash.algo());
+                    ops.set_hash_algo(self.hash.as_ref().algo());
                     ops.set_issuer(key.keyid());
                     ops.set_last(i == self.signers.len() - 1);
                     Packet::OnePassSig(ops.into())
@@ -1293,7 +1302,8 @@ impl<'a> Signer<'a> {
                 // Write the header.
                 let mut sink = self.inner.take().unwrap();
                 writeln!(sink, "-----BEGIN PGP SIGNED MESSAGE-----")?;
-                writeln!(sink, "Hash: {}", self.hash.algo().text_name()?)?;
+                writeln!(sink, "Hash: {}",
+                         self.hash.as_ref().algo().text_name()?)?;
                 writeln!(sink)?;
 
                 // We now install two filters.  See the comment on
@@ -1351,7 +1361,8 @@ impl<'a> Signer<'a> {
                 }
 
                 // Compute the signature.
-                let sig = sig.sign_hash(signer.as_mut(), hash)?;
+                let sig = sig.sign_hash(signer.as_mut(),
+                                        hash.into_inner())?;
 
                 // And emit the packet.
                 Packet::Signature(sig).serialize(sink)?;
@@ -1409,8 +1420,7 @@ impl<'a> Write for Signer<'a> {
                 // a newline, but we know that more text follows (buf
                 // is not empty), so it cannot be the last.
                 assert!(! buf.is_empty());
-                crate::parse::hash_update_text(&mut self.hash,
-                                               &self.hash_stash[..]);
+                self.hash.update(&self.hash_stash[..]);
                 crate::vec_truncate(&mut self.hash_stash, 0);
 
                 // Compute the length of data that should be hashed.
@@ -1428,13 +1438,11 @@ impl<'a> Write for Signer<'a> {
                 // b"\r\n" in one write.
 
                 // Hash everything but the last newline now.
-                crate::parse::hash_update_text(&mut self.hash, &data[..l]);
+                self.hash.update(&data[..l]);
                 // The newline we stash away.  If more text is written
                 // later, we will hash it then.  Otherwise, it is
                 // implicitly omitted when the signer is finalized.
                 self.hash_stash.extend_from_slice(&data[l..]);
-            } else if self.template.typ() == SignatureType::Text {
-                crate::parse::hash_update_text(&mut self.hash, data);
             } else {
                 self.hash.update(data);
             }

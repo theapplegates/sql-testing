@@ -6,8 +6,9 @@ use std::fmt;
 use buffered_reader::BufferedReader;
 use buffered_reader::buffered_reader_generic_read_impl;
 
-use crate::Result;
+use crate::crypto::hash::Digest;
 use crate::parse::{Cookie, HashesFor, Hashing};
+use crate::Result;
 use crate::types::HashAlgorithm;
 use crate::types::SignatureType;
 
@@ -83,6 +84,53 @@ impl<T> HashingMode<T> {
             HashingMode::Binary(t)
         }
     }
+
+    pub(crate) fn into_inner(self) -> T {
+        use self::HashingMode::*;
+        match self {
+            Binary(t) => t,
+            Text(t) => t,
+        }
+    }
+}
+
+impl<D> HashingMode<D>
+    where D: Digest
+{
+    /// Updates the given hash context.  When in text mode, normalize
+    /// the line endings to "\r\n" on the fly.
+    pub(crate) fn update(&mut self, data: &[u8]) {
+        match self {
+            HashingMode::Text(h) => {
+                let mut line = data;
+                while ! line.is_empty() {
+                    let mut next = 0;
+                    for (i, c) in line.iter().cloned().enumerate() {
+                        match c {
+                            b'\r' | b'\n' => {
+                                h.update(&line[..i]);
+                                h.update(b"\r\n");
+                                next = i + 1;
+                                if c == b'\r' && line.get(next) == Some(&b'\n') {
+                                    next += 1;
+                                }
+                                break;
+                            },
+                            _ => (),
+                        }
+                    }
+
+                    if next > 0 {
+                        line = &line[next..];
+                    } else {
+                        h.update(line);
+                        break;
+                    }
+                }
+            }
+            HashingMode::Binary(h) => h.update(data),
+        }
+    }
 }
 
 pub(crate) struct HashedReader<R: BufferedReader<Cookie>> {
@@ -126,37 +174,6 @@ impl<R: BufferedReader<Cookie>> HashedReader<R> {
     }
 }
 
-/// Updates the given hash context normalizing line endings to "\r\n"
-/// on the fly.
-pub(crate) fn hash_update_text(h: &mut dyn crate::crypto::hash::Digest,
-                               text: &[u8]) {
-    let mut line = text;
-    while ! line.is_empty() {
-        let mut next = 0;
-        for (i, c) in line.iter().cloned().enumerate() {
-            match c {
-                b'\r' | b'\n' => {
-                    h.update(&line[..i]);
-                    h.update(b"\r\n");
-                    next = i + 1;
-                    if c == b'\r' && line.get(next) == Some(&b'\n') {
-                        next += 1;
-                    }
-                    break;
-                },
-                _ => (),
-            }
-        }
-
-        if next > 0 {
-            line = &line[next..];
-        } else {
-            h.update(line);
-            break;
-        }
-    }
-}
-
 impl Cookie {
     fn hash_update(&mut self, data: &[u8]) {
         let level = self.level.unwrap_or(0);
@@ -181,16 +198,13 @@ impl Cookie {
             // We fix that here by hashing the stashed data into the
             // former topmost signature-group's hash.
             assert!(ngroups > 1);
-            for mode in self.sig_groups[ngroups-2].hashes.iter_mut()
+            for h in self.sig_groups[ngroups-2].hashes.iter_mut()
             {
                 t!("({:?}): group {} {:?} hashing {} stashed bytes.",
-                   hashes_for, ngroups-2, mode.map(|ctx| ctx.algo()),
+                   hashes_for, ngroups-2, h.map(|ctx| ctx.algo()),
                    data.len());
 
-                match mode {
-                    HashingMode::Binary(h) => h.update(&stashed_data),
-                    HashingMode::Text(h) => hash_update_text(h, &stashed_data),
-                }
+                h.update(&stashed_data);
             }
         }
 
@@ -213,13 +227,10 @@ impl Cookie {
                 return;
             }
 
-            for mode in sig_group.hashes.iter_mut() {
+            for h in sig_group.hashes.iter_mut() {
                 t!("{:?}: group {} {:?} hashing {} bytes.",
-                   hashes_for, i, mode.map(|ctx| ctx.algo()), data.len());
-                match mode {
-                    HashingMode::Binary(h) => h.update(data),
-                    HashingMode::Text(h) => hash_update_text(h, data),
-                }
+                   hashes_for, i, h.map(|ctx| ctx.algo()), data.len());
+                h.update(data);
             }
         }
     }
@@ -261,17 +272,13 @@ impl Cookie {
 
         // Hash stashed data first.
         if let Some(stashed_data) = self.hash_stash.take() {
-            for mode in self.sig_groups[0].hashes.iter_mut() {
+            for h in self.sig_groups[0].hashes.iter_mut() {
                 t!("{:?}: {:?} hashing {} stashed bytes.",
-                   hashes_for, mode.map(|ctx| ctx.algo()),
+                   hashes_for, h.map(|ctx| ctx.algo()),
                    stashed_data.len());
-                match mode {
-                    HashingMode::Binary(_) =>
-                        unreachable!("CSF transformation uses \
-                                      text signatures"),
-                    HashingMode::Text(h) =>
-                        hash_update_text(h, &stashed_data[..]),
-                }
+                assert!(matches!(h, HashingMode::Text(_)),
+                        "CSF transformation uses text signatures");
+                h.update(&stashed_data[..]);
             }
         }
 
@@ -291,14 +298,12 @@ impl Cookie {
         };
 
         // Hash everything but the last newline now.
-        for mode in self.sig_groups[0].hashes.iter_mut() {
+        for h in self.sig_groups[0].hashes.iter_mut() {
             t!("{:?}: {:?} hashing {} bytes.",
-               hashes_for, mode.map(|ctx| ctx.algo()), l);
-            match mode {
-                HashingMode::Binary(_) =>
-                    unreachable!("CSF transformation uses text signatures"),
-                HashingMode::Text(h) => hash_update_text(h, &data[..l]),
-            }
+               hashes_for, h.map(|ctx| ctx.algo()), l);
+            assert!(matches!(h, HashingMode::Text(_)),
+                    "CSF transformation uses text signatures");
+            h.update(&data[..l]);
         }
 
         // The newline we stash away.  If more text is written
@@ -522,8 +527,9 @@ mod test {
             "one\rtwo\rthree",
             "one\ntwo\r\nthree",
         ] {
-            let mut ctx = HashAlgorithm::SHA256.context()?;
-            super::hash_update_text(&mut ctx, text.as_bytes());
+            let mut ctx = HashingMode::Text(HashAlgorithm::SHA256.context()?);
+            ctx.update(text.as_bytes());
+            let mut ctx = ctx.into_inner();
             let mut digest = vec![0; ctx.digest_size()];
             let _ = ctx.digest(&mut digest);
             assert_eq!(

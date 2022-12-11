@@ -253,7 +253,6 @@ mod hashed_reader;
 pub(crate) use self::hashed_reader::{
     HashingMode,
     HashedReader,
-    hash_update_text,
 };
 
 mod packet_parser_builder;
