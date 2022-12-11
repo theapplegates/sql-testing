@@ -29,6 +29,10 @@ pub(crate) enum HashingMode<T> {
     ///
     /// The data is hashed with line endings normalized to `\r\n`.
     Text(T),
+
+    /// Like Text, but the last character that we hashed was a '\r'
+    /// that we converted to a '\r\n'.
+    TextLastWasCr(T),
 }
 
 impl<T: std::fmt::Debug> std::fmt::Debug for HashingMode<T> {
@@ -37,6 +41,7 @@ impl<T: std::fmt::Debug> std::fmt::Debug for HashingMode<T> {
         match self {
             Binary(t) => write!(f, "Binary({:?})", t),
             Text(t) => write!(f, "Text({:?})", t),
+            TextLastWasCr(t) => write!(f, "Text(last was CR, {:?})", t),
         }
     }
 }
@@ -46,7 +51,12 @@ impl<T: PartialEq> PartialEq for HashingMode<T> {
         use self::HashingMode::*;
         match (self, other) {
             (Binary(s), Binary(o)) => s.eq(o),
+
             (Text(s), Text(o)) => s.eq(o),
+            (TextLastWasCr(s), Text(o)) => s.eq(o),
+            (Text(s), TextLastWasCr(o)) => s.eq(o),
+            (TextLastWasCr(s), TextLastWasCr(o)) => s.eq(o),
+
             _ => false,
         }
     }
@@ -58,6 +68,7 @@ impl<T> HashingMode<T> {
         match self {
             Binary(t) => Binary(f(t)),
             Text(t) => Text(f(t)),
+            TextLastWasCr(t) => TextLastWasCr(f(t)),
         }
     }
 
@@ -66,6 +77,7 @@ impl<T> HashingMode<T> {
         match self {
             Binary(t) => t,
             Text(t) => t,
+            TextLastWasCr(t) => t,
         }
     }
 
@@ -74,6 +86,7 @@ impl<T> HashingMode<T> {
         match self {
             Binary(t) => t,
             Text(t) => t,
+            TextLastWasCr(t) => t,
         }
     }
 
@@ -90,45 +103,81 @@ impl<T> HashingMode<T> {
         match self {
             Binary(t) => t,
             Text(t) => t,
+            TextLastWasCr(t) => t,
         }
     }
 }
 
 impl<D> HashingMode<D>
-    where D: Digest
+    where D: Digest + Clone
 {
     /// Updates the given hash context.  When in text mode, normalize
     /// the line endings to "\r\n" on the fly.
     pub(crate) fn update(&mut self, data: &[u8]) {
-        match self {
-            HashingMode::Text(h) => {
-                let mut line = data;
-                while ! line.is_empty() {
-                    let mut next = 0;
-                    for (i, c) in line.iter().cloned().enumerate() {
-                        match c {
-                            b'\r' | b'\n' => {
-                                h.update(&line[..i]);
-                                h.update(b"\r\n");
-                                next = i + 1;
-                                if c == b'\r' && line.get(next) == Some(&b'\n') {
-                                    next += 1;
-                                }
-                                break;
-                            },
-                            _ => (),
-                        }
-                    }
+        if data.is_empty() {
+            // This isn't just a short circuit.  It preserves
+            // `last_was_cr`, which running through the code would
+            // not.
+            return;
+        }
 
-                    if next > 0 {
-                        line = &line[next..];
-                    } else {
-                        h.update(line);
+        let (h, mut last_was_cr) = match self {
+            HashingMode::Text(h) => (h, false),
+            HashingMode::TextLastWasCr(h) => (h, true),
+            HashingMode::Binary(h) => return h.update(data),
+        };
+
+        let mut line = data;
+        let last_is_cr = line.last() == Some(&b'\r');
+        while ! line.is_empty() {
+            let mut next = 0;
+            for (i, c) in line.iter().cloned().enumerate() {
+                match c {
+                    b'\n' if last_was_cr => {
+                        // We already hash the \n.
+                        assert_eq!(i, 0);
+                        assert_eq!(next, 0);
+                        next = 1;
                         break;
-                    }
+                    },
+                    b'\r' | b'\n' => {
+                        h.update(&line[..i]);
+                        h.update(b"\r\n");
+                        next = i + 1;
+                        if c == b'\r' && line.get(next) == Some(&b'\n') {
+                            next += 1;
+                        }
+                        break;
+                    },
+                    _ => (),
                 }
+                last_was_cr = false;
             }
-            HashingMode::Binary(h) => h.update(data),
+
+            if next > 0 {
+                line = &line[next..];
+            } else {
+                h.update(line);
+                break;
+            }
+        }
+
+        match (&mut *self, last_is_cr) {
+            (&mut HashingMode::Text(_), false) => {
+                // This is the common case.  Getting a crlf that is
+                // split across two chunks is extremely rare.  Hence,
+                // the clones used to change the variant are rarely
+                // needed.
+            },
+            (&mut HashingMode::Text(ref mut h), true) => {
+                *self = HashingMode::TextLastWasCr(h.clone());
+            }
+            (&mut HashingMode::TextLastWasCr(ref mut h), false) => {
+                *self = HashingMode::Text(h.clone());
+            },
+            (&mut HashingMode::TextLastWasCr(_), true) => (),
+
+            _ => unreachable!("handled above"),
         }
     }
 }
@@ -527,14 +576,20 @@ mod test {
             "one\rtwo\rthree",
             "one\ntwo\r\nthree",
         ] {
-            let mut ctx = HashingMode::Text(HashAlgorithm::SHA256.context()?);
-            ctx.update(text.as_bytes());
-            let mut ctx = ctx.into_inner();
-            let mut digest = vec![0; ctx.digest_size()];
-            let _ = ctx.digest(&mut digest);
-            assert_eq!(
-                &crate::fmt::hex::encode(&digest),
-                "5536758151607BB81CE8D6F49189B2E84763DA9EA84965AB7327E704DAE415EB");
+            for chunk_size in &[ text.len(), 1 ] {
+                let mut ctx
+                    = HashingMode::Text(HashAlgorithm::SHA256.context()?);
+                for chunk in text.as_bytes().chunks(*chunk_size) {
+                    ctx.update(chunk);
+                }
+                let mut ctx = ctx.into_inner();
+                let mut digest = vec![0; ctx.digest_size()];
+                let _ = ctx.digest(&mut digest);
+                assert_eq!(
+                    &crate::fmt::hex::encode(&digest),
+                    "5536758151607BB81CE8D6F49189B2E84763DA9EA84965AB7327E704DAE415EB",
+                    "{:?}, chunk size: {}", text, chunk_size);
+            }
         }
         Ok(())
     }

@@ -3174,6 +3174,21 @@ mod test {
              true,
              Some(crate::frozen_time()),
              VHelper::new(0, 0, 0, 1, certs.clone())),
+            // A signed message where the signature type is text and a
+            // crlf straddles two chunks.
+            (crate::tests::message("crlf-straddles-chunks.txt.sig").to_vec(),
+             crate::tests::message("crlf-straddles-chunks.txt").to_vec(),
+             false,
+             None,
+             VHelper::new(1, 0, 0, 0, certs.clone())),
+            // Like crlf-straddles-chunks, but the signature includes a
+            // notation with a '\n'.  Make sure it is not converted to
+            // a '\r\n'.
+            (crate::tests::message("text-signature-notation-has-lf.txt.sig").to_vec(),
+             crate::tests::message("text-signature-notation-has-lf.txt").to_vec(),
+             false,
+             None,
+             VHelper::new(1, 0, 0, 0, certs.clone())),
         ];
 
         for (i, (signed, reference, test_decryptor, time, r))
