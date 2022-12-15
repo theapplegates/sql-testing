@@ -109,6 +109,7 @@ crypto-rust = [
 ]
 crypto-cng = ["eax", "winapi", "win-crypto-ng", "ed25519-dalek", "num-bigint-dig"]
 crypto-openssl = ["openssl", "openssl-sys", "foreign-types-shared"]
+__implicit-crypto-backend-for-tests = []
 
 # Experimental and variable-time cryptographic backends opt-ins
 allow-experimental-crypto = []

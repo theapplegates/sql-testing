@@ -63,13 +63,20 @@ fn crypto_backends_sanity_check() {
     }
 
     let backends = vec![
-        (cfg!(feature = "crypto-nettle"),
+        (cfg!(all(feature = "crypto-nettle",
+                  not(all(feature = "__implicit-crypto-backend-for-tests",
+                          any(feature = "crypto-openssl",
+                              feature = "crypto-rust"))))),
          Backend {
              name: "Nettle",
              production_ready: true,
              constant_time: true,
          }),
-        (cfg!(feature = "crypto-cng"),
+        (cfg!(all(feature = "crypto-cng",
+                  not(all(feature = "__implicit-crypto-backend-for-tests",
+                          any(feature = "crypto-nettle",
+                              feature = "crypto-openssl",
+                              feature = "crypto-rust"))))),
          Backend {
              name: "Windows CNG",
              production_ready: true,
