@@ -1341,7 +1341,6 @@ impl CertBuilder<'_> {
     pub fn generate(self) -> Result<(Cert, Signature)> {
         use crate::Packet;
         use crate::types::ReasonForRevocation;
-        use std::convert::TryFrom;
 
         let creation_time =
             self.creation_time.unwrap_or_else(|| {

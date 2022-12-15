@@ -14,7 +14,7 @@ readme = "README.md"
 keywords = ["cryptography", "openpgp", "pgp", "hkp", "keyserver"]
 categories = ["cryptography", "authentication", "email"]
 license = "LGPL-2.0-or-later"
-edition = "2018"
+edition = "2021"
 rust-version = "1.60"
 
 [badges]

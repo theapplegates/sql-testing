@@ -21,7 +21,7 @@ readme = "../README.md"
 keywords = ["cryptography", "openpgp", "pgp", "encryption", "signing"]
 categories = ["cryptography", "authentication", "command-line-utilities"]
 license = "GPL-2.0-or-later"
-edition = "2018"
+edition = "2021"
 rust-version = "1.60"
 
 [badges]

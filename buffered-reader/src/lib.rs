@@ -184,7 +184,7 @@
 //!
 //! # f(); fn f() -> Result<(), std::io::Error> {
 //! # const FILENAME : &str = "/dev/null";
-//! let mut br : Box<BufferedReader<()>>
+//! let mut br : Box<dyn BufferedReader<()>>
 //!     = Box::new(buffered_reader::File::open(FILENAME)?);
 //!
 //! // While we haven't reached EOF (i.e., we can read at

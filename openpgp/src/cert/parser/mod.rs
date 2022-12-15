@@ -802,7 +802,6 @@ impl<'a> CertParser<'a> {
         t!("Finalizing certificate with {} packets", n_packets);
 
         // Convert to tokens, but preserve packets if it fails.
-        use std::convert::TryInto;
         let mut failed = false;
         let mut packets: Vec<Packet> = Vec::with_capacity(0);
         let mut tokens: Vec<Token> = Vec::with_capacity(n_packets);
