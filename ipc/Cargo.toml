@@ -48,7 +48,7 @@ ctor = "0.1"
 lalrpop = { version = ">=0.17", default-features = false }
 
 [dev-dependencies]
-clap = "2.33"
+clap = "3"
 quickcheck = { version = "1", default-features = false }
 tokio = { version = "1", features = [ "macros" ] }
 
