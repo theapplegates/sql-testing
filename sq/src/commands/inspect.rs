@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 use std::io::{self, Read};
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use anyhow::Context;
 
@@ -203,10 +203,10 @@ fn inspect_cert(
         writeln!(output, "         UserID: {}", uidb.userid())?;
         inspect_revocation(output, "", uidb.revocation_status(policy, None))?;
         match uidb.binding_signature(policy, None) {
-            Ok(sig) => if let Err(e) =
-                sig.signature_alive(None, std::time::Duration::new(0, 0))
-            {
-                print_error_chain(output, &e)?;
+            Ok(sig) => {
+                if let Err(e) = sig.signature_alive(None, Duration::new(0, 0)) {
+                    print_error_chain(output, &e)?;
+                }
             }
             Err(e) => print_error_chain(output, &e)?,
         }
@@ -221,10 +221,10 @@ fn inspect_cert(
                  uab.user_attribute())?;
         inspect_revocation(output, "", uab.revocation_status(policy, None))?;
         match uab.binding_signature(policy, None) {
-            Ok(sig) => if let Err(e) =
-                sig.signature_alive(None, std::time::Duration::new(0, 0))
-            {
-                print_error_chain(output, &e)?;
+            Ok(sig) => {
+                if let Err(e) = sig.signature_alive(None, Duration::new(0, 0)) {
+                    print_error_chain(output, &e)?;
+                }
             }
             Err(e) => print_error_chain(output, &e)?,
         }
@@ -237,10 +237,10 @@ fn inspect_cert(
     for ub in cert.unknowns() {
         writeln!(output, "         Unknown component: {:?}", ub.unknown())?;
         match ub.binding_signature(policy, None) {
-            Ok(sig) => if let Err(e) =
-                sig.signature_alive(None, std::time::Duration::new(0, 0))
-            {
-                print_error_chain(output, &e)?;
+            Ok(sig) => {
+                if let Err(e) = sig.signature_alive(None, Duration::new(0, 0)) {
+                    print_error_chain(output, &e)?;
+                }
             }
             Err(e) => print_error_chain(output, &e)?,
         }
