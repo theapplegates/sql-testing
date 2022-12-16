@@ -1,5 +1,8 @@
 use std::convert::TryFrom;
 use std::io::{self, Read};
+use std::time::SystemTime;
+
+use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 use openpgp::{KeyHandle, Packet, Result};
@@ -22,6 +25,16 @@ use crate::sq_cli::inspect;
 pub fn inspect(c: inspect::Command, policy: &dyn Policy, output: &mut dyn io::Write)
                -> Result<()> {
     let print_certifications = c.certifications;
+
+    let time = if let Some(t) = c.time {
+        let time = SystemTime::from(
+            crate::parse_iso8601(&t, chrono::NaiveTime::from_hms(0, 0, 0))
+                .context(format!("Parsing --time {}", t))?,
+        );
+        Some(time)
+    } else {
+        None
+    };
 
     let input = c.input.as_deref();
     let input_name = input.unwrap_or("-");
@@ -51,8 +64,13 @@ pub fn inspect(c: inspect::Command, policy: &dyn Policy, output: &mut dyn io::Wr
                     let pp = openpgp::PacketPile::from(
                         std::mem::take(&mut packets));
                     let cert = openpgp::Cert::try_from(pp)?;
-                    inspect_cert(policy, output, &cert,
-                                 print_certifications)?;
+                    inspect_cert(
+                        policy,
+                        time,
+                        output,
+                        &cert,
+                        print_certifications,
+                    )?;
                 }
             },
             Packet::Literal(_) => {
@@ -110,8 +128,7 @@ pub fn inspect(c: inspect::Command, policy: &dyn Policy, output: &mut dyn io::Wr
         } else if is_cert.is_ok() || is_keyring.is_ok() {
             let pp = openpgp::PacketPile::from(packets);
             let cert = openpgp::Cert::try_from(pp)?;
-            inspect_cert(policy, output, &cert,
-                         print_certifications)?;
+            inspect_cert(policy, time, output, &cert, print_certifications)?;
         } else if packets.is_empty() && ! sigs.is_empty() {
             writeln!(output, "Detached signature{}.",
                      if sigs.len() > 1 { "s" } else { "" })?;
@@ -134,9 +151,13 @@ pub fn inspect(c: inspect::Command, policy: &dyn Policy, output: &mut dyn io::Wr
     Ok(())
 }
 
-fn inspect_cert(policy: &dyn Policy,
-                output: &mut dyn io::Write, cert: &openpgp::Cert,
-                print_certifications: bool) -> Result<()> {
+fn inspect_cert(
+    policy: &dyn Policy,
+    time: Option<SystemTime>,
+    output: &mut dyn io::Write,
+    cert: &openpgp::Cert,
+    print_certifications: bool,
+) -> Result<()> {
     if cert.is_tsk() {
         writeln!(output, "Transferable Secret Key.")?;
     } else {
@@ -145,15 +166,27 @@ fn inspect_cert(policy: &dyn Policy,
     writeln!(output)?;
     writeln!(output, "    Fingerprint: {}", cert.fingerprint())?;
     inspect_revocation(output, "", cert.revocation_status(policy, None))?;
-    inspect_key(policy, output, "", cert.keys().next().unwrap(),
-                print_certifications)?;
+    inspect_key(
+        policy,
+        time,
+        output,
+        "",
+        cert.keys().next().unwrap(),
+        print_certifications,
+    )?;
     writeln!(output)?;
 
-    for vka in cert.keys().subkeys().with_policy(policy, None) {
+    for vka in cert.keys().subkeys().with_policy(policy, time) {
         writeln!(output, "         Subkey: {}", vka.key().fingerprint())?;
         inspect_revocation(output, "", vka.revocation_status())?;
-        inspect_key(policy, output, "", vka.into_key_amalgamation().into(),
-                    print_certifications)?;
+        inspect_key(
+            policy,
+            time,
+            output,
+            "",
+            vka.into_key_amalgamation().into(),
+            print_certifications,
+        )?;
         writeln!(output)?;
     }
 
@@ -224,16 +257,17 @@ fn inspect_cert(policy: &dyn Policy,
     Ok(())
 }
 
-fn inspect_key(policy: &dyn Policy,
-               output: &mut dyn io::Write,
-               indent: &str,
-               ka: ErasedKeyAmalgamation<PublicParts>,
-               print_certifications: bool)
-        -> Result<()>
-{
+fn inspect_key(
+    policy: &dyn Policy,
+    time: Option<SystemTime>,
+    output: &mut dyn io::Write,
+    indent: &str,
+    ka: ErasedKeyAmalgamation<PublicParts>,
+    print_certifications: bool,
+) -> Result<()> {
     let key = ka.key();
     let bundle = ka.bundle();
-    let vka = match ka.with_policy(policy, None) {
+    let vka = match ka.with_policy(policy, time) {
         Ok(vka) => {
             if let Err(e) = vka.alive() {
                 writeln!(output, "{}                 Invalid: {}", indent, e)?;

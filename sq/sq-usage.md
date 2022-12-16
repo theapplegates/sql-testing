@@ -1650,6 +1650,18 @@ OPTIONS:
     -h, --help
             Print help information
 
+        --time <TIME>
+            Sets the certification time to TIME.  TIME is interpreted as an ISO
+            8601 timestamp.  To set the certification time to July 21, 2013 at
+            midnight UTC, you can do:
+
+            $ sq inspect --time 20130721 cert.pgp
+
+            To include a time, add a T, the time and optionally the timezone
+            (the default timezone is UTC):
+
+            $ sq inspect --time 20130721T0550+0200 cert.pgp
+
 EXAMPLES:
 
 # Inspects a certificate
