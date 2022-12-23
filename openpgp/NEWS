@@ -6,6 +6,10 @@
 * Changes in 1.13.0
 ** New cryptographic backends
    - We added a backend that uses OpenSSL.
+ * New functionality
+   - RawCertParser
+   - RawCert
+   - RawPacket
 * Changes in 1.12.0
    - Bug fix release.
 * Changes in 1.11.0

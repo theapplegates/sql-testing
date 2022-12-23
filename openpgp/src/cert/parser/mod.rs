@@ -342,7 +342,14 @@ impl CertValidator {
 /// this way, it is possible to propagate parse errors.
 ///
 /// A `CertParser` returns each [`TPK`] or [`TSK`] that it encounters.
-/// Its behavior can be modeled using a simple state machine.
+/// Note: if you don't actually need all of the certificates, it is
+/// usually faster to use a [`RawCertParser`] and only fully parse and
+/// canonicalize those certificates that are relevant.
+///
+/// [`RawCertParser`]: crate::cert::raw::RawCertParser
+///
+/// A `CertParser`'s behavior can be modeled using a simple state
+/// machine.
 ///
 /// In the first and initial state, it looks for the start of a
 /// certificate, a [`Public Key`] packet or a [`Secret Key`] packet.

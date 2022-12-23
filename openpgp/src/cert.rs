@@ -183,6 +183,7 @@ mod builder;
 mod bindings;
 pub mod bundle;
 mod parser;
+pub mod raw;
 mod revoke;
 
 pub use self::builder::{CertBuilder, CipherSuite, KeyBuilder, SubkeyBuilder};
