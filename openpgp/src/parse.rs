@@ -1275,9 +1275,10 @@ impl Signature {
     }
 
     /// Returns whether the data appears to be a signature (no promises).
-    fn plausible<T: BufferedReader<Cookie>>(
-        bio: &mut buffered_reader::Dup<T, Cookie>, header: &Header)
-                 -> Result<()> {
+    fn plausible<C, T>(bio: &mut buffered_reader::Dup<T, C>, header: &Header)
+        -> Result<()>
+        where T: BufferedReader<C>, C: fmt::Debug + Send + Sync
+    {
         Signature4::plausible(bio, header)
     }
 
@@ -1414,9 +1415,10 @@ impl Signature4 {
     }
 
     /// Returns whether the data appears to be a signature (no promises).
-    fn plausible<T: BufferedReader<Cookie>>(
-        bio: &mut buffered_reader::Dup<T, Cookie>, header: &Header)
-                 -> Result<()> {
+    fn plausible<C, T>(bio: &mut buffered_reader::Dup<T, C>, header: &Header)
+        -> Result<()>
+        where T: BufferedReader<C>, C: fmt::Debug + Send + Sync
+    {
         // The absolute minimum size for the header is 11 bytes (this
         // doesn't include the signature MPIs).
 
@@ -2157,9 +2159,10 @@ impl Key<key::UnspecifiedParts, key::UnspecifiedRole>
     }
 
     /// Returns whether the data appears to be a key (no promises).
-    fn plausible<T: BufferedReader<Cookie>>(
-        bio: &mut buffered_reader::Dup<T, Cookie>, header: &Header)
-                 -> Result<()> {
+    fn plausible<C, T>(bio: &mut buffered_reader::Dup<T, C>, header: &Header)
+        -> Result<()>
+        where T: BufferedReader<C>, C: fmt::Debug + Send + Sync
+    {
         Key4::plausible(bio, header)
     }
 }
@@ -2288,9 +2291,10 @@ impl Key4<key::UnspecifiedParts, key::UnspecifiedRole>
     }
 
     /// Returns whether the data appears to be a key (no promises).
-    fn plausible<T: BufferedReader<Cookie>>(
-        bio: &mut buffered_reader::Dup<T, Cookie>, header: &Header)
-                 -> Result<()> {
+    fn plausible<C, T>(bio: &mut buffered_reader::Dup<T, C>, header: &Header)
+        -> Result<()>
+        where T: BufferedReader<C>, C: fmt::Debug + Send + Sync
+    {
         // The packet's header is 6 bytes.
         if let BodyLength::Full(len) = header.length() {
             if *len < 6 {
@@ -2400,9 +2404,10 @@ impl Marker {
     }
 
     /// Returns whether the data is a marker packet.
-    fn plausible<T>(bio: &mut buffered_reader::Dup<T, Cookie>, header: &Header)
+    fn plausible<C, T>(bio: &mut buffered_reader::Dup<T, C>, header: &Header)
                     -> Result<()>
-        where T: BufferedReader<Cookie>,
+        where T: BufferedReader<C>, C: fmt::Debug + Send + Sync
+
     {
         if let BodyLength::Full(len) = header.length() {
             let len = *len;
@@ -4166,9 +4171,11 @@ impl <'a> PacketParser<'a> {
     ///
     /// Currently, we only try to recover the most interesting
     /// packets.
-    fn plausible_cert<T: BufferedReader<Cookie>>(
-        bio: &mut buffered_reader::Dup<T, Cookie>, header: &Header)
-                 -> Result<()> {
+    pub(crate) fn plausible_cert<C, T>(bio: &mut buffered_reader::Dup<T, C>,
+                                       header: &Header)
+        -> Result<()>
+        where T: BufferedReader<C>, C: fmt::Debug + Send + Sync
+    {
         let bad = Err(
             Error::MalformedPacket("Can't make an educated case".into()).into());
 
