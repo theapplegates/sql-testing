@@ -491,7 +491,6 @@ pub struct CertParser<'a> {
     source: Option<Box<dyn Iterator<Item=Result<Packet>> + 'a + Send + Sync>>,
     packets: Vec<Packet>,
     queued_error: Option<anyhow::Error>,
-    saw_error: bool,
     filter: Vec<Box<dyn Send + Sync + Fn(&Cert, bool) -> bool + 'a>>,
 }
 assert_send_and_sync!(CertParser<'_>);
@@ -992,7 +991,6 @@ impl<'a> Iterator for CertParser<'a> {
                         }
                         Some(Err(err)) => {
                             t!("Error getting packet: {}", err);
-                            self.saw_error = true;
 
                             if ! self.packets.is_empty() {
                                 // Returned any queued certificate first.
