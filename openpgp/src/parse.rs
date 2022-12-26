@@ -4540,7 +4540,7 @@ impl <'a> PacketParser<'a> {
         // Now read the next packet.
         loop {
             // Parse the next packet.
-            t!("Reading packet at {:?} from: {:?}", self.path, reader);
+            t!("Reading packet at {:?}", self.path);
 
             let recursion_depth = self.recursion_depth();
 
