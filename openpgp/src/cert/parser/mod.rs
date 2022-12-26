@@ -163,11 +163,13 @@ impl KeyringValidator {
                 //   Such a packet MUST be ignored when received.
                 return;
             },
+            Tag::Unknown(_) => Token::Unknown(tag, None),
+            Tag::Private(_) => Token::Unknown(tag, None),
             _ => {
                 // Unknown token.
                 self.error = Some(CertParserError::OpenPGP(
                     Error::MalformedMessage(
-                        format!("Invalid Cert: {:?} packet (at {}) not expected",
+                        format!("Invalid Cert: {:?} packet (#{}) not expected",
                                 tag, self.n_packets))));
                 self.tokens.clear();
                 return;
@@ -1057,7 +1059,7 @@ mod test {
     use crate::tests;
 
     #[test]
-    fn tokens() {
+    fn push_tokens() {
         use crate::cert::parser::low_level::lexer::{Token, Lexer};
         use crate::cert::parser::low_level::lexer::Token::*;
         use crate::cert::parser::low_level::CertParser;
@@ -1176,6 +1178,15 @@ mod test {
                 ],
                 result: false,
             },
+            TestVector {
+                s: &[ SecretKey(None), Signature(None),
+                      UserID(None), Signature(None),
+                      SecretSubkey(None), Signature(None),
+                      SecretSubkey(None), Signature(None),
+                      Unknown(Tag::Private(61), None),
+                ],
+                result: true,
+            },
         ];
 
         for v in &test_vectors {
@@ -1193,6 +1204,68 @@ mod test {
             match CertParser::new().parse(Lexer::from_tokens(v.s)) {
                 Ok(r) => assert!(v.result, "Parsing: {:?} => {:?}", v.s, r),
                 Err(e) => assert!(! v.result, "Parsing: {:?} => {:?}", v.s, e),
+            }
+        }
+    }
+
+    #[test]
+    fn push_tags() {
+        use Tag::*;
+
+        struct TestVector<'a> {
+            s: &'a [Tag],
+            result: bool,
+        }
+
+        let test_vectors = [
+            TestVector {
+                s: &[ PublicKey ],
+                result: true,
+            },
+            TestVector {
+                s: &[ SecretKey, Signature,
+                      UserID, Signature,
+                      SecretSubkey, Signature,
+                      SecretSubkey, Signature,
+                      Tag::Private(61),
+                ],
+                result: true,
+            },
+            TestVector {
+                s: &[ SecretKey, Signature,
+                      UserID, Signature,
+                      SecretSubkey, Signature,
+                      SecretSubkey, Signature,
+                      Tag::Unknown(61),
+                ],
+                result: true,
+            },
+            TestVector {
+                s: &[ SecretKey, Signature,
+                      UserID, Signature,
+                      SecretSubkey, Signature,
+                      SecretSubkey, Signature,
+                      Tag::Unknown(61),
+                      SecretKey, Signature,
+                      UserID, Signature,
+                      SecretSubkey, Signature,
+                      SecretSubkey, Signature,
+                ],
+                // This is a keyring, not a cert.
+                result: false,
+            },
+        ];
+
+        for v in &test_vectors {
+            if v.result {
+                let mut l = CertValidator::new();
+                for &tag in v.s.into_iter() {
+                    l.push(tag.clone());
+                    assert_match!(CertValidity::CertPrefix = l.check());
+                }
+
+                l.finish();
+                assert_match!(CertValidity::Cert = l.check());
             }
         }
     }
