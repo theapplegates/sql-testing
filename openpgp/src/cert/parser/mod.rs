@@ -951,15 +951,16 @@ impl<'a> Iterator for CertParser<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         tracer!(TRACE, "CertParser::next", 0);
+        if let Some(err) = self.queued_error.take() {
+            t!("Returning queued error: {}", err);
+            return Some(Err(err));
+        }
 
         loop {
             match self.source.take() {
                 None => {
                     t!("EOF.");
 
-                    if let Some(err) = self.queued_error.take() {
-                        return Some(Err(err));
-                    }
                     if self.packets.is_empty() {
                         return None;
                     }
