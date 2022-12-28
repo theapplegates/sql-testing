@@ -2639,14 +2639,13 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                         }
                     }
 
-                    if let Err(err) = possible_message {
+                    if let Err(_err) = possible_message {
                         if self.processing_csf_message.expect("set by now") {
                             // CSF transformation creates slightly out
                             // of spec message structure.  See above
                             // for longer explanation.
                         } else {
-                            return Err(err.context(
-                                "Malformed OpenPGP message"));
+                            return Err(Error::ManipulatedMessage.into());
                         }
                     }
 

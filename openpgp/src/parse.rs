@@ -3069,6 +3069,9 @@ struct PacketParserState {
 
     // Whether this is the first packet in the packet sequence.
     first_packet: bool,
+
+    // Whether PacketParser::parse encountered an unrecoverable error.
+    pending_error: Option<anyhow::Error>,
 }
 
 impl PacketParserState {
@@ -3079,6 +3082,7 @@ impl PacketParserState {
             keyring_validator: Default::default(),
             cert_validator: Default::default(),
             first_packet: true,
+            pending_error: None,
         }
     }
 }
@@ -4216,7 +4220,7 @@ impl <'a> PacketParser<'a> {
     /// stream.  If there are no packets left, this function returns
     /// `bio`.
     fn parse(mut bio: Box<dyn BufferedReader<Cookie> + 'a>,
-             state: PacketParserState,
+             mut state: PacketParserState,
              path: Vec<usize>)
         -> Result<ParserResult<'a>>
     {
@@ -4224,6 +4228,11 @@ impl <'a> PacketParser<'a> {
 
         let indent = path.len() as isize - 1;
         tracer!(TRACE, "PacketParser::parse", indent);
+
+        if let Some(err) = state.pending_error.take() {
+            t!("Returning pending error: {}", err);
+            return Err(err);
+        }
         t!("Parsing packet at {:?}", path);
 
         let recursion_depth = path.len() as isize - 1;
@@ -4252,14 +4261,24 @@ impl <'a> PacketParser<'a> {
         // extract the hash context.
 
         let mut bio = buffered_reader::Dup::with_cookie(bio, Cookie::default());
-        let mut header;
+        let header;
 
         // Read the header.
         let mut skip = 0;
         let mut orig_error : Option<anyhow::Error> = None;
         loop {
             bio.rewind();
-            bio.data_consume_hard(skip)?;
+            if let Err(_err) = bio.data_consume_hard(skip) {
+                // EOF.  We checked for EOF above when skip was 0, so
+                // we must have skipped something.
+                assert!(skip > 0);
+
+                // Fabricate a header.
+                header = Header::new(CTB::new(Tag::Reserved),
+                                     BodyLength::Full(skip as u32));
+
+                break;
+            }
 
             match Header::parse(&mut bio) {
                 Ok(header_) => {
@@ -4270,22 +4289,39 @@ impl <'a> PacketParser<'a> {
 
                     match Self::plausible_cert(&mut bio, &header_) {
                         Ok(()) => {
-                            header = header_;
+                            header = Header::new(CTB::new(Tag::Reserved),
+                                                 BodyLength::Full(skip as u32));
                             break;
                         }
-                        Err(_err) => (),
+                        Err(err_) => {
+                            t!("{} not plausible @ {}: {}",
+                               header_.ctb().tag(), skip, err_);
+                        },
                     }
                 }
                 Err(err) => {
+                    t!("Failed to read a header after skipping {} bytes: {}",
+                       skip, err);
                     if orig_error.is_none() {
                         orig_error = Some(err);
                     }
 
-                    if state.first_packet || skip > RECOVERY_THRESHOLD {
+                    if state.first_packet {
+                        // We don't try to recover if we haven't see
+                        // any packets.
+                        return Err(orig_error.unwrap());
+                    }
+
+                    if skip > RECOVERY_THRESHOLD {
                         // Limit the search space.  This should be
                         // enough to find a reasonable recovery point
                         // in a Cert.
-                        return Err(orig_error.unwrap());
+                        state.pending_error = orig_error;
+
+                        // Fabricate a header.
+                        header = Header::new(CTB::new(Tag::Reserved),
+                                             BodyLength::Full(skip as u32));
+                        break;
                     }
                 }
             }
@@ -4298,10 +4334,7 @@ impl <'a> PacketParser<'a> {
             bio.total_out()
         } else {
             t!("turning {} bytes of junk into an Unknown packet", skip);
-
-            // Fabricate a header.
-            header = Header::new(CTB::new(Tag::Reserved),
-                                 BodyLength::Full(skip as u32));
+            bio.rewind();
             0
         };
 
@@ -6298,6 +6331,48 @@ mod test {
                 break;
             }
         }
+        Ok(())
+    }
+
+    // Issue 967.
+    #[test]
+    fn packet_before_junk_emitted() -> Result<()> {
+        let bytes = crate::tests::key("testy-new.pgp");
+
+        let mut ppr = match PacketParser::from_bytes(bytes) {
+            Ok(ppr) => ppr,
+            Err(_) => panic!("valid"),
+        };
+        let mut packets_ok = Vec::new();
+        while let PacketParserResult::Some(pp) = ppr {
+            if let Ok((packet, tmp)) = pp.recurse() {
+                packets_ok.push(packet);
+                ppr = tmp;
+            } else {
+                break;
+            }
+        }
+
+        let mut bytes = bytes.to_vec();
+        // Add some junk.
+        bytes.push(0);
+        let mut ppr = match PacketParser::from_bytes(&bytes[..]) {
+            Ok(ppr) => ppr,
+            Err(_) => panic!("valid"),
+        };
+        let mut packets_mangled = Vec::new();
+        while let PacketParserResult::Some(pp) = ppr {
+            if let Ok((packet, tmp)) = pp.recurse() {
+                packets_mangled.push(packet);
+                ppr = tmp;
+            } else {
+                break;
+            }
+        }
+
+        assert_eq!(packets_ok.len(), packets_mangled.len());
+        assert_eq!(packets_ok, packets_mangled);
+
         Ok(())
     }
 }

@@ -1706,16 +1706,8 @@ mod test {
         {
             let ps_orig: Vec<Packet> = c_orig.into_packets().collect();
             let ps_parsed: Vec<Packet> = c_parsed.into_packets().collect();
-            if bad > 0 && ! literal && i == n - 1 {
-                // On a parse error, we lose the last successfully
-                // parsed packet.  This is annoying.  But, the
-                // file is corrupted anyway, so...
-                assert_eq!(ps_orig.len() - 1, ps_parsed.len(),
-                           "number of packets: expected vs. got");
-            } else {
-                assert_eq!(ps_orig.len(), ps_parsed.len(),
-                           "number of packets: expected vs. got");
-            }
+            assert_eq!(ps_orig.len(), ps_parsed.len(),
+                       "number of packets: expected vs. got");
 
             for (j, (p_orig, p_parsed)) in
                 ps_orig
