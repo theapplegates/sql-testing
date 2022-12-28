@@ -1009,7 +1009,10 @@ impl<'a> Iterator for CertParser<'a> {
                                     Ok(None) => {
                                         return Some(Err(err));
                                     }
-                                    Err(err) => {
+                                    Err(err2) => {
+                                        // Return the first error,
+                                        // queue the second error.
+                                        self.queued_error = Some(err2);
                                         return Some(Err(err));
                                     }
                                 }
