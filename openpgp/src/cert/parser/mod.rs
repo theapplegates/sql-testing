@@ -998,6 +998,8 @@ impl<'a> Iterator for CertParser<'a> {
                             self.parse(packet)
                         }
                         Some(Err(err)) => {
+                            self.source = Some(iter);
+
                             t!("Error getting packet: {}", err);
 
                             if ! self.packets.is_empty() {
@@ -1848,5 +1850,37 @@ mod test {
         let certs = cp.collect::<Result<Vec<Cert>>>().unwrap();
         assert_eq!(certs.len(), 1);
         assert!(certs[0].fingerprint() == fp);
+    }
+
+    #[test]
+    fn packet_source_includes_an_error() -> Result<()> {
+        let mut ppr
+            = PacketParser::from_bytes(crate::tests::key("testy.pgp"))?;
+        let mut testy = Vec::new();
+        while let PacketParserResult::Some(pp) = ppr {
+            let (packet, ppr_) = pp.next()?;
+            testy.push(packet);
+            ppr = ppr_;
+        }
+
+        // A cert, two errors, another cert.
+        let mut packets: Vec<Result<Packet>> = Vec::new();
+        for p in testy.iter() {
+            packets.push(Ok(p.clone()));
+        }
+        packets.push(Err(anyhow::anyhow!("An error")));
+        packets.push(Err(anyhow::anyhow!("Another error")));
+        for p in testy.iter() {
+            packets.push(Ok(p.clone()));
+        }
+
+        let certs = CertParser::from(packets).collect::<Vec<Result<Cert>>>();
+        assert_eq!(certs.len(), 4);
+        assert!(certs[0].is_ok());
+        assert!(certs[1].is_err());
+        assert!(certs[2].is_err());
+        assert!(certs[3].is_ok());
+
+        Ok(())
     }
 }
