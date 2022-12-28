@@ -509,6 +509,7 @@ impl<'a> From<PacketParserResult<'a>> for CertParser<'a>
             let mut retry_with_reader = Box::new(None);
             parser.source = Some(
                 Box::new(std::iter::from_fn(move || {
+                    tracer!(TRACE, "PacketParserResult::next", 0);
                     if let Some(reader) = retry_with_reader.take() {
                         // Try to find the next (armored) blob.
                         match PacketParser::from_buffered_reader(reader) {
@@ -551,9 +552,13 @@ impl<'a> From<PacketParserResult<'a>> for CertParser<'a>
                                         *retry_with_reader =
                                             Some(eof.into_reader()),
                                 }
+                                t!("PacketParser::next yielded a {}",
+                                   packet.tag());
                                 Some(Ok(packet))
                             },
                             Err(err) => {
+                                t!("PacketParser::next returned an error: {}.",
+                                   err);
                                 Some(Err(err))
                             }
                         }
