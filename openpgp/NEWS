@@ -2,6 +2,8 @@
 #+TITLE: sequoia-openpgp NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 1.12.0
+   - Bug fix release.
 * Changes in 1.11.0
  * New functionality
    - Signature3 implements support for parsing, verifying, and
