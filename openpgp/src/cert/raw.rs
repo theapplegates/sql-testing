@@ -86,13 +86,18 @@ use crate::packet::Header;
 use crate::packet::Key;
 use crate::packet::Packet;
 use crate::packet::Tag;
+use crate::packet::UserID;
 use crate::packet::header::BodyLength;
 use crate::packet::header::CTB;
+use crate::packet::key;
 use crate::parse::PacketParser;
 use crate::parse::Parse;
 use crate::parse::RECOVERY_THRESHOLD;
 
 use super::TRACE;
+
+mod iter;
+pub use iter::KeyIter;
 
 /// A mostly unparsed `Packet`.
 ///
@@ -307,6 +312,132 @@ impl<'a> RawCert<'a> {
     /// Returns the number of packets.
     pub fn count(&self) -> usize {
         self.packets.len()
+    }
+
+    /// Returns an iterator over the certificate's keys.
+    ///
+    /// Note: this parses the key packets, but it does not verify any
+    /// binding signatures.  As such, this can only be used as part of
+    /// a precheck.  If the certificate appears to match, then the
+    /// caller must convert the [`RawCert`] to a [`Cert`] or a
+    /// [`ValidCert`], depending on the requirements, and perform the
+    /// check again.
+    ///
+    /// [`ValidCert`]: crate::cert::ValidCert
+    ///
+    /// Use [`subkeys`] to just return the subkeys.  This function
+    /// also changes the return type.  Instead of the iterator
+    /// returning a [`Key`] whose role is [`key::UnspecifiedRole`],
+    /// the role is [`key::SubordinateRole`].
+    ///
+    /// [`subkeys`]: KeyIter::subkeys
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use sequoia_openpgp as openpgp;
+    //
+    /// # use openpgp::Result;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::cert::raw::RawCertParser;
+    /// use openpgp::parse::Parse;
+    /// # use openpgp::serialize::Serialize;
+    /// #
+    /// # fn main() -> Result<()> {
+    /// #      let (cert, _) = CertBuilder::new()
+    /// #          .add_signing_subkey()
+    /// #          .add_certification_subkey()
+    /// #          .add_transport_encryption_subkey()
+    /// #          .add_storage_encryption_subkey()
+    /// #          .add_authentication_subkey()
+    /// #          .generate()?;
+    /// #
+    /// #      let mut bytes = Vec::new();
+    /// #      cert.serialize(&mut bytes);
+    /// # let mut certs = 0;
+    /// # let mut keys = 0;
+    /// for cert in RawCertParser::from_bytes(&bytes)? {
+    ///     /// Ignore corrupt and invalid certificates.
+    ///     let cert = if let Ok(cert) = cert {
+    ///         cert
+    ///     } else {
+    ///         continue;
+    ///     };
+    ///
+    ///     // Iterate over the keys.  Note: this parses the Key
+    ///     // packets.
+    ///     for key in cert.keys() {
+    ///         println!("{}", key.fingerprint());
+    /// #       keys += 1;
+    ///     }
+    /// #   certs += 1;
+    /// }
+    /// # assert_eq!(certs, 1);
+    /// # assert_eq!(keys, 6);
+    /// #     Ok(())
+    /// # }
+    /// ```
+    pub fn keys(&self) -> KeyIter<key::PublicParts, key::UnspecifiedRole> {
+        KeyIter::new(self)
+    }
+
+    // Returns an iterator over the certificate's keys.
+    //
+    // This is used by `KeyIter`, which implements a number of
+    // filters.
+    fn keys_internal(&self)
+        -> impl Iterator<Item=Key<key::PublicParts, key::UnspecifiedRole>> + '_
+    {
+        self.packets()
+            .filter_map(|p| {
+                if matches!(p.tag(),
+                            Tag::PublicKey | Tag::PublicSubkey
+                            | Tag::SecretKey | Tag::SecretSubkey)
+                {
+                    Key::from_bytes(p.body())
+                        .ok()
+                        .map(|k| k.parts_into_public())
+                } else {
+                    None
+                }
+            })
+    }
+
+    /// Returns the certificate's primary key.
+    ///
+    /// Note: this parses the primary key packet, but it does not
+    /// verify any binding signatures.  As such, this can only be used
+    /// as part of a precheck.  If the certificate appears to match,
+    /// then the caller must convert the [`RawCert`] to a [`Cert`] or
+    /// a [`ValidCert`], depending on the requirements, and perform
+    /// the check again.
+    ///
+    /// [`ValidCert`]: crate::cert::ValidCert
+    pub fn primary_key(&self) -> Key<key::PublicParts, key::PrimaryRole> {
+        self.keys().next().expect("have a primary key").role_into_primary()
+    }
+
+    /// Returns the certificate's User IDs.
+    ///
+    /// Note: this parses the User ID packets, but it does not verify
+    /// any binding signatures.  That is, there is no guarantee that
+    /// the User IDs should actually be associated with the primary
+    /// key.  As such, this can only be used as part of a precheck.
+    /// If a User ID appears to match, then the caller must convert
+    /// the [`RawCert`] to a [`Cert`] or a [`ValidCert`], depending on
+    /// the requirements, and perform the check again.
+    ///
+    /// [`ValidCert`]: crate::cert::ValidCert
+    pub fn userids(&self) -> impl Iterator<Item=UserID> + '_
+    {
+        self.packets()
+            .filter_map(|p| {
+                if p.tag() == Tag::UserID {
+                    UserID::try_from(p.body()).ok()
+                } else {
+                    None
+                }
+            })
     }
 }
 
@@ -1351,5 +1482,42 @@ mod test {
         }
 
         Ok(())
+    }
+
+    #[test]
+    fn accessors() {
+        let testy = crate::tests::key("testy.pgp");
+
+        let certs = RawCertParser::from_bytes(testy)
+            .expect("valid")
+            .collect::<Result<Vec<RawCert>>>()
+            .expect("valid");
+        assert_eq!(certs.len(), 1);
+        let cert = &certs[0];
+        assert_eq!(cert.as_bytes(), testy);
+
+        assert_eq!(cert.primary_key().fingerprint(),
+                   "3E8877C877274692975189F5D03F6F865226FE8B"
+                       .parse().expect("valid"));
+        assert_eq!(cert.keys().map(|k| k.fingerprint()).collect::<Vec<_>>(),
+                   vec![
+                       "3E8877C877274692975189F5D03F6F865226FE8B"
+                           .parse().expect("valid"),
+                       "01F187575BD45644046564C149E2118166C92632"
+                           .parse().expect("valid")
+                   ]);
+        assert_eq!(cert.keys().subkeys()
+                   .map(|k| k.fingerprint()).collect::<Vec<_>>(),
+                   vec![
+                       "01F187575BD45644046564C149E2118166C92632"
+                           .parse().expect("valid")
+                   ]);
+        assert_eq!(
+            cert.userids()
+                .map(|u| {
+                    String::from_utf8_lossy(u.value()).into_owned()
+                })
+                .collect::<Vec<_>>(),
+            vec![ "Testy McTestface <testy@example.org>" ]);
     }
 }
