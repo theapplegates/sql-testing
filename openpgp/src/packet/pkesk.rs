@@ -56,7 +56,7 @@ impl PKESK3 {
         })
     }
 
-    /// Creates a new PKESK3 packet for the given recipent.
+    /// Creates a new PKESK3 packet for the given recipient.
     ///
     /// The given symmetric algorithm must match the algorithm that is
     /// used to encrypt the payload.

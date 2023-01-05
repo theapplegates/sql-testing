@@ -1701,8 +1701,8 @@ impl Arbitrary for ReasonForRevocation {
 /// or soft.
 ///
 /// A hard revocation is a revocation that indicates that the key was
-/// somehow compromised, and the provence of *all* artifacts should be
-/// called into question.
+/// somehow compromised, and the provenance of *all* artifacts should
+/// be called into question.
 ///
 /// A soft revocation is a revocation that indicates that the key
 /// should be considered invalid *after* the revocation signature's
