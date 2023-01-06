@@ -280,7 +280,40 @@ pub use self::file_generic::File;
 pub use self::file_unix::File;
 
 // The default buffer size.
-const DEFAULT_BUF_SIZE: usize = 8 * 1024;
+//
+// This is configurable by the SEQUOIA_BUFFERED_READER_BUFFER
+// environment variable.
+lazy_static::lazy_static! {
+    static ref DEFAULT_BUF_SIZE_: usize = {
+        use std::env::var_os;
+        use std::str::FromStr;
+
+        let default = 8 * 1024;
+
+        if let Some(size) = var_os("SEQUOIA_BUFFERED_READER_BUFFER") {
+            size.to_str()
+                .and_then(|s| {
+                    match FromStr::from_str(s) {
+                        Ok(s) => Some(s),
+                        Err(err) => {
+                            eprintln!("Unable to parse the value of \
+                                       'SEQUOIA_BUFFERED_READER_BUFFER'; \
+                                       falling back to the default buffer \
+                                       size ({}): {}",
+                                      err, default);
+                            None
+                        }
+                    }
+                })
+                .unwrap_or(default)
+        } else {
+            default
+        }
+    };
+}
+fn default_buf_size() -> usize {
+    *DEFAULT_BUF_SIZE_
+}
 
 // On debug builds, Vec<u8>::truncate is very, very slow.  For
 // instance, running the decrypt_test_stream test takes 51 seconds on
@@ -450,7 +483,7 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
         // implementation might try to actually allocate a buffer that
         // large!  Instead, try with increasingly larger buffers until
         // the read is (strictly) shorter than the specified size.
-        let mut s = DEFAULT_BUF_SIZE;
+        let mut s = default_buf_size();
         // We will break the loop eventually, because self.data(s)
         // must return a slice shorter than std::usize::MAX.
         loop {
@@ -732,7 +765,7 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
                 // Try self.buffer.  Only if it is empty, use
                 // self.data.
                 let buffer = if self.buffer().is_empty() {
-                    self.data(DEFAULT_BUF_SIZE)?
+                    self.data(default_buf_size())?
                 } else {
                     self.buffer()
                 };
@@ -817,10 +850,10 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     fn drop_eof(&mut self) -> Result<bool, std::io::Error> {
         let mut at_least_one_byte = false;
         loop {
-            let n = self.data(DEFAULT_BUF_SIZE)?.len();
+            let n = self.data(default_buf_size())?.len();
             at_least_one_byte |= n > 0;
             self.consume(n);
-            if n < DEFAULT_BUF_SIZE {
+            if n < default_buf_size() {
                 // EOF.
                 break;
             }

@@ -81,7 +81,7 @@ impl<T: io::Read + Send + Sync, C: fmt::Debug + Sync + Send> Generic<T, C> {
             unused_buffer: None,
             preferred_chunk_size:
                 if let Some(s) = preferred_chunk_size { s }
-                else { DEFAULT_BUF_SIZE },
+                else { default_buf_size() },
             reader,
             error: None,
             eof: false,
@@ -140,7 +140,7 @@ impl<T: io::Read + Send + Sync, C: fmt::Debug + Sync + Send> Generic<T, C> {
             // available.  Read some more.
 
             let capacity : usize = cmp::max(cmp::max(
-                DEFAULT_BUF_SIZE,
+                default_buf_size(),
                 2 * self.preferred_chunk_size), amount);
 
             let mut buffer_new = self.unused_buffer.take()
@@ -361,7 +361,7 @@ mod test {
     #[test]
     fn buffer_test() {
         // Test vector.
-        let size = 10 * DEFAULT_BUF_SIZE;
+        let size = 10 * default_buf_size();
         let mut input = Vec::with_capacity(size);
         let mut v = 0u8;
         for _ in 0..size {
@@ -377,11 +377,11 @@ mod test {
 
         // Gather some stats to make it easier to figure out whether
         // this test is working.
-        let stats_count =  2 * DEFAULT_BUF_SIZE;
+        let stats_count =  2 * default_buf_size();
         let mut stats = vec![0usize; stats_count];
 
         for i in 0..input.len() {
-            let data = reader.data(DEFAULT_BUF_SIZE + 1).unwrap().to_vec();
+            let data = reader.data(default_buf_size() + 1).unwrap().to_vec();
             assert!(!data.is_empty());
             assert_eq!(data, reader.buffer());
             // And, we may as well check to make sure we read the

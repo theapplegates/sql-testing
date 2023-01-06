@@ -151,7 +151,7 @@ mod test {
     fn buffer_test() {
         // Test vector.  A Memory returns all unconsumed
         // data.  So, use a relatively small buffer size.
-        let size = DEFAULT_BUF_SIZE;
+        let size = default_buf_size();
         let mut input = Vec::with_capacity(size);
         let mut v = 0u8;
         for _ in 0..size {
@@ -166,7 +166,7 @@ mod test {
         let mut reader = Memory::new(&input[..]);
 
         for i in 0..input.len() {
-            let data = reader.data(DEFAULT_BUF_SIZE + 1).unwrap().to_vec();
+            let data = reader.data(default_buf_size() + 1).unwrap().to_vec();
             assert!(!data.is_empty());
             assert_eq!(data, reader.buffer());
             // And, we may as well check to make sure we read the
