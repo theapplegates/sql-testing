@@ -1554,9 +1554,8 @@ impl<'a> Reader<'a> {
             // The caller wants more data than we have readily
             // available.  Read some more.
 
-            let capacity : usize = cmp::max(cmp::max(
-                DEFAULT_BUF_SIZE,
-                2 * self.preferred_chunk_size), amount);
+            let capacity : usize = amount
+                + cmp::max(DEFAULT_BUF_SIZE, 2 * self.preferred_chunk_size);
 
             let mut buffer_new = self.unused_buffer.take()
                 .map(|mut v| {
