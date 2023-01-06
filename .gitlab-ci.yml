@@ -50,7 +50,7 @@ bookworm:
   tags:
     - linux
   stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
   script:
     - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-nettle,compression --example supported-algorithms
     - $MAKE_TOP test
@@ -65,7 +65,7 @@ sq-features:
   tags:
     - linux
   stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
   only:
     refs:
       # Run unconditionally for branch names that contain sq and main,
@@ -91,7 +91,7 @@ bookworm-crypto-rust:
   tags:
     - linux
   stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
   dependencies:
     - codespell
   script:
@@ -105,7 +105,7 @@ bookworm-crypto-openssl:
   tags:
     - linux
   stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
   dependencies:
     - codespell
   script:
@@ -117,7 +117,7 @@ bookworm-crypto-openssl:
 
 benchmarks:
   stage: test
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/bookworm:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm:latest
   needs: ["rust-stable"]
   only:
     refs:
@@ -147,7 +147,7 @@ benchmarks:
 all_commits:
   # Test each commit up to main, to facilitate bisecting.
   stage: test
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   needs: ["rust-stable"]
   except:
     # Do not run for pushes to the pep-engine branch.
@@ -163,7 +163,7 @@ codespell:
   tags:
     - linux
   stage: pre-check
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/bookworm:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm:latest
 
   before_script:
     - *before_script_start
@@ -176,7 +176,7 @@ doc:
   tags:
     - linux
   stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   before_script:
     - *before_script_start
     - rustup override set stable
@@ -191,7 +191,7 @@ rust-stable:
   tags:
     - linux
   stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   before_script:
     - *before_script_start
     - rustup override set stable
@@ -206,7 +206,7 @@ clippy:
   tags:
     - linux
   stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   before_script:
     - *before_script_start
     - apt-get -y install libssl-dev capnproto libsqlite3-dev
@@ -224,7 +224,7 @@ rust-stable-armv7:
   tags:
     - linux
   stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/bullseye-cross-arm-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bullseye-cross-arm-prebuild:latest
   before_script:
     - *before_script_start
     - cat .ci/snippet_for_cross_compilation_config.toml >> .cargo/config.toml
@@ -244,7 +244,7 @@ windows-gnu-nettle:
     - win
     - win2019
   stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/windows-gnu
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/windows-gnu
   only:
     variables:
       # Forks of this project most likely use gitlab's shared windows runners, which
@@ -275,7 +275,7 @@ windows-gnu-cng:
   # Windows jobs, allowing us to test the other toolchain as well.
   needs:
     - windows-gnu-nettle
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/windows-gnu
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/windows-gnu
   only:
     variables:
       # Forks of this project most likely use gitlab's shared windows runners, which
@@ -300,7 +300,7 @@ windows-msvc-cng:
     - win
     - win2019
   stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/windows-msvc
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/windows-msvc
   only:
     variables:
       # Forks of this project most likely use gitlab's shared windows runners, which
@@ -332,7 +332,7 @@ windows-msvc32-cng:
   needs:
     - windows-msvc-cng
   image:
-    name: registry.gitlab.com/sequoia-pgp/build-docker-image/windows-msvc
+    name: 192.168.122.1:5000/sequoia-pgp/build-docker-image/windows-msvc
     # Set up a cross compilation environment for building x86 binaries on amd64, line copied from Dockerfile.windows.msvc
     # see https://renenyffenegger.ch/notes/Windows/dirs/Program-Files-x86/Microsoft-Visual-Studio/version/edition/Common7/Tools/VsDevCmd_bat
     #
