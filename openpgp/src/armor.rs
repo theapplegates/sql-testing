@@ -581,7 +581,7 @@ pub struct Reader<'a> {
 assert_send_and_sync!(Reader<'_>);
 
 // The default buffer size.
-const DEFAULT_BUF_SIZE: usize = 8 * 1024;
+const DEFAULT_BUF_SIZE: usize = 32 * 1024;
 
 impl<'a> fmt::Display for Reader<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -288,7 +288,7 @@ lazy_static::lazy_static! {
         use std::env::var_os;
         use std::str::FromStr;
 
-        let default = 8 * 1024;
+        let default = 32 * 1024;
 
         if let Some(size) = var_os("SEQUOIA_BUFFERED_READER_BUFFER") {
             size.to_str()
