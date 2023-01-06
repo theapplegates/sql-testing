@@ -61,25 +61,6 @@ bookworm:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
 
-bookworm:arm64:
-  tags:
-    - docker-arm64
-  stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/bookworm-prebuild-arm64:latest
-  when: manual
-  only:
-    variables:
-      # Forks of this project most likely do not have an arm64 runner
-      - $CI_PROJECT_NAMESPACE == "sequoia-pgp"
-  script:
-    - $MAKE_TOP test
-    - if ! git diff --quiet Cargo.lock ; then echo "Cargo.lock changed.  Please add the change to the corresponding commit." ; false ; fi
-    - if ! git diff --quiet sq ; then echo "Please commit the changes to sq/src/sq-usage.md." ; false ; fi
-    - if ! git diff --quiet ; then echo "The build changed the source.  Please investigate." ; git diff ; fi
-  variables:
-    CARGO_TARGET_DIR: /target
-    CARGO_HOME: /cargo
-
 sq-features:
   tags:
     - linux
@@ -178,33 +159,6 @@ all_commits:
     CARGO_HOME: /cargo
     GIT_STRATEGY: clone
 
-all_commits:arm64:
-  # Test each commit up to main, to facilitate bisecting.
-  tags:
-    - docker-arm64
-  stage: test
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/rust-stable-prebuild-arm64:latest
-  needs: ["rust-stable:arm64"]
-  only:
-    refs:
-      - /arm64/i # refs containing 'arm64' keyword
-      - tags
-      - web
-      - schedules
-    variables:
-      # Forks of this project most likely do not have an arm64 runner
-      - $CI_PROJECT_NAMESPACE == "sequoia-pgp"
-  when: manual
-  except:
-    # Do not run for pushes to the pep-engine branch.
-    - /^pep-engine$/
-  script:
-    - .ci/all_commits.sh
-  variables:
-    CARGO_TARGET_DIR: /target
-    CARGO_HOME: /cargo
-    GIT_STRATEGY: clone
-
 codespell:
   tags:
     - linux
@@ -284,26 +238,6 @@ rust-stable-armv7:
     CARGO_FLAGS: --target=armv7-unknown-linux-gnueabihf
     PKG_CONFIG_PATH: /usr/lib/arm-linux-gnueabihf/pkgconfig
     PKG_CONFIG_ALLOW_CROSS: 1
-
-rust-stable:arm64:
-  tags:
-    - docker-arm64
-  stage: build
-  image: registry.gitlab.com/sequoia-pgp/build-docker-image/rust-stable-prebuild-arm64:latest
-  only:
-    variables:
-      # Forks of this project most likely do not have an arm64 runner
-      - $CI_PROJECT_NAMESPACE == "sequoia-pgp"
-  when: manual
-  before_script:
-    - *before_script_start
-    - rustup override set stable
-    - *before_script_end
-  script:
-    - CARGO_PACKAGES="-p buffered-reader -p sequoia-openpgp" $MAKE_TOP test
-  variables:
-    CARGO_TARGET_DIR: /target
-    CARGO_HOME: /cargo
 
 windows-gnu-nettle:
   tags:
