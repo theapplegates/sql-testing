@@ -26,6 +26,7 @@ sequoia-openpgp = { path = "../openpgp", version = "1.0.0", default-features = f
 anyhow = "1.0.18"
 buffered-reader = { path = "../buffered-reader", version = "1.0.0", default-features = false }
 capnp-rpc = "0.14"
+crossbeam-utils = "0.8"
 fs2 = "0.4.2"
 futures = "0.3.5"
 lalrpop-util = ">=0.17"

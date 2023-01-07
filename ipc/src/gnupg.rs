@@ -616,13 +616,38 @@ impl crypto::Signer for KeyPair {
                 | (DSA, PublicKey::DSA { .. })
                 | (EdDSA, PublicKey::EdDSA { .. })
                 | (ECDSA, PublicKey::ECDSA { .. }) => {
-                    let rt = tokio::runtime::Runtime::new()?;
+                    use tokio::runtime::{Handle, Runtime};
 
-                    rt.block_on(async move {
-                        let mut a = Agent::connect_to(&self.agent_socket).await?;
+                    // Connect to the agent and do the signing
+                    // operation.
+                    let do_it = async move {
+                        let mut a =
+                            Agent::connect_to(&self.agent_socket).await?;
                         let sig = a.sign(self, hash_algo, digest).await?;
                         Ok(sig)
-                    })
+                    };
+
+                    // See if the current thread is managed by a tokio
+                    // runtime.
+                    if Handle::try_current().is_err() {
+                        // Doesn't seem to be the case, so it is safe
+                        // to create a new runtime and block.
+                        let rt = Runtime::new()?;
+                        rt.block_on(do_it)
+                    } else {
+                        // It is!  We must not create a second runtime
+                        // on this thread, but instead we will
+                        // delegate this to a new thread.
+                        use crossbeam_utils::thread;
+
+                        thread::scope(|s| {
+                            s.spawn(move |_| {
+                                let rt = Runtime::new()?;
+                                rt.block_on(do_it)
+                            }).join()
+                        }).map_err(map_panic)?
+                            .map_err(map_panic)?
+                    }
                 },
 
             (pk_algo, _) => Err(openpgp::Error::InvalidOperation(format!(
@@ -647,13 +672,38 @@ impl crypto::Decryptor for KeyPair {
             (PublicKey::RSA { .. }, Ciphertext::RSA { .. })
                 | (PublicKey::ElGamal { .. }, Ciphertext::ElGamal { .. })
                 | (PublicKey::ECDH { .. }, Ciphertext::ECDH { .. }) => {
-                    let rt = tokio::runtime::Runtime::new()?;
+                    use tokio::runtime::{Handle, Runtime};
 
-                    rt.block_on(async move {
-                        let mut a = Agent::connect_to(&self.agent_socket).await?;
+                    // Connect to the agent and do the decryption
+                    // operation.
+                    let do_it = async move {
+                        let mut a =
+                            Agent::connect_to(&self.agent_socket).await?;
                         let sk = a.decrypt(self, ciphertext).await?;
                         Ok(sk)
-                    })
+                    };
+
+                    // See if the current thread is managed by a tokio
+                    // runtime.
+                    if Handle::try_current().is_err() {
+                        // Doesn't seem to be the case, so it is safe
+                        // to create a new runtime and block.
+                        let rt = Runtime::new()?;
+                        rt.block_on(do_it)
+                    } else {
+                        // It is!  We must not create a second runtime
+                        // on this thread, but instead we will
+                        // delegate this to a new thread.
+                        use crossbeam_utils::thread;
+
+                        thread::scope(|s| {
+                            s.spawn(move |_| {
+                                let rt = Runtime::new()?;
+                                rt.block_on(do_it)
+                            }).join()
+                        }).map_err(map_panic)?
+                            .map_err(map_panic)?
+                    }
                 },
 
             (public, ciphertext) =>
@@ -665,6 +715,14 @@ impl crypto::Decryptor for KeyPair {
     }
 }
 
+/// Maps a panic of a worker thread to an error.
+///
+/// Unfortunately, there is nothing useful to do with the error, but
+/// returning a generic error is better than panicking.
+fn map_panic(_: Box<dyn std::any::Any + std::marker::Send>) -> anyhow::Error
+{
+    anyhow::anyhow!("worker thread panicked")
+}
 
 #[derive(thiserror::Error, Debug)]
 /// Errors used in this module.
@@ -679,4 +737,92 @@ pub enum Error {
     #[error("Protocol violation: {0}")]
     ProtocolError(String),
 
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use openpgp::{
+        Cert,
+        crypto::{
+            hash::Digest,
+            mpi::Ciphertext,
+            Decryptor,
+            Signer,
+        },
+    };
+
+    /// Asserts that a <KeyPair as Signer> is usable from an async
+    /// context.
+    ///
+    /// Previously, the test died with
+    ///
+    ///     thread 'gnupg::tests::signer_in_async_context' panicked at
+    ///     'Cannot start a runtime from within a runtime. This
+    ///     happens because a function (like `block_on`) attempted to
+    ///     block the current thread while the thread is being used to
+    ///     drive asynchronous tasks.'
+    #[test]
+    fn signer_in_async_context() -> Result<()> {
+        async fn async_context() -> Result<()> {
+            let ctx = match Context::ephemeral() {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("Failed to create ephemeral context: {}", e);
+                    eprintln!("Most likely, GnuPG isn't installed.");
+                    eprintln!("Skipping test.");
+                    return Ok(());
+                },
+            };
+
+            let key = Cert::from_bytes(crate::tests::key("testy-new.pgp"))?
+                .primary_key().key().clone();
+            let mut pair = KeyPair::new(&ctx, &key)?;
+            let algo = HashAlgorithm::default();
+            let digest = algo.context()?.into_digest()?;
+            let _ = pair.sign(algo, &digest);
+            Ok(())
+        }
+
+        let rt = tokio::runtime::Runtime::new()?;
+        rt.block_on(async_context())
+    }
+
+    /// Asserts that a <KeyPair as Decryptor> is usable from an async
+    /// context.
+    ///
+    /// Previously, the test died with
+    ///
+    ///     thread 'gnupg::tests::decryptor_in_async_context' panicked
+    ///     at 'Cannot start a runtime from within a runtime. This
+    ///     happens because a function (like `block_on`) attempted to
+    ///     block the current thread while the thread is being used to
+    ///     drive asynchronous tasks.'
+    #[test]
+    fn decryptor_in_async_context() -> Result<()> {
+        async fn async_context() -> Result<()> {
+            let ctx = match Context::ephemeral() {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("Failed to create ephemeral context: {}", e);
+                    eprintln!("Most likely, GnuPG isn't installed.");
+                    eprintln!("Skipping test.");
+                    return Ok(());
+                },
+            };
+
+            let key = Cert::from_bytes(crate::tests::key("testy-new.pgp"))?
+                .keys().nth(1).unwrap().key().clone();
+            let mut pair = KeyPair::new(&ctx, &key)?;
+            let ciphertext = Ciphertext::ECDH {
+                e: vec![].into(),
+                key: vec![].into_boxed_slice(),
+            };
+            let _ = pair.decrypt(&ciphertext, None);
+            Ok(())
+        }
+
+        let rt = tokio::runtime::Runtime::new()?;
+        rt.block_on(async_context())
+    }
 }

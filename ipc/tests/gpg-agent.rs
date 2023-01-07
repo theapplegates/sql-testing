@@ -106,6 +106,18 @@ fn gpg_import(ctx: &Context, what: &[u8]) -> openpgp::Result<()> {
 }
 
 #[test]
+fn sync_sign() -> openpgp::Result<()> {
+    sign()
+}
+
+#[test]
+fn async_sign() -> openpgp::Result<()> {
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(async {
+        sign()
+    })
+}
+
 fn sign() -> openpgp::Result<()> {
     use self::CipherSuite::*;
     use openpgp::policy::StandardPolicy as P;
@@ -215,7 +227,19 @@ fn sign() -> openpgp::Result<()> {
 }
 
 #[test]
-fn decrypt() -> openpgp::Result<()> {
+fn sync_decrypt() -> openpgp::Result<()> {
+    decrypt(true)
+}
+
+#[test]
+fn async_decrypt() -> openpgp::Result<()> {
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(async {
+        decrypt(false)
+    })
+}
+
+fn decrypt(also_try_explicit_async: bool) -> openpgp::Result<()> {
     use self::CipherSuite::*;
     use openpgp::policy::StandardPolicy as P;
 
@@ -274,6 +298,7 @@ fn decrypt() -> openpgp::Result<()> {
             literal_writer.finalize().unwrap();
         }
 
+      if also_try_explicit_async {
         // First, test Agent::decrypt.  Using this function we can try
         // multiple decryption requests on the same connection.
         let rt = tokio::runtime::Runtime::new()?;
@@ -305,6 +330,7 @@ fn decrypt() -> openpgp::Result<()> {
 
         // Close connection.
         drop(agent);
+      }
 
         // Make a helper that that feeds the recipient's secret key to the
         // decryptor.
