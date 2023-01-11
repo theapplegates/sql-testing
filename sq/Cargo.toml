@@ -50,7 +50,7 @@ anyhow = "1.0.18"
 clap = { version = "3", features = ["derive", "wrap_help"] }
 clap_complete = "3"
 chrono = "0.4.10"
-sequoia-openpgp = { path = "../openpgp", version = "1.0.0", default-features = false }
+sequoia-openpgp = { path = "../openpgp", version = "1.13", default-features = false }
 sequoia-net = { path = "../net", version = "0.25", default-features = false }
 subplot-build = "0.5.0"
 cfg-if = "1"
@@ -68,11 +68,14 @@ bench = false
 
 [features]
 default = [
-    "crypto-nettle",
-    "compression-bzip2",
+    "sequoia-openpgp/default",
     "autocrypt",
 ]
 crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
+crypto-openssl = ["sequoia-openpgp/crypto-openssl"]
 crypto-cng = ["sequoia-openpgp/crypto-cng"]
-compression-bzip2 = ["buffered-reader/compression-bzip2", "sequoia-openpgp/compression-bzip2"]
+crypto-rust = ["sequoia-openpgp/crypto-rust"]
+compression = ["sequoia-openpgp/compression"]
+compression-deflate = ["sequoia-openpgp/compression-deflate"]
+compression-bzip2 = ["sequoia-openpgp/compression-bzip2"]
 autocrypt = ["sequoia-autocrypt"]
