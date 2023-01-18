@@ -194,7 +194,7 @@ impl HashAlgorithm {
     ///   [`HashAlgorithm::is_supported`]: HashAlgorithm::is_supported()
     pub fn context(self) -> Result<Box<dyn Digest>> {
         let hasher: Box<dyn Digest> = match self {
-            HashAlgorithm::SHA1 =>
+            HashAlgorithm::SHA1 if ! cfg!(feature = "crypto-fuzzing") =>
                 Box::new(crate::crypto::backend::sha1cd::build()),
             _ => self.new_hasher()?,
         };

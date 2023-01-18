@@ -68,6 +68,7 @@ fn crypto_backends_sanity_check() {
                           any(feature = "crypto-openssl",
                               feature = "crypto-botan",
                               feature = "crypto-botan2",
+                              feature = "crypto-fuzzing",
                               feature = "crypto-rust"))))),
          Backend {
              name: "Nettle",
@@ -80,6 +81,7 @@ fn crypto_backends_sanity_check() {
                               feature = "crypto-openssl",
                               feature = "crypto-botan",
                               feature = "crypto-botan2",
+                              feature = "crypto-fuzzing",
                               feature = "crypto-rust"))))),
          Backend {
              name: "Windows CNG",
@@ -109,6 +111,12 @@ fn crypto_backends_sanity_check() {
              name: "Botan",
              production_ready: true,
              constant_time: true,
+         }),
+        (cfg!(feature = "crypto-fuzzing"),
+         Backend {
+             name: "Fuzzing",
+             production_ready: false,
+             constant_time: false,
          }),
     ].into_iter().filter_map(|(selected, backend)| {
         if selected { Some(backend) } else { None }

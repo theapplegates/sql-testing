@@ -17,6 +17,7 @@ pub(crate) mod sha1cd;
                   any(feature = "crypto-openssl",
                       feature = "crypto-botan",
                       feature = "crypto-botan2",
+                      feature = "crypto-fuzzing",
                       feature = "crypto-rust")))))]
 mod nettle;
 #[cfg(all(feature = "crypto-nettle",
@@ -24,6 +25,7 @@ mod nettle;
                   any(feature = "crypto-openssl",
                       feature = "crypto-botan",
                       feature = "crypto-botan2",
+                      feature = "crypto-fuzzing",
                       feature = "crypto-rust")))))]
 pub use self::nettle::*;
 #[cfg(all(feature = "crypto-nettle",
@@ -48,6 +50,7 @@ pub use self::nettle::Backend;
                       feature = "crypto-openssl",
                       feature = "crypto-botan",
                       feature = "crypto-botan2",
+                      feature = "crypto-fuzzing",
                       feature = "crypto-rust")))))]
 mod cng;
 #[cfg(all(feature = "crypto-cng",
@@ -56,6 +59,7 @@ mod cng;
                       feature = "crypto-openssl",
                       feature = "crypto-botan",
                       feature = "crypto-botan2",
+                      feature = "crypto-fuzzing",
                       feature = "crypto-rust")))))]
 pub use self::cng::*;
 #[cfg(all(feature = "crypto-cng",
@@ -64,6 +68,7 @@ pub use self::cng::*;
                       feature = "crypto-openssl",
                       feature = "crypto-botan",
                       feature = "crypto-botan2",
+                      feature = "crypto-fuzzing",
                       feature = "crypto-rust")))))]
 pub use self::cng::Backend;
 
@@ -87,3 +92,10 @@ mod botan;
 pub use self::botan::*;
 #[cfg(feature = "crypto-botan")]
 pub use self::botan::Backend;
+
+#[cfg(feature = "crypto-fuzzing")]
+mod fuzzing;
+#[cfg(feature = "crypto-fuzzing")]
+pub use self::fuzzing::*;
+#[cfg(feature = "crypto-fuzzing")]
+pub use self::fuzzing::Backend;

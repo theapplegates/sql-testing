@@ -126,6 +126,7 @@ crypto-cng = [
 crypto-openssl = ["openssl", "openssl-sys"]
 crypto-botan = ["botan/botan3"]
 crypto-botan2 = ["botan"]
+crypto-fuzzing = []
 __implicit-crypto-backend-for-tests = []
 
 # Experimental and variable-time cryptographic backends opt-ins

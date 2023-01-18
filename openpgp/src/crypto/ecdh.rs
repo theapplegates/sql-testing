@@ -20,6 +20,7 @@ use crate::packet::Key;
 use crate::types::{Curve, HashAlgorithm, PublicKeyAlgorithm, SymmetricAlgorithm};
 use crate::utils::{read_be_u64, write_be_u64};
 
+#[allow(unused_imports)]
 pub(crate) use crate::crypto::backend::ecdh::{encrypt, decrypt};
 
 /// Returns the default ECDH KDF hash function.
@@ -66,7 +67,7 @@ pub(crate) fn default_ecdh_kek_cipher(curve: &Curve) -> SymmetricAlgorithm {
 /// `VB` is the ephemeral public key encoded appropriately as MPI
 /// (i.e. with the 0x40 prefix for X25519, or 0x04 for the NIST
 /// curves), `S` is the shared Diffie-Hellman secret.
-#[allow(non_snake_case)]
+#[allow(non_snake_case, dead_code)]
 pub(crate) fn encrypt_wrap<R>(recipient: &Key<key::PublicParts, R>,
                               session_key: &SessionKey, VB: MPI,
                               S: &Protected)
@@ -194,6 +195,7 @@ fn kdf(x: &Protected, obits: usize, hash: HashAlgorithm, param: &[u8])
 /// See [Section 8 of RFC 6637].
 ///
 ///   [Section 8 of RFC 6637]: https://tools.ietf.org/html/rfc6637#section-8
+#[allow(dead_code)]
 fn pkcs5_pad(sk: Protected, target_len: usize) -> Result<Protected> {
     if sk.len() > target_len {
         return Err(Error::InvalidArgument(

@@ -104,6 +104,18 @@ trixie-crypto-botan:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
 
+trixie-crypto-fuzzing:
+  tags:
+    - linux
+  stage: build
+  interruptible: true
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
+  script:
+    - cargo check --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-fuzzing,compression,allow-experimental-crypto,allow-variable-time-crypto
+  variables:
+    CARGO_TARGET_DIR: /target
+    CARGO_HOME: /cargo
+
 all_commits:
   # Test each commit up to main, to facilitate bisecting.
   stage: test
