@@ -585,6 +585,9 @@ impl IMessageStructure {
     }
 
     fn new_compression_layer(&mut self, algo: CompressionAlgorithm) {
+        tracer!(TRACE, "IMessageStructure::new_compression_layer", TRACE_INDENT);
+        t!("pushing a {:?} layer", algo);
+
         self.insert_missing_signature_group();
         self.layers.push(IMessageLayer::Compression {
             algo,
@@ -596,6 +599,9 @@ impl IMessageStructure {
                             expect_mdc: bool,
                             sym_algo: SymmetricAlgorithm,
                             aead_algo: Option<AEADAlgorithm>) {
+        tracer!(TRACE, "IMessageStructure::new_encryption_layer", TRACE_INDENT);
+        t!("pushing a {:?}/{:?} layer", sym_algo, aead_algo);
+
         self.insert_missing_signature_group();
         self.layers.push(IMessageLayer::Encryption {
             depth,
@@ -627,7 +633,13 @@ impl IMessageStructure {
     /// Makes sure that we insert a signature group even if the
     /// previous OPS packet had the last flag set to false.
     fn insert_missing_signature_group(&mut self) {
+        tracer!(TRACE, "IMessageStructure::insert_missing_signature_group",
+                TRACE_INDENT);
+
         if self.sig_group_counter > 0 {
+            t!("implicit insert of signature group for {} sigs",
+               self.sig_group_counter);
+
             self.layers.push(IMessageLayer::SignatureGroup {
                 sigs: Vec::new(),
                 count: self.sig_group_counter,
@@ -637,6 +649,9 @@ impl IMessageStructure {
     }
 
     fn push_ops(&mut self, ops: &OnePassSig) {
+        tracer!(TRACE, "IMessageStructure::push_ops", TRACE_INDENT);
+        t!("Pushing {:?}", ops);
+
         self.sig_group_counter += 1;
         if ops.last() {
             self.layers.push(IMessageLayer::SignatureGroup {
@@ -648,11 +663,21 @@ impl IMessageStructure {
     }
 
     fn push_signature(&mut self, sig: Signature, csf_message: bool) {
-        for layer in self.layers.iter_mut().rev() {
+        tracer!(TRACE, "IMessageStructure::push_signature", TRACE_INDENT);
+        t!("Pushing {:?}", sig);
+        if csf_message {
+            t!("Cleartext Signature Framework transformation enabled");
+        }
+
+        for (i, layer) in self.layers.iter_mut().enumerate().rev() {
+            t!("{}: {:?}", i, layer);
             match layer {
                 IMessageLayer::SignatureGroup {
                     ref mut sigs, ref mut count,
                 } if *count > 0 => {
+                    t!("Layer {} is a signature group with {} outstanding sigs",
+                       i, *count);
+
                     sigs.push(sig);
                     if csf_message {
                         // The CSF transformation does not know how
@@ -2333,6 +2358,9 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
         let mut skesks: Vec<packet::SKESK> = Vec::new();
 
         while let PacketParserResult::Some(mut pp) = ppr {
+            t!("Found a {:?} at depth {}", pp.packet.tag(),
+               pp.recursion_depth());
+
             // Check whether we are actually processing a cleartext
             // signature framework message.
             if v.processing_csf_message.is_none() {
@@ -2588,6 +2616,9 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                 let mut ppr = PacketParserResult::Some(pp);
                 let mut first = true;
                 while let PacketParserResult::Some(pp) = ppr {
+                    t!("Found a {:?} at depth {}", pp.packet.tag(),
+                       pp.recursion_depth());
+
                     // The literal data packet was already inspected.
                     if first {
                         assert_eq!(pp.packet.tag(), packet::Tag::Literal);

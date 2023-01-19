@@ -4339,6 +4339,7 @@ impl <'a> PacketParser<'a> {
         };
 
         let tag = header.ctb().tag();
+        t!("Packet's tag is {}", tag);
 
         // A buffered_reader::Dup always has an inner.
         let mut bio = Box::new(bio).into_inner().unwrap();
