@@ -50,6 +50,7 @@ bookworm:
   tags:
     - linux
   stage: build
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
   script:
     - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-nettle,compression --example supported-algorithms
@@ -65,6 +66,7 @@ sq-features:
   tags:
     - linux
   stage: build
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
   only:
     refs:
@@ -91,6 +93,7 @@ bookworm-crypto-rust:
   tags:
     - linux
   stage: build
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
   dependencies:
     - codespell
@@ -105,6 +108,7 @@ bookworm-crypto-openssl:
   tags:
     - linux
   stage: build
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
   dependencies:
     - codespell
@@ -117,6 +121,7 @@ bookworm-crypto-openssl:
 
 benchmarks:
   stage: test
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm:latest
   needs: ["rust-stable"]
   only:
@@ -147,6 +152,7 @@ benchmarks:
 all_commits:
   # Test each commit up to main, to facilitate bisecting.
   stage: test
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   needs: ["rust-stable"]
   except:
@@ -163,6 +169,7 @@ codespell:
   tags:
     - linux
   stage: pre-check
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm:latest
 
   before_script:
@@ -176,6 +183,7 @@ doc:
   tags:
     - linux
   stage: build
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   before_script:
     - *before_script_start
@@ -191,6 +199,7 @@ rust-stable:
   tags:
     - linux
   stage: build
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   before_script:
     - *before_script_start
@@ -206,6 +215,7 @@ clippy:
   tags:
     - linux
   stage: build
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   before_script:
     - *before_script_start
@@ -224,6 +234,7 @@ rust-stable-armv7:
   tags:
     - linux
   stage: build
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bullseye-cross-arm-prebuild:latest
   before_script:
     - *before_script_start
@@ -244,6 +255,7 @@ windows-gnu-nettle:
     - win
     - win2019
   stage: build
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/windows-gnu
   only:
     variables:
@@ -269,6 +281,7 @@ windows-gnu-cng:
     - win
     - win2019
   stage: build
+  interruptible: true
   # Depend on the main configuration.  As the jobs have common error
   # conditions, if one fails it is often not worth trying the other.
   # Therefore, we can short-circuit here.  Also, this pipelines
@@ -300,6 +313,7 @@ windows-msvc-cng:
     - win
     - win2019
   stage: build
+  interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/windows-msvc
   only:
     variables:
@@ -325,6 +339,7 @@ windows-msvc32-cng:
     - win
     - win2019
   stage: build
+  interruptible: true
   # Depend on the main configuration.  As the jobs have common error
   # conditions, if one fails it is often not worth trying the other.
   # Therefore, we can short-circuit here.  Also, this pipelines
