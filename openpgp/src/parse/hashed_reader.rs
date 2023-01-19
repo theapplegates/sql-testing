@@ -341,7 +341,8 @@ impl Cookie {
                 t!("{:?}: {:?} hashing {} stashed bytes.",
                    hashes_for, h.map(|ctx| ctx.algo()),
                    stashed_data.len());
-                assert!(matches!(h, HashingMode::Text(_)),
+                assert!(matches!(h, HashingMode::Text(_)
+                                 | HashingMode::TextLastWasCr(_)),
                         "CSF transformation uses text signatures");
                 h.update(&stashed_data[..]);
             }
@@ -366,7 +367,8 @@ impl Cookie {
         for h in self.sig_groups[0].hashes.iter_mut() {
             t!("{:?}: {:?} hashing {} bytes.",
                hashes_for, h.map(|ctx| ctx.algo()), l);
-            assert!(matches!(h, HashingMode::Text(_)),
+            assert!(matches!(h, HashingMode::Text(_)
+                             | HashingMode::TextLastWasCr(_)),
                     "CSF transformation uses text signatures");
             h.update(&data[..l]);
         }
