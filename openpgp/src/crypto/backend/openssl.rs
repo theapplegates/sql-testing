@@ -43,7 +43,11 @@ impl Curve {
         } else {
             // the rest of EC algorithms are supported via the same
             // codepath
-            openssl::nid::Nid::try_from(self).is_ok()
+            if let Ok(nid) = openssl::nid::Nid::try_from(self) {
+                openssl::ec::EcGroup::from_curve_name(nid).is_ok()
+            } else {
+                false
+            }
         }
     }
 }
