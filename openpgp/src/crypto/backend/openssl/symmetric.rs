@@ -160,6 +160,7 @@ impl SymmetricAlgorithm {
             #[cfg(not(osslconf = "OPENSSL_NO_BF"))]
             SymmetricAlgorithm::Blowfish => Cipher::bf_cfb64(),
 
+            #[cfg(not(osslconf = "OPENSSL_NO_CAST"))]
             SymmetricAlgorithm::CAST5 => Cipher::cast5_cfb64(),
             _ => return Err(Error::UnsupportedSymmetricAlgorithm(self))?,
         })
@@ -186,6 +187,7 @@ impl SymmetricAlgorithm {
             #[cfg(not(osslconf = "OPENSSL_NO_BF"))]
             SymmetricAlgorithm::Blowfish => Cipher::bf_ecb(),
 
+            #[cfg(not(osslconf = "OPENSSL_NO_CAST"))]
             SymmetricAlgorithm::CAST5 => Cipher::cast5_ecb(),
             _ => Err(Error::UnsupportedSymmetricAlgorithm(self))?,
         })
