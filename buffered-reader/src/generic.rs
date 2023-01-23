@@ -139,8 +139,9 @@ impl<T: io::Read + Send + Sync, C: fmt::Debug + Sync + Send> Generic<T, C> {
             // The caller wants more data than we have readily
             // available.  Read some more.
 
-            let capacity : usize = amount
-                + cmp::max(default_buf_size(), 2 * self.preferred_chunk_size);
+            let capacity : usize = amount.saturating_add(
+                default_buf_size().max(
+                    self.preferred_chunk_size.saturating_mul(2)));
 
             let mut buffer_new = self.unused_buffer.take()
                 .map(|mut v| {
