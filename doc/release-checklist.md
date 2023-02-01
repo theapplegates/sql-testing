@@ -9,20 +9,21 @@ This is a checklist for doing Sequoia releases:
        - For instance, if releasing `sequoia-openpgp` and `sq` depends
          on features that are being released, then bump the dependency
          in `sq/Cargo.toml`.
-  1. Run `cargo check` (this implicitly updates `Cargo.lock`)
-  1. Commit changes to `Cargo.toml` and `Cargo.lock`.
+  1. Run `cargo check -p FOO --features sequoia-openpgp/crypto-nettle`
+     (this implicitly updates `Cargo.lock`)
   1. Update dependencies and run tests.
        - Use the exact Rust toolchain version of the current Sequoia
          MSRV (refer to `README.md`):  `rustup default 1.xx`
-       - Run `cargo update` to update the dependencies.  If some
-         dependency is updated and breaks due to our MSRV, find a good
-         version of that dependency and select it using e.g. 'cargo
-         update -p backtrace --precise  -3.46'.
-       - Run 'make -f .Makefile check'.
+       - Run `cargo update -p FOO` to update the dependencies.  If
+         some dependency is updated and breaks due to our MSRV, find a
+         good version of that dependency and select it using
+         e.g. `cargo update -p backtrace --precise 3.46`.
+       - Run `make -f .Makefile check`.
+  1. Commit changes to `Cargo.toml` and `Cargo.lock`.
   1. If releasing `sequoia-openpgp`, update
      https://sequoia-pgp.org/tmp/stats.txt by running:
-      - `cargo run -p sequoia-openpgp --example statistics --release -- .../sks-dump-*.pgp > /tmp/stats.txt`
-      - `cp /tmp/stats.txt sequoia@sequoia-pgp.org:sequoia-pgp.org/tmp`
+      - `cargo run -p sequoia-openpgp --example statistics --release -- .../sks-dump-*.pgp --features sequoia-openpgp/crypto-nettle > /tmp/stats.txt`
+      - `scp /tmp/stats.txt sequoia@sequoia-pgp.org:sequoia-pgp.org/tmp`
   1. If releasing sq, update the manpage:
       - Clone https://gitlab.com/sequoia-pgp/manpage-maker to a
         separate location.
@@ -38,12 +39,13 @@ This is a checklist for doing Sequoia releases:
        - `git clone git@gitlab.com:sequoia-pgp/sequoia.git`
        - `cd sequoia`
        - `git checkout origin/staging`
-       - `cargo publish -p FOO --dry-run`
+       - `cargo publish -p FOO --dry-run --features sequoia-openpgp/crypto-nettle`
   1. Wait until CI and `cargo publish -p FOO --dry-run` are successful.  In
      case of errors, correct them, and go back to the step creating
      the release commit.
+  1. Run `cargo publish -p FOO --features
+     sequoia-openpgp/crypto-nettle`, wait til it succeeds
   1. Merge the merge request
-  1. Run `cargo publish -p FOO`
   1. Make a tag `FOO/vXXX` with the message `FOO: Release XXX.` signed
      with an offline key, which has been certified by our
      `openpgp-ca@sequoia-pgp.org` key.
@@ -55,5 +57,7 @@ This is a checklist for doing Sequoia releases:
        - `make deploy`
   1. Announce the release.
        - IRC
-       - mailing list (`devel@lists.sequoia-pgp.org`)
+       - mailing list (`announce@lists.sequoia-pgp.org`,
+         `devel@lists.sequoia-pgp.org`, optionally cc `lwn@lwn.net` if
+         there are particularly interesting changes)
        - web site
