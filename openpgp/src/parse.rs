@@ -300,13 +300,16 @@ pub trait Parse<'a, T> {
     }
 }
 
-macro_rules! impl_parse_generic_packet {
+// Implement type::from_buffered_reader and the Parse trait in terms
+// of type::from_buffered_reader for a particular packet type.  If the
+// generic from_buffered_reader implementation is inappropriate, then
+// it can be overridden.
+macro_rules! impl_parse_with_buffered_reader {
     ($typ: ident) => {
-        impl<'a> Parse<'a, $typ> for $typ {
-            fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
-                let bio = buffered_reader::Generic::with_cookie(
-                    reader, None, Cookie::default());
-                let parser = PacketHeaderParser::new_naked(bio);
+        impl_parse_with_buffered_reader!(
+            $typ,
+            |br| -> Result<$typ> {
+                let parser = PacketHeaderParser::new_naked(br);
 
                 let mut pp = Self::parse(parser)?;
                 pp.buffer_unread_content()?;
@@ -322,9 +325,34 @@ macro_rules! impl_parse_generic_packet {
                         Err(Error::InvalidOperation(
                             "Excess data after packet".into()).into()),
                 }
+            });
+    };
+
+    // from_buffered_reader should be a closure that takes a
+    // BufferedReader and returns a Result<Self>.
+    ($typ: ident, $from_buffered_reader: expr) => {
+        impl $typ {
+            fn from_buffered_reader<'a, B>(br: B) -> Result<Self>
+            where B: 'a + BufferedReader<Cookie>,
+            {
+                Ok($from_buffered_reader(br)?)
             }
         }
-    };
+
+        impl<'a> Parse<'a, $typ> for $typ {
+            fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
+                let br = buffered_reader::Generic::with_cookie(
+                    reader, None, Cookie::default());
+                Self::from_buffered_reader(br)
+            }
+
+            fn from_bytes<D: AsRef<[u8]> + ?Sized + Send + Sync>(data: &'a D) -> Result<Self> {
+                let br = buffered_reader::Memory::with_cookie(
+                    data.as_ref(), Default::default());
+                Self::from_buffered_reader(br)
+            }
+        }
+    }
 }
 
 /// The default amount of acceptable nesting.
@@ -1503,7 +1531,7 @@ impl Signature3 {
     }
 }
 
-impl_parse_generic_packet!(Signature);
+impl_parse_with_buffered_reader!(Signature);
 
 #[test]
 fn signature_parser_test () {
@@ -1878,7 +1906,7 @@ impl OnePassSig {
     }
 }
 
-impl_parse_generic_packet!(OnePassSig);
+impl_parse_with_buffered_reader!(OnePassSig);
 
 impl OnePassSig3 {
     #[allow(clippy::blocks_in_if_conditions)]
@@ -2329,11 +2357,11 @@ impl Key4<key::UnspecifiedParts, key::UnspecifiedRole>
     }
 }
 
-impl<'a> Parse<'a, key::UnspecifiedKey> for key::UnspecifiedKey {
-    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
-        let bio = buffered_reader::Generic::with_cookie(
-            reader, None, Cookie::default());
-        let parser = PacketHeaderParser::new_naked(bio);
+use key::UnspecifiedKey;
+impl_parse_with_buffered_reader!(
+    UnspecifiedKey,
+    |br| -> Result<Self> {
+        let parser = PacketHeaderParser::new_naked(br);
 
         let mut pp = Self::parse(parser)?;
         pp.buffer_unread_content()?;
@@ -2350,8 +2378,7 @@ impl<'a> Parse<'a, key::UnspecifiedKey> for key::UnspecifiedKey {
                 Err(Error::InvalidOperation(
                     "Excess data after packet".into()).into()),
         }
-    }
-}
+    });
 
 impl Trust {
     /// Parses the body of a trust packet.
@@ -2362,7 +2389,7 @@ impl Trust {
     }
 }
 
-impl_parse_generic_packet!(Trust);
+impl_parse_with_buffered_reader!(Trust);
 
 impl UserID {
     /// Parses the body of a user id packet.
@@ -2375,7 +2402,7 @@ impl UserID {
     }
 }
 
-impl_parse_generic_packet!(UserID);
+impl_parse_with_buffered_reader!(UserID);
 
 impl UserAttribute {
     /// Parses the body of a user attribute packet.
@@ -2388,7 +2415,7 @@ impl UserAttribute {
     }
 }
 
-impl_parse_generic_packet!(UserAttribute);
+impl_parse_with_buffered_reader!(UserAttribute);
 
 impl Marker {
     /// Parses the body of a marker packet.
@@ -2436,7 +2463,7 @@ impl Marker {
     }
 }
 
-impl_parse_generic_packet!(Marker);
+impl_parse_with_buffered_reader!(Marker);
 
 impl Literal {
     /// Parses the body of a literal packet.
@@ -2481,7 +2508,7 @@ impl Literal {
     }
 }
 
-impl_parse_generic_packet!(Literal);
+impl_parse_with_buffered_reader!(Literal);
 
 #[test]
 fn literal_parser_test () {
@@ -2588,7 +2615,7 @@ impl CompressedData {
     }
 }
 
-impl_parse_generic_packet!(CompressedData);
+impl_parse_with_buffered_reader!(CompressedData);
 
 #[cfg(any(feature = "compression-deflate", feature = "compression-bzip2"))]
 #[test]
@@ -2745,7 +2772,7 @@ impl SKESK5 {
     }
 }
 
-impl_parse_generic_packet!(SKESK);
+impl_parse_with_buffered_reader!(SKESK);
 
 #[test]
 fn skesk_parser_test() {
@@ -2810,7 +2837,7 @@ impl SEIP {
     }
 }
 
-impl_parse_generic_packet!(SEIP);
+impl_parse_with_buffered_reader!(SEIP);
 
 impl MDC {
     /// Parses the body of an MDC packet.
@@ -2865,7 +2892,7 @@ impl MDC {
     }
 }
 
-impl_parse_generic_packet!(MDC);
+impl_parse_with_buffered_reader!(MDC);
 
 impl AED {
     /// Parses the body of a AED packet.
@@ -2880,7 +2907,7 @@ impl AED {
     }
 }
 
-impl_parse_generic_packet!(AED);
+impl_parse_with_buffered_reader!(AED);
 
 impl AED1 {
     /// Parses the body of a AED packet.
@@ -2994,7 +3021,7 @@ impl PKESK {
     }
 }
 
-impl_parse_generic_packet!(PKESK);
+impl_parse_with_buffered_reader!(PKESK);
 
 impl PKESK3 {
     /// Parses the body of an PK-ESK packet.
