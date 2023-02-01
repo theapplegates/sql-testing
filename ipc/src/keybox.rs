@@ -348,16 +348,7 @@ impl OpenPGPRecordV1 {
     /// Ignores metadata and flags stored in the record, but
     /// checks the checksum.
     pub fn cert(&self) -> Result<Cert> {
-        // At the end of the data section, there are 8 bytes following
-        // the cert that I don't understand.
-        // In my samples, there are two versions:
-        // "0xb006_0000_6770_6700" and
-        // "0xb006_0003_6770_6700".
-        // Note that b"gpg" == 0x677067.  Maybe some kind of salt?
-        // Anyway, ignore those bytes.
-        let (cert_data, _trailer) = &self
-            .data_section()?
-            .split_at(self.data_section()?.len() - 8);
+        let cert_data = &self.data_section()?;
         Cert::from_bytes(cert_data)
     }
 }
