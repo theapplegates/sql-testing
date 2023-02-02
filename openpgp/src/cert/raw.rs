@@ -818,7 +818,18 @@ impl<'a> Iterator for RawCertParser<'a>
                     match reader.data_consume_hard(l) {
                         Err(err) => {
                             t!("Stopping: reading {}'s body: {}", tag, err);
-                            pending_error = Some(err.into());
+
+                            // If we encountered an EOF while reading
+                            // the packet body, then we're done.
+                            if err.kind() == std::io::ErrorKind::UnexpectedEof {
+                                t!("Got an unexpected EOF, done.");
+                                self.done = true;
+                            }
+
+                            pending_error = Some(
+                                anyhow::Error::from(err).context(format!(
+                                    "While reading {}'s body", tag)));
+
                             break;
                         }
                         Ok(data) => {
