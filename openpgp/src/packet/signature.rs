@@ -2647,7 +2647,7 @@ impl Signature {
     /// creation and expiration time, or signature revocations must be
     /// checked by the caller.
     ///
-    /// Likewise, this function does not check whether `key` can made
+    /// Likewise, this function does not check whether `key` can make
     /// valid signatures; it is up to the caller to make sure the key
     /// is not revoked, not expired, has a valid self-signature, has a
     /// subkey binding signature (if appropriate), has the signing
@@ -2672,7 +2672,7 @@ impl Signature {
     /// creation and expiration time, or signature revocations must be
     /// checked by the caller.
     ///
-    /// Likewise, this function does not check whether `key` can made
+    /// Likewise, this function does not check whether `key` can make
     /// valid signatures; it is up to the caller to make sure the key
     /// is not revoked, not expired, has a valid self-signature, has a
     /// subkey binding signature (if appropriate), has the signing
@@ -2838,7 +2838,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -2874,7 +2874,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -2915,7 +2915,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -2982,7 +2982,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `subkey` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -3018,7 +3018,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -3057,7 +3057,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -3097,7 +3097,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -3138,7 +3138,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -3187,7 +3187,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -3227,7 +3227,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -3269,7 +3269,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
@@ -3318,7 +3318,7 @@ impl Signature {
     /// time, or signature revocations must be checked by the caller.
     ///
     /// Likewise, this function does not check whether `signer` can
-    /// made valid signatures; it is up to the caller to make sure the
+    /// make valid signatures; it is up to the caller to make sure the
     /// key is not revoked, not expired, has a valid self-signature,
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
