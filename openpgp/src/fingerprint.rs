@@ -75,15 +75,13 @@ impl fmt::Debug for Fingerprint {
 
 impl fmt::UpperHex for Fingerprint {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.convert_to_string(false))
+        self.write_to_fmt(f, true)
     }
 }
 
 impl fmt::LowerHex for Fingerprint {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut hex = self.convert_to_string(false);
-        hex.make_ascii_lowercase();
-        f.write_str(&hex)
+        self.write_to_fmt(f, false)
     }
 }
 
@@ -177,7 +175,17 @@ impl Fingerprint {
     /// # Ok(()) }
     /// ```
     pub fn to_hex(&self) -> String {
-        format!("{:X}", self)
+        use std::fmt::Write;
+
+        let mut output = String::with_capacity(
+            // Each byte results in two hex characters.
+            self.as_bytes().len() * 2);
+
+        // We write to String that never fails but the Write API
+        // returns Results.
+        write!(output, "{:X}", self).unwrap();
+
+        output
     }
 
     /// Converts this fingerprint to its hexadecimal representation
@@ -209,7 +217,23 @@ impl Fingerprint {
     /// # Ok(()) }
     /// ```
     pub fn to_spaced_hex(&self) -> String {
-        self.convert_to_string(true)
+        use std::fmt::Write;
+
+        let raw_len = self.as_bytes().len();
+        let mut output = String::with_capacity(
+            // Each byte results in two hex characters.
+            raw_len * 2
+            +
+            // Every 2 bytes of output, we insert a space.
+            raw_len / 2
+            // After half of the groups, there is another space.
+            + 1);
+
+        // We write to String that never fails but the Write API
+        // returns Results.
+        write!(output, "{:#X}", self).unwrap();
+
+        output
     }
 
     /// Parses the hexadecimal representation of an OpenPGP
@@ -240,7 +264,9 @@ impl Fingerprint {
     }
 
     /// Common code for the above functions.
-    fn convert_to_string(&self, pretty: bool) -> String {
+    fn write_to_fmt(&self, f: &mut fmt::Formatter, upper_case: bool) -> fmt::Result {
+        use std::fmt::Write;
+
         let raw = self.as_bytes();
 
         // We currently only handle V4 fingerprints, which look like:
@@ -252,44 +278,35 @@ impl Fingerprint {
 
         // XXX: v5 fingerprints have no human-readable formatting by
         // choice.
-
-        let mut output = Vec::with_capacity(
-            // Each byte results in to hex characters.
-            raw.len() * 2
-            + if pretty {
-                // Every 2 bytes of output, we insert a space.
-                raw.len() / 2
-                // After half of the groups, there is another space.
-                + 1
-            } else { 0 });
+        let a_letter = if upper_case { b'A' } else { b'a' };
+        let pretty = f.alternate();
 
         for (i, b) in raw.iter().enumerate() {
             if pretty && i > 0 && i % 2 == 0 {
-                output.push(b' ');
+                f.write_char(' ')?;
             }
 
             if pretty && i > 0 && i * 2 == raw.len() {
-                output.push(b' ');
+                f.write_char(' ')?;
             }
 
             let top = b >> 4;
             let bottom = b & 0xFu8;
 
             if top < 10u8 {
-                output.push(b'0' + top)
+                f.write_char((b'0' + top) as char)?;
             } else {
-                output.push(b'A' + (top - 10u8))
+                f.write_char((a_letter + (top - 10u8)) as char)?;
             }
 
             if bottom < 10u8 {
-                output.push(b'0' + bottom)
+                f.write_char((b'0' + bottom) as char)?;
             } else {
-                output.push(b'A' + (bottom - 10u8))
+                f.write_char((a_letter + (bottom - 10u8)) as char)?;
             }
         }
 
-        // We know the content is valid UTF-8.
-        String::from_utf8(output).unwrap()
+        Ok(())
     }
 
     /// Converts the hex representation of the `Fingerprint` to a
@@ -321,7 +338,7 @@ impl Fingerprint {
     pub fn to_icao(&self) -> String {
         let mut ret = String::default();
 
-        for ch in self.convert_to_string(false).chars() {
+        for ch in self.to_hex().chars() {
             let word = match ch {
                 '0' => "Zero",
                 '1' => "One",
