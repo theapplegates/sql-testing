@@ -134,12 +134,15 @@ Like so:
 # Cargo.toml
 [dependencies]
 sequoia-openpgp = { version = "*", default-features = false }
+
 [features]
 # Pick a Sequoia backend enabled by default
-default = ["seqouia-openpgp/crypto-nettle"]
+default = ["sequoia-openpgp/default"]
+
 # .. but allow others to select a different backend, as well
 crypto-cng = ["sequoia-openpgp/crypto-cng"]
 crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
+# .. other backends
 ```
 
 Once Cargo target-specific default features are [implemented], it will
