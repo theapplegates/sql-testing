@@ -32,17 +32,16 @@
 //!
 //! The main signature-related data type is the [`Signature`] enum.
 //! This enum abstracts away the differences between the signature
-//! formats (the deprecated [version 3], the current [version 4], and
-//! the proposed [version 5] formats).  Nevertheless some
-//! functionality remains format specific.  For instance, version 4
-//! signatures introduced support for storing arbitrary key-value
-//! pairs (so-called [notations]).
+//! formats (the current [version 6], the deprecated [version 4], and
+//! the legacy [version 3] formats).  Nevertheless some functionality
+//! remains format specific.  For instance, [version 4] signatures
+//! introduced support for storing arbitrary key-value pairs
+//! (so-called [notations]).
 //!
-//! This version of Sequoia only supports version 4 signatures
-//! ([`Signature4`]).  However, future versions may include limited
-//! support for version 3 signatures to allow working with archived
-//! messages, and we intend to add support for version 5 signatures
-//! once the new version of the specification has been finalized.
+//! This version of Sequoia supports [version 6] and [version 4]
+//! signatures ([`Signature6`] and [`Signature4`]), and includes
+//! limited support for [version 3] signatures to allow working with
+//! archived messages.
 //!
 //! When signing a document, a `Signature` is typically created
 //! indirectly by the [streaming `Signer`].  Similarly, a `Signature`
@@ -78,17 +77,17 @@
 //! # }
 //! ```
 //!
-//! For version 4 signatures, attributes are set using so-called
-//! subpackets.  Subpackets can be stored in two places: either in the
-//! so-called hashed area or in the so-called unhashed area.  Whereas
-//! the hashed area's integrity is protected by the signature, the
-//! unhashed area is not.  Because an attacker can modify the unhashed
-//! area without detection, the unhashed area should only be used for
-//! storing self-authenticating data, e.g., the issuer, or a back
-//! signature.  It is also sometimes used for [hints].
-//! [`Signature::normalize`] removes unexpected subpackets from the
-//! unhashed area.  However, due to a lack of context, it does not
-//! validate the remaining subpackets.
+//! For [version 6] and [version 4] signatures, attributes are set
+//! using so-called subpackets.  Subpackets can be stored in two
+//! places: either in the so-called hashed area or in the so-called
+//! unhashed area.  Whereas the hashed area's integrity is protected
+//! by the signature, the unhashed area is not.  Because an attacker
+//! can modify the unhashed area without detection, the unhashed area
+//! should only be used for storing self-authenticating data, e.g.,
+//! the issuer, or a back signature.  It is also sometimes used for
+//! [hints].  [`Signature::normalize`] removes unexpected subpackets
+//! from the unhashed area.  However, due to a lack of context, it
+//! does not validate the remaining subpackets.
 //!
 //! In Sequoia, each subpacket area is represented by a
 //! [`SubpacketArea`] data structure.  The two subpacket areas are
@@ -102,7 +101,7 @@
 //! [`Signature`]: super::Signature
 //! [version 3]: https://tools.ietf.org/html/rfc1991#section-5.2.2
 //! [version 4]: https://tools.ietf.org/html/rfc4880#section-5.2.3
-//! [version 5]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#name-version-4-and-5-signature-p
+//! [version 6]: https://www.rfc-editor.org/rfc/rfc9580.html#name-versions-4-and-6-signature-
 //! [notations]: https://tools.ietf.org/html/rfc4880#section-5.2.3.16
 //! [streaming `Signer`]: crate::serialize::stream::Signer
 //! [`PacketParser`]: crate::parse::PacketParser
@@ -156,7 +155,7 @@ use crate::types::Timestamp;
 
 #[cfg(test)]
 /// Like quickcheck::Arbitrary, but bounded.
-trait ArbitraryBounded {
+pub(crate) trait ArbitraryBounded {
     /// Generates an arbitrary value, but only recurses if `depth >
     /// 0`.
     fn arbitrary_bounded(g: &mut Gen, depth: usize) -> Self;
@@ -181,6 +180,8 @@ macro_rules! impl_arbitrary_with_bound {
 
 pub mod subpacket;
 pub mod cache;
+mod v6;
+pub use v6::Signature6;
 
 /// How many seconds to backdate signatures.
 ///
@@ -285,6 +286,29 @@ impl SignatureFields {
     /// Gets the hash algorithm.
     pub fn hash_algo(&self) -> HashAlgorithm {
         self.hash_algo
+    }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub(crate) enum SBVersion {
+    V4 {},
+    V6 {
+        salt: Vec<u8>,
+    },
+}
+
+impl Default for SBVersion {
+    fn default() -> Self {
+        SBVersion::V4 {}
+    }
+}
+
+impl SBVersion {
+    fn to_u8(&self) -> u8 {
+        match self {
+            SBVersion::V4 { .. } => 4,
+            SBVersion::V6 { .. } => 6,
+        }
     }
 }
 
@@ -454,7 +478,15 @@ pub struct SignatureBuilder {
     reference_time: Option<SystemTime>,
     overrode_creation_time: bool,
     original_creation_time: Option<SystemTime>,
-    fields: SignatureFields,
+    pub(crate) fields: SignatureFields,
+
+    /// The version of signature in the signature builder.
+    ///
+    /// Note: this is called sb_version instead of version, because
+    /// currently SignaturBuilder derefs to SignatureFields, which
+    /// also has a field called version, which lead to a lot of
+    /// confusion.  Consider renaming it once the deref is gone.
+    pub(crate) sb_version: SBVersion,
 }
 assert_send_and_sync!(SignatureBuilder);
 
@@ -485,7 +517,8 @@ impl SignatureBuilder {
                 pk_algo: PublicKeyAlgorithm::Unknown(0),
                 hash_algo: HashAlgorithm::default(),
                 subpackets: SubpacketAreas::default(),
-            }
+            },
+            sb_version: SBVersion::default(),
         }
     }
 
@@ -1713,7 +1746,27 @@ impl SignatureBuilder {
     /// # Ok(()) }
     /// ```
     pub fn pre_sign(mut self, signer: &dyn Signer) -> Result<Self> {
-        self.pk_algo = signer.public().pk_algo();
+        let pk = signer.public();
+        self.pk_algo = pk.pk_algo();
+
+        // Set the version.  A Key6 will create a Signature6, a key4
+        // will create a Signature4.  If necessary, generate a salt.
+        // If the salt has been explicitly set, it is not changed.
+        self.sb_version = match (self.sb_version, pk.version()) {
+            (SBVersion::V4 {}, 4) => SBVersion::V4 {},
+            (SBVersion::V6 { .. }, 4) => SBVersion::V4 {},
+            (SBVersion::V4 {}, 6) => {
+                let mut salt = vec![0; self.fields.hash_algo().salt_size()?];
+                crate::crypto::random(&mut salt);
+                SBVersion::V6 { salt }
+            },
+            (SBVersion::V6 { salt }, 6) => SBVersion::V6 { salt },
+            (_, n) => return Err(Error::InvalidOperation(
+                format!("Unsupported key version {}", n)).into()),
+        };
+
+        // Update the version in the fields struct.
+        self.fields.version = self.sb_version.to_u8();
 
         // Set the creation time.
         if ! self.overrode_creation_time {
@@ -1722,31 +1775,83 @@ impl SignatureBuilder {
             }
         }
 
-        // Make sure we have an issuer packet.
-        if self.issuers().next().is_none()
-            && self.issuer_fingerprints().next().is_none()
-        {
-            self = self.set_issuer(signer.public().keyid())?
-                .set_issuer_fingerprint(signer.public().fingerprint())?;
-        }
+        match &self.sb_version {
+            SBVersion::V4 {} => {
+                // Make sure we have an issuer packet.
+                if self.issuers().next().is_none()
+                    && self.issuer_fingerprints().next().is_none()
+                {
+                    self = self.set_issuer(signer.public().keyid())?
+                        .set_issuer_fingerprint(signer.public().fingerprint())?;
+                }
 
-        // Add a salt to make the signature unpredictable.
-        let mut salt = [0; 32];
-        crate::crypto::random(&mut salt);
-        self = self.set_notation("salt@notations.sequoia-pgp.org",
-                                 salt, None, false)?;
+                // Add a salt to v4 signatures to make the signature
+                // unpredictable.
+                let mut salt = [0; 32];
+                crate::crypto::random(&mut salt);
+                self = self.set_notation("salt@notations.sequoia-pgp.org",
+                                         salt, None, false)?;
+            },
+            SBVersion::V6 { .. } => {
+                // Make sure we have an issuer fingerprint packet.
+                if self.issuer_fingerprints().next().is_none() {
+                    self = self
+                        .set_issuer_fingerprint(signer.public().fingerprint())?;
+                }
+
+                // In v6 signatures, we have a proper prefix salt.
+            },
+        }
 
         self.sort();
 
         Ok(self)
     }
 
+    /// Returns the prefix salt.
+    ///
+    /// In OpenPGP v6 signatures, a salt is prefixed to the data
+    /// stream hashed in the signature.  If a v6 signature is
+    /// generated by using a v6 key, then a salt will be added
+    /// automatically.  If a salt has been set explicitly (see
+    /// [`SignatureBuilder::set_prefix_salt`]), this function will
+    /// return the salt.
+    pub fn prefix_salt(&self) -> Option<&[u8]> {
+        match &self.sb_version {
+            SBVersion::V4 {} => None,
+            SBVersion::V6 { salt } => Some(salt),
+        }
+    }
+
+    /// Explicitly sets the prefix salt.
+    ///
+    /// In OpenPGP v6 signatures, a salt is prefixed to the data
+    /// stream hashed in the signature.  If a v6 signature is
+    /// generated by using a v6 key, then a salt will be added
+    /// automatically.  In general, you do not need to call this
+    /// function.
+    ///
+    /// When streaming a signed message, it is useful to explicitly
+    /// set the salt using this function.
+    pub fn set_prefix_salt(mut self, new_salt: Vec<u8>) -> (Self, Option<Vec<u8>>) {
+        let mut old = None;
+
+        self.sb_version = match std::mem::take(&mut self.sb_version) {
+            SBVersion::V4 {} => SBVersion::V6 { salt: new_salt },
+            SBVersion::V6 { salt } => {
+                old = Some(salt);
+                SBVersion::V6 { salt: new_salt }
+            },
+        };
+
+        (self, old)
+    }
+
     fn sign(self, signer: &mut dyn Signer, digest: Vec<u8>)
         -> Result<Signature>
     {
         let mpis = signer.sign(self.hash_algo, &digest)?;
-
-        Ok(Signature4 {
+        let v4 = Signature4 {
             common: Default::default(),
             fields: self.fields,
             digest_prefix: [digest[0], digest[1]],
@@ -1754,7 +1859,13 @@ impl SignatureBuilder {
             computed_digest: digest.into(),
             level: 0,
             additional_issuers: OnceLock::new(),
-        }.into())
+        };
+
+        match self.sb_version {
+            SBVersion::V4 {} => Ok(v4.into()),
+            SBVersion::V6 { salt } =>
+                Ok(Signature6::from_common(v4, salt)?.into())
+        }
     }
 }
 
@@ -1763,6 +1874,7 @@ impl From<Signature> for SignatureBuilder {
         match sig {
             Signature::V3(sig) => sig.into(),
             Signature::V4(sig) => sig.into(),
+            Signature::V6(sig) => sig.into(),
         }
     }
 }
@@ -1788,7 +1900,14 @@ impl From<Signature4> for SignatureBuilder {
             overrode_creation_time: false,
             original_creation_time: creation_time,
             fields,
+            sb_version: Default::default(),
         }
+    }
+}
+
+impl From<Signature6> for SignatureBuilder {
+    fn from(sig: Signature6) -> Self {
+        SignatureBuilder::from(sig.common)
     }
 }
 
@@ -2768,6 +2887,23 @@ impl Signature {
                               computed_digest: Option<Cow<[u8]>>)
                               -> Result<()>
     {
+        // Only v6 keys may create v6 signatures.
+        if (self.version() == 6) != (key.version() == 6) {
+            return Err(Error::BadSignature(
+                format!("Signature (v{}) and key (v{}) version mismatch",
+                        self.version(), key.version())).into());
+        }
+
+        // Check salt size.
+        if self.version() == 6 &&
+            Some(self.hash_algo().salt_size()?) != self.salt().map(|s| s.len())
+        {
+            return Err(Error::BadSignature(
+                format!("Salt of size {} bytes is wrong, expected {} bytes ",
+                        self.salt().map(|s| s.len()).unwrap_or(0),
+                        self.hash_algo().salt_size()?)).into());
+        }
+
         if let Some(creation_time) = self.signature_creation_time() {
             if creation_time < key.creation_time() {
                 return Err(Error::BadSignature(
@@ -2806,6 +2942,15 @@ impl Signature {
         } else {
             key.verify(self.mpis(), self.hash_algo(), digest)
         };
+
+        if let Ok(expected_salt_len) = self.hash_algo().salt_size() {
+            let salt_len = self.salt().map(|s| s.len()).unwrap_or(0);
+            if self.version() == 6 && salt_len != expected_salt_len {
+                return Err(Error::BadSignature(format!(
+                    "bad salt length, expected {} got {}",
+                    expected_salt_len, salt_len)).into());
+            }
+        }
 
         if result.is_ok() {
             // Mark information in this signature as authenticated.
@@ -3528,10 +3673,11 @@ impl From<Signature4> for super::Signature {
 #[cfg(test)]
 impl ArbitraryBounded for super::Signature {
     fn arbitrary_bounded(g: &mut Gen, depth: usize) -> Self {
-        if bool::arbitrary(g) {
-            Signature3::arbitrary_bounded(g, depth).into()
-        } else {
-            Signature4::arbitrary_bounded(g, depth).into()
+        match u8::arbitrary(g) % 3 {
+            0 => Signature3::arbitrary_bounded(g, depth).into(),
+            1 => Signature4::arbitrary_bounded(g, depth).into(),
+            2 => Signature6::arbitrary_bounded(g, depth).into(),
+            _ => unreachable!(),
         }
     }
 }

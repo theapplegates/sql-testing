@@ -68,6 +68,11 @@
    - crypto::hash::Context
    - HashAlgorithm::digest_size
    - crypto::hash::Builder
+   - Signature::V6
+   - Signature6
+   - SignatureBuilder::prefix_salt
+   - SignatureBuilder::set_prefix_salt
+   - HashAlgorithm::salt_size
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms
