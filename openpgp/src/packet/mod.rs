@@ -168,9 +168,16 @@ pub use container::Body;
 
 pub mod prelude;
 
-use crate::crypto::{
-    KeyPair,
-    Password,
+use crate::{
+    crypto::{
+        KeyPair,
+        Password,
+        mpi,
+    },
+    policy::HashAlgoSecurity,
+    types::{
+        PublicKeyAlgorithm,
+    },
 };
 
 mod any;
@@ -188,6 +195,7 @@ pub mod one_pass_sig;
 pub mod key;
 use key::{
     Key4,
+    Key6,
     SecretKeyMaterial
 };
 mod marker;
@@ -450,10 +458,14 @@ impl Packet {
             Packet::Unknown(ref packet) => &packet.common,
             Packet::Signature(ref packet) => &packet.common,
             Packet::OnePassSig(ref packet) => &packet.common,
-            Packet::PublicKey(ref packet) => &packet.common,
-            Packet::PublicSubkey(ref packet) => &packet.common,
-            Packet::SecretKey(ref packet) => &packet.common,
-            Packet::SecretSubkey(ref packet) => &packet.common,
+            Packet::PublicKey(Key::V4(packet)) => &packet.common,
+            Packet::PublicKey(Key::V6(packet)) => &packet.common.common,
+            Packet::PublicSubkey(Key::V4(packet)) => &packet.common,
+            Packet::PublicSubkey(Key::V6(packet)) => &packet.common.common,
+            Packet::SecretKey(Key::V4(packet)) => &packet.common,
+            Packet::SecretKey(Key::V6(packet)) => &packet.common.common,
+            Packet::SecretSubkey(Key::V4(packet)) => &packet.common,
+            Packet::SecretSubkey(Key::V6(packet)) => &packet.common.common,
             Packet::Marker(ref packet) => &packet.common,
             Packet::Trust(ref packet) => &packet.common,
             Packet::UserID(ref packet) => &packet.common,
@@ -1410,19 +1422,15 @@ impl From<SKESK> for Packet {
 /// # Key Generation
 ///
 /// `Key` is a wrapper around [the different key formats].
-/// (Currently, Sequoia only supports version 4 keys, however, future
-/// versions may add limited support for version 3 keys to facilitate
-/// working with achieved messages, and RFC 4880bis includes [a
-/// proposal for a new key format].)  As such, it doesn't provide a
-/// mechanism to generate keys or import existing key material.
-/// Instead, use the format-specific functions (e.g.,
+/// (Currently, Sequoia only supports version 6 and version 4 keys,
+/// however, future versions may add limited support for version 3
+/// keys to facilitate working with achieved messages].)  As such, it
+/// doesn't provide a mechanism to generate keys or import existing
+/// key material.  Instead, use the format-specific functions (e.g.,
 /// [`Key4::generate_ecc`]) and then convert the result into a `Key`
 /// packet, as the following example demonstrates.
 ///
-/// [the different key formats]: https://tools.ietf.org/html/rfc4880#section-5.5.2
-/// [a proposal for a new key format]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#section-5.5.2
-/// [`Key4::generate_ecc`]: key::Key4::generate_ecc()
-///
+/// [the different key formats]: https://www.rfc-editor.org/rfc/rfc9580.html#name-public-key-packet-formats
 ///
 /// ## Examples
 ///
@@ -1516,6 +1524,9 @@ impl From<SKESK> for Packet {
 pub enum Key<P: key::KeyParts, R: key::KeyRole> {
     /// A version 4 `Key` packet.
     V4(Key4<P, R>),
+
+    /// A version 6 `Key` packet.
+    V6(Key6<P, R>),
 }
 assert_send_and_sync!(Key<P, R> where P: key::KeyParts, R: key::KeyRole);
 
@@ -1532,6 +1543,7 @@ impl<P, R> Clone for Key<P, R>
     fn clone(&self) -> Self {
         match self {
             Key::V4(key) => Key::V4(key.clone()),
+            Key::V6(key) => Key::V6(key.clone()),
         }
     }
 }
@@ -1540,45 +1552,8 @@ impl<P: key::KeyParts, R: key::KeyRole> fmt::Display for Key<P, R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Key::V4(k) => k.fmt(f),
+            Key::V6(k) => k.fmt(f),
         }
-    }
-}
-
-impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
-    /// Gets the version.
-    pub fn version(&self) -> u8 {
-        match self {
-            Key::V4(_) => 4,
-        }
-    }
-
-    /// Compares the public bits of two keys.
-    ///
-    /// This returns `Ordering::Equal` if the public MPIs, version,
-    /// creation time and algorithm of the two `Key`s match.  This
-    /// does not consider the packet's encoding, packet's tag or the
-    /// secret key material.
-    pub fn public_cmp<PB, RB>(&self, b: &Key<PB, RB>) -> std::cmp::Ordering
-        where PB: key::KeyParts,
-              RB: key::KeyRole,
-    {
-        match (self, b) {
-            (Key::V4(a), Key::V4(b)) => a.public_cmp(b),
-        }
-    }
-
-    /// This method tests for self and other values to be equal modulo
-    /// the secret key material.
-    ///
-    /// This returns true if the public MPIs, creation time and
-    /// algorithm of the two `Key`s match.  This does not consider
-    /// the packet's encoding, packet's tag or the secret key
-    /// material.
-    pub fn public_eq<PB, RB>(&self, b: &Key<PB, RB>) -> bool
-        where PB: key::KeyParts,
-              RB: key::KeyRole,
-    {
-        self.public_cmp(b) == std::cmp::Ordering::Equal
     }
 }
 
@@ -1611,6 +1586,22 @@ impl From<Key<key::SecretParts, key::SubordinateRole>> for Packet {
 }
 
 impl<R: key::KeyRole> Key<key::SecretParts, R> {
+    /// Gets the `Key`'s `SecretKeyMaterial`.
+    pub fn secret(&self) -> &SecretKeyMaterial {
+        match self {
+            Key::V4(k) => k.secret(),
+            Key::V6(k) => k.secret(),
+        }
+    }
+
+    /// Gets a mutable reference to the `Key`'s `SecretKeyMaterial`.
+    pub fn secret_mut(&mut self) -> &mut SecretKeyMaterial {
+        match self {
+            Key::V4(k) => k.secret_mut(),
+            Key::V6(k) => k.secret_mut(),
+        }
+    }
+
     /// Creates a new key pair from a `Key` with an unencrypted
     /// secret key.
     ///
@@ -1655,6 +1646,7 @@ impl<R: key::KeyRole> Key<key::SecretParts, R> {
     pub fn into_keypair(self) -> Result<KeyPair> {
         match self {
             Key::V4(k) => k.into_keypair(),
+            Key::V6(k) => k.into_keypair(),
         }
     }
 
@@ -1716,6 +1708,7 @@ impl<R: key::KeyRole> Key<key::SecretParts, R> {
     {
         match self {
             Key::V4(k) => Ok(Key::V4(k.decrypt_secret(password)?)),
+            Key::V6(k) => Ok(Key::V6(k.decrypt_secret(password)?)),
         }
     }
 
@@ -1799,11 +1792,33 @@ impl<R: key::KeyRole> Key<key::SecretParts, R> {
     {
         match self {
             Key::V4(k) => Ok(Key::V4(k.encrypt_secret(password)?)),
+            Key::V6(k) => Ok(Key::V6(k.encrypt_secret(password)?)),
         }
     }
 }
 
 impl<R: key::KeyRole> Key4<key::SecretParts, R> {
+    /// Creates a new key pair from a secret `Key` with an unencrypted
+    /// secret key.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the secret key is encrypted.  You can use
+    /// [`Key::decrypt_secret`] to decrypt a key.
+    pub fn into_keypair(self) -> Result<KeyPair> {
+        let (key, secret) = self.take_secret();
+        let secret = match secret {
+            SecretKeyMaterial::Unencrypted(secret) => secret,
+            SecretKeyMaterial::Encrypted(_) =>
+                return Err(Error::InvalidArgument(
+                    "secret key material is encrypted".into()).into()),
+        };
+
+        KeyPair::new(key.role_into_unspecified().into(), secret)
+    }
+}
+
+impl<R: key::KeyRole> Key6<key::SecretParts, R> {
     /// Creates a new key pair from a secret `Key` with an unencrypted
     /// secret key.
     ///
@@ -1838,6 +1853,10 @@ macro_rules! impl_common_secret_functions {
                         let (k, s) = k.take_secret();
                         (k.into(), s)
                     },
+                    Key::V6(k) => {
+                        let (k, s) = k.take_secret();
+                        (k.into(), s)
+                    },
                 }
             }
 
@@ -1852,6 +1871,10 @@ macro_rules! impl_common_secret_functions {
                         let (k, s) = k.add_secret(secret);
                         (k.into(), s)
                     },
+                    Key::V6(k) => {
+                        let (k, s) = k.add_secret(secret);
+                        (k.into(), s)
+                    },
                 }
             }
 
@@ -1860,6 +1883,7 @@ macro_rules! impl_common_secret_functions {
             {
                 match self {
                     Key::V4(k) => k.steal_secret(),
+                    Key::V6(k) => k.steal_secret(),
                 }
             }
         }
@@ -1879,6 +1903,10 @@ impl<R: key::KeyRole> Key<key::SecretParts, R> {
                 let (k, s) = k.take_secret();
                 (k.into(), s)
             },
+            Key::V6(k) => {
+                let (k, s) = k.take_secret();
+                (k.into(), s)
+            },
         }
     }
 
@@ -1891,28 +1919,253 @@ impl<R: key::KeyRole> Key<key::SecretParts, R> {
                 let (k, s) = k.add_secret(secret);
                 (k.into(), s)
             },
+            Key::V6(k) => {
+                let (k, s) = k.add_secret(secret);
+                (k.into(), s)
+            },
         }
     }
 }
 
-
-// Trivial forwarder for singleton enum.
-impl<P: key::KeyParts, R: key::KeyRole> Deref for Key<P, R> {
-    type Target = Key4<P, R>;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            Key::V4(ref p) => p,
+/// Ordering, equality, and hashing on the public parts only.
+impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
+    /// Compares the public bits of two keys.
+    ///
+    /// This returns `Ordering::Equal` if the public MPIs, creation
+    /// time, and algorithm of the two `Key4`s match.  This does not
+    /// consider the packets' encodings, packets' tags or their secret
+    /// key material.
+    pub fn public_cmp<PB, RB>(&self, b: &Key<PB, RB>)
+                              -> std::cmp::Ordering
+    where
+        PB: key::KeyParts,
+        RB: key::KeyRole,
+    {
+        match (self, b) {
+            (Key::V4(a), Key::V4(b)) => a.public_cmp(b),
+            (Key::V6(a), Key::V6(b)) => a.public_cmp(b),
+            // XXX: is that okay?
+            (Key::V4(_), Key::V6(_)) => std::cmp::Ordering::Less,
+            (Key::V6(_), Key::V4(_)) => std::cmp::Ordering::Greater,
         }
+    }
+
+    /// Tests whether two keys are equal modulo their secret key
+    /// material.
+    ///
+    /// This returns true if the public MPIs, creation time and
+    /// algorithm of the two `Key4`s match.  This does not consider
+    /// the packets' encodings, packets' tags or their secret key
+    /// material.
+    pub fn public_eq<PB, RB>(&self, b: &Key<PB, RB>)
+                             -> bool
+    where
+        PB: key::KeyParts,
+        RB: key::KeyRole,
+    {
+        self.public_cmp(b) == std::cmp::Ordering::Equal
+    }
+
+    /// Hashes everything but any secret key material into state.
+    ///
+    /// This is an alternate implementation of [`Hash`], which never
+    /// hashes the secret key material.
+    ///
+    ///   [`Hash`]: std::hash::Hash
+    pub fn public_hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        use std::hash::Hash;
+
+        match self {
+            Key::V4(k) => k.common.hash(state),
+            Key::V6(k) => k.common.common.hash(state),
+        }
+        self.creation_time().hash(state);
+        self.pk_algo().hash(state);
+        Hash::hash(&self.mpis(), state);
     }
 }
 
-// Trivial forwarder for singleton enum.
-impl<P: key::KeyParts, R: key::KeyRole> DerefMut for Key<P, R> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
+/// Immutable key interface.
+impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
+    /// Gets the version.
+    pub fn version(&self) -> u8 {
         match self {
-            Key::V4(ref mut p) => p,
+            Key::V4(_) => 4,
+            Key::V6(_) => 6,
         }
+    }
+
+    /// Gets the `Key`'s creation time.
+    pub fn creation_time(&self) -> std::time::SystemTime {
+        match self {
+            Key::V4(k) => k.creation_time(),
+            Key::V6(k) => k.creation_time(),
+        }
+    }
+
+    /// Sets the `Key`'s creation time.
+    ///
+    /// `timestamp` is converted to OpenPGP's internal format,
+    /// [`Timestamp`]: a 32-bit quantity containing the number of
+    /// seconds since the Unix epoch.
+    ///
+    /// `timestamp` is silently rounded to match the internal
+    /// resolution.  An error is returned if `timestamp` is out of
+    /// range.
+    ///
+    /// [`Timestamp`]: crate::types::Timestamp
+    pub fn set_creation_time<T>(&mut self, timestamp: T)
+                                -> Result<std::time::SystemTime>
+    where
+        T: Into<std::time::SystemTime>,
+    {
+        match self {
+            Key::V4(k) => k.set_creation_time(timestamp.into()),
+            Key::V6(k) => k.set_creation_time(timestamp.into()),
+        }
+    }
+
+    /// Gets the public key algorithm.
+    pub fn pk_algo(&self) -> PublicKeyAlgorithm {
+        match self {
+            Key::V4(k) => k.pk_algo(),
+            Key::V6(k) => k.pk_algo(),
+        }
+    }
+
+    /// Sets the public key algorithm.
+    ///
+    /// Returns the old public key algorithm.
+    pub fn set_pk_algo(&mut self, pk_algo: PublicKeyAlgorithm)
+                       -> PublicKeyAlgorithm
+    {
+        match self {
+            Key::V4(k) => k.set_pk_algo(pk_algo),
+            Key::V6(k) => k.set_pk_algo(pk_algo),
+        }
+    }
+
+    /// Returns a reference to the `Key`'s MPIs.
+    pub fn mpis(&self) -> &mpi::PublicKey {
+        match self {
+            Key::V4(k) => k.mpis(),
+            Key::V6(k) => k.mpis(),
+        }
+    }
+
+    /// Returns a mutable reference to the `Key`'s MPIs.
+    pub fn mpis_mut(&mut self) -> &mut mpi::PublicKey {
+        match self {
+            Key::V4(k) => k.mpis_mut(),
+            Key::V6(k) => k.mpis_mut(),
+        }
+    }
+
+    /// Sets the `Key`'s MPIs.
+    ///
+    /// This function returns the old MPIs, if any.
+    pub fn set_mpis(&mut self, mpis: mpi::PublicKey) -> mpi::PublicKey {
+        match self {
+            Key::V4(k) => k.set_mpis(mpis),
+            Key::V6(k) => k.set_mpis(mpis),
+        }
+    }
+
+    /// Returns whether the `Key` contains secret key material.
+    pub fn has_secret(&self) -> bool {
+        match self {
+            Key::V4(k) => k.has_secret(),
+            Key::V6(k) => k.has_secret(),
+        }
+    }
+
+    /// Returns whether the `Key` contains unencrypted secret key
+    /// material.
+    ///
+    /// This returns false if the `Key` doesn't contain any secret key
+    /// material.
+    pub fn has_unencrypted_secret(&self) -> bool {
+        match self {
+            Key::V4(k) => k.has_unencrypted_secret(),
+            Key::V6(k) => k.has_unencrypted_secret(),
+        }
+    }
+
+    /// Returns `Key`'s secret key material, if any.
+    pub fn optional_secret(&self) -> Option<&SecretKeyMaterial> {
+        match self {
+            Key::V4(k) => k.optional_secret(),
+            Key::V6(k) => k.optional_secret(),
+        }
+    }
+
+    /// Computes and returns the `Key`'s `Fingerprint` and returns it as
+    /// a `KeyHandle`.
+    ///
+    /// See [Section 12.2 of RFC 4880].
+    ///
+    /// [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
+    pub fn key_handle(&self) -> crate::KeyHandle {
+        match self {
+            Key::V4(k) => k.key_handle(),
+            Key::V6(k) => k.key_handle(),
+        }
+    }
+
+    /// Computes and returns the `Key`'s `Fingerprint`.
+    ///
+    /// See [Section 12.2 of RFC 4880].
+    ///
+    /// [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
+    pub fn fingerprint(&self) -> crate::Fingerprint {
+        match self {
+            Key::V4(k) => k.fingerprint(),
+            Key::V6(k) => k.fingerprint(),
+        }
+    }
+
+    /// Computes and returns the `Key`'s `Key ID`.
+    ///
+    /// See [Section 12.2 of RFC 4880].
+    ///
+    /// [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
+    pub fn keyid(&self) -> crate::KeyID {
+        match self {
+            Key::V4(k) => k.keyid(),
+            Key::V6(k) => k.keyid(),
+        }
+    }
+
+    /// The security requirements of the hash algorithm for
+    /// self-signatures.
+    ///
+    /// A cryptographic hash algorithm usually has [three security
+    /// properties]: pre-image resistance, second pre-image
+    /// resistance, and collision resistance.  If an attacker can
+    /// influence the signed data, then the hash algorithm needs to
+    /// have both second pre-image resistance, and collision
+    /// resistance.  If not, second pre-image resistance is
+    /// sufficient.
+    ///
+    ///   [three security properties]: https://en.wikipedia.org/wiki/Cryptographic_hash_function#Properties
+    ///
+    /// In general, an attacker may be able to influence third-party
+    /// signatures.  But direct key signatures, and binding signatures
+    /// are only over data fully determined by signer.  And, an
+    /// attacker's control over self signatures over User IDs is
+    /// limited due to their structure.
+    ///
+    /// These observations can be used to extend the life of a hash
+    /// algorithm after its collision resistance has been partially
+    /// compromised, but not completely broken.  For more details,
+    /// please refer to the documentation for [HashAlgoSecurity].
+    ///
+    ///   [HashAlgoSecurity]: crate::policy::HashAlgoSecurity
+    pub fn hash_algo_security(&self) -> HashAlgoSecurity {
+        HashAlgoSecurity::SecondPreImageResistance
     }
 }
 

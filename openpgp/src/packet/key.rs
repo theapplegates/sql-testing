@@ -3,18 +3,16 @@
 //! # Data Types
 //!
 //! The main data type is the [`Key`] enum.  This enum abstracts away
-//! the differences between the key formats (the deprecated [version
-//! 3], the current [version 4], and the proposed [version 5]
-//! formats).  Nevertheless, some functionality remains format
-//! specific.  For instance, the `Key` enum doesn't provide a
-//! mechanism to generate keys.  This functionality depends on the
-//! format.
+//! the differences between the key formats (the current [version 6],
+//! the deprecated [version 4], and the legacy [version 3].
+//! Nevertheless, some functionality remains format specific.  For
+//! instance, the `Key` enum doesn't provide a mechanism to generate
+//! keys.  This functionality depends on the format.
 //!
-//! This version of Sequoia only supports version 4 keys ([`Key4`]).
-//! However, future versions may include limited support for version 3
-//! keys to allow working with archived messages, and we intend to add
-//! support for version 5 keys once the new version of the
-//! specification has been finalized.
+//! This version of Sequoia only supports version 6 and version 4 keys
+//! ([`Key6`], and [`Key4`]).  However, future versions may include
+//! limited support for version 3 keys to allow working with archived
+//! messages.
 //!
 //! OpenPGP specifies four different types of keys: [public keys],
 //! [secret keys], [public subkeys], and [secret subkeys].  These are
@@ -35,7 +33,7 @@
 //! [`Key`]: super::Key
 //! [version 3]: https://tools.ietf.org/html/rfc1991#section-6.6
 //! [version 4]: https://tools.ietf.org/html/rfc4880#section-5.5.2
-//! [version 5]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#name-public-key-packet-formats
+//! [version 6]: https://www.rfc-editor.org/rfc/rfc9580.html#name-version-6-public-keys
 //! [public keys]: https://tools.ietf.org/html/rfc4880#section-5.5.1.1
 //! [secret keys]: https://tools.ietf.org/html/rfc4880#section-5.5.1.3
 //! [public subkeys]: https://tools.ietf.org/html/rfc4880#section-5.5.1.2
@@ -98,7 +96,11 @@ use crate::PublicKeyAlgorithm;
 use crate::seal;
 use crate::SymmetricAlgorithm;
 use crate::HashAlgorithm;
-use crate::types::{Curve, Timestamp};
+use crate::types::{
+    AEADAlgorithm,
+    Curve,
+    Timestamp,
+};
 use crate::crypto::S2K;
 use crate::Result;
 use crate::crypto::Password;
@@ -109,6 +111,8 @@ use crate::KeyHandle;
 use crate::policy::HashAlgoSecurity;
 
 mod conversions;
+mod v6;
+pub use v6::Key6;
 
 /// A marker trait that captures whether a `Key` definitely contains
 /// secret key material.
@@ -1843,6 +1847,8 @@ pub struct Encrypted {
     s2k: S2K,
     /// Symmetric algorithm used to encrypt the secret key material.
     algo: SymmetricAlgorithm,
+    /// AEAD algorithm and IV used to encrypt the secret key material.
+    aead: Option<(AEADAlgorithm, Box<[u8]>)>,
     /// Checksum method.
     checksum: Option<mpi::SecretKeyChecksum>,
     /// Encrypted MPIs prefixed with the IV.
@@ -1904,13 +1910,30 @@ impl Encrypted {
     }
 
     /// Creates a new encrypted key object.
+    pub fn new_aead(s2k: S2K,
+                    sym_algo: SymmetricAlgorithm,
+                    aead_algo: AEADAlgorithm,
+                    aead_iv: Box<[u8]>,
+                    ciphertext: Box<[u8]>)
+                    -> Self
+    {
+        Encrypted {
+            s2k,
+            algo: sym_algo,
+            aead: Some((aead_algo, aead_iv)),
+            checksum: None,
+            ciphertext: Ok(ciphertext),
+        }
+    }
+
+    /// Creates a new encrypted key object.
     pub(crate) fn new_raw(s2k: S2K, algo: SymmetricAlgorithm,
                           checksum: Option<mpi::SecretKeyChecksum>,
                           ciphertext: std::result::Result<Box<[u8]>,
                                                           Box<[u8]>>)
         -> Self
     {
-        Encrypted { s2k, algo, checksum, ciphertext }
+        Encrypted { s2k, algo, aead: None, checksum, ciphertext }
     }
 
     /// Returns the key derivation mechanism.
@@ -1922,6 +1945,17 @@ impl Encrypted {
     /// key material.
     pub fn algo(&self) -> SymmetricAlgorithm {
         self.algo
+    }
+
+    /// Returns the AEAD algorithm used to encrypt the secret key
+    /// material.
+    pub fn aead_algo(&self) -> Option<AEADAlgorithm> {
+        self.aead.as_ref().map(|(a, _iv)| *a)
+    }
+
+    /// Returns the AEAD IV used to encrypt the secret key material.
+    pub fn aead_iv(&self) -> Option<&[u8]> {
+        self.aead.as_ref().map(|(_a, iv)| &iv[..])
     }
 
     /// Returns the checksum method used to protect the encrypted
@@ -1991,9 +2025,14 @@ impl<P, R> Arbitrary for super::Key<P, R>
     where P: KeyParts, P: Clone,
           R: KeyRole, R: Clone,
           Key4<P, R>: Arbitrary,
+          Key6<P, R>: Arbitrary,
 {
     fn arbitrary(g: &mut Gen) -> Self {
-        Key4::arbitrary(g).into()
+        if <bool>::arbitrary(g) {
+            Key4::arbitrary(g).into()
+        } else {
+            Key6::arbitrary(g).into()
+        }
     }
 }
 
@@ -2061,7 +2100,6 @@ where
                 .unwrap();
         }
 
-        #[allow(irrefutable_let_patterns)]
         let key = if let Key::V4(k) = key { k } else { unreachable!() };
         Key4::<PublicParts, R>::add_secret(key, secret).0
     }
@@ -2087,15 +2125,17 @@ mod tests {
     fn encrypted_rsa_key() {
         let cert = Cert::from_bytes(
             crate::tests::key("testy-new-encrypted-with-123.pgp")).unwrap();
-        let mut pair = cert.primary_key().key().clone();
+        let mut pair = cert.primary_key().key().clone()
+            .parts_into_secret().unwrap();
         let pk_algo = pair.pk_algo();
-        let secret = pair.secret.as_mut().unwrap();
+        let secret = pair.secret_mut();
 
         assert!(secret.is_encrypted());
         secret.decrypt_in_place(pk_algo, &"123".into()).unwrap();
         assert!(!secret.is_encrypted());
+        assert!(pair.has_unencrypted_secret());
 
-        match secret {
+        match pair.secret() {
             SecretKeyMaterial::Unencrypted(ref u) => u.map(|mpis| match mpis {
                 mpi::SecretKeyMaterial::RSA { .. } => (),
                 _ => panic!(),
@@ -2408,7 +2448,7 @@ mod tests {
                                           HashAlgorithm::SHA256,
                                           SymmetricAlgorithm::AES128,
                                           ctime).unwrap().into();
-        match key.mpis {
+        match key.mpis() {
             self::mpi::PublicKey::ECDH{ ref q,.. } =>
                 assert_eq!(&q.value()[1..], &public[..]),
             _ => unreachable!(),
@@ -2833,7 +2873,21 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
                 }
             }
         }
+        Ok(())
+    }
 
+    #[test]
+    fn v6_key_fingerprint() -> Result<()> {
+        let p = Packet::from_bytes("-----BEGIN PGP ARMORED FILE-----
+
+xjcGY4d/4xYAAAAtCSsGAQQB2kcPAQEHQPlNp7tI1gph5WdwamWH0DMZmbudiRoI
+JC6thFQ9+JWj
+=SgmS
+-----END PGP ARMORED FILE-----")?;
+        let k: &Key<PublicParts, PrimaryRole> = p.downcast_ref().unwrap();
+        assert_eq!(k.fingerprint().to_string(),
+                   "4EADF309C6BC874AE04702451548F93F\
+                    96FA7A01D0A33B5AF7D4E379E0F9F8EE".to_string());
         Ok(())
     }
 }

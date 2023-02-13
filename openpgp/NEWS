@@ -32,6 +32,12 @@
    - SignatureBuilder::set_preferred_aead_ciphersuites
    - Preferences::preferred_aead_ciphersuites
    - Profile
+   - Key::V6
+   - Key6
+   - CertBuilder::set_profile
+   - key::Encrypted::new_aead
+   - key::Encrypted::aead_algo
+   - key::Encrypted::aead_iv
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms

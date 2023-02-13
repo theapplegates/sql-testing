@@ -14,6 +14,7 @@ use crate::packet::signature::{
 };
 use crate::cert::prelude::*;
 use crate::Error;
+use crate::Profile;
 use crate::crypto::{Password, Signer};
 use crate::types::{
     HashAlgorithm,
@@ -143,8 +144,17 @@ impl KeyBuilder {
     /// NTP is widely used, empirically it seems that some virtual
     /// machines have laggy clocks.
     pub fn subkey(self, vc: ValidCert) -> Result<SubkeyBuilder<'_>> {
+        let profile = match vc.primary_key().version() {
+            4 => Profile::RFC4880,
+            6 => Profile::RFC9580,
+            n => return Err(Error::InvalidOperation(format!(
+                "Cannot generate a subkey for version {} primary key", n))
+                            .into()),
+        };
+
         let mut key: Key<key::SecretParts, key::SubordinateRole>
-            = self.cipher_suite.generate_key(&self.flags)?;
+            = self.cipher_suite.generate_key(&self.flags, profile)?
+            .role_into_subordinate();
         let ct = self.creation_time.unwrap_or_else(|| {
             crate::now() - Duration::new(SIG_BACKDATE_BY, 0)
         });
