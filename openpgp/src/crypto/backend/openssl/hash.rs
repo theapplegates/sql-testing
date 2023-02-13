@@ -81,7 +81,11 @@ fn get_md(algo: HashAlgorithm) -> Option<MessageDigest> {
 impl HashAlgorithm {
     /// Whether Sequoia supports this algorithm.
     pub fn is_supported(self) -> bool {
-        get_md(self).is_some()
+        // Try to construct a digest.  This indirectly looks up
+        // digest's Nid and tries to initialize OpenSSL hasher.  If
+        // all of that succeeds the algorithm is supported by the
+        // OpenSSL backend.
+        OpenSslDigest::new(self).is_ok()
     }
 
     /// Creates a new hash context for this algorithm.
