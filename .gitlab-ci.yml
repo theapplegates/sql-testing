@@ -119,6 +119,28 @@ bookworm-crypto-openssl:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
 
+# Test on old Fedora that has a number of algorithms disabled in their
+# OpenSSL build (3.0.5)
+# See https://gitlab.com/sequoia-pgp/sequoia/-/issues/979 for details.
+fedora-crypto-openssl:
+  tags:
+    - linux
+  stage: build
+  interruptible: true
+  # We need this exact version for OpenSSL 3.0.5
+  image: fedora:36
+  dependencies:
+    - codespell
+  before_script:
+    - dnf install -y cargo openssl openssl-devel
+    - openssl version
+  script:
+    - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-openssl,compression --example supported-algorithms
+    - cargo test --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-openssl,compression
+  variables:
+    CARGO_TARGET_DIR: /target
+    CARGO_HOME: /cargo
+
 benchmarks:
   stage: test
   interruptible: true
