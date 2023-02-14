@@ -19,6 +19,8 @@
    - HashAlgorithm::context now returns crypto::hash::Builder
    - crypto::Hash::hash now takes a &mut crypto::hash::Context
    - crypto::hash::Digest removed
+   - SKESK::V5 removed
+   - SKESK5 removed
 
 ** New functionality
    - Fingerprint::V6
@@ -80,6 +82,8 @@
    - Tag::Padding
    - KeyAmalgamationIter::key_handles2
    - ValidKeyAmalgamationIter::key_handles2
+   - SKESK::V6
+   - SKESK6
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms
