@@ -1,7 +1,11 @@
 [package]
+# Implementing v6 OpenPGP requires breaking the API.  Prevent
+# accidental publishing.
+publish = false
+
 name = "sequoia-openpgp"
 description = "OpenPGP data types and associated machinery"
-version = "1.22.0"
+version = "2.0.0-alpha.0"
 authors = [
     "Igor Matuszewski <igor@sequoia-pgp.org>",
     "Justus Winter <justus@sequoia-pgp.org>",

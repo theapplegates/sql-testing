@@ -4,6 +4,21 @@
 #+STARTUP: content hidestars
 
 
+* Changes in 2.0.0.alpha.0
+  The major new feature is the support for RFC9580, which modernizes
+  the cryptographic primitives used in OpenPGP.  Notably, it adds
+  Authenticated Encryption, Elliptic Curve Cryptography, and
+  deprecates old algorithms.
+
+  We have also used the opportunity to clean up our API.  Most
+  programs should only require minor adjustments.
+
+** API changes
+
+** New functionality
+
+** Notable fixes
+
 * Changes in 1.22.0
 ** New functionality
    - DetachedVerifier::verify_buffered_reader
