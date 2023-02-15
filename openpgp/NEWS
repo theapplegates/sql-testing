@@ -14,8 +14,10 @@
   programs should only require minor adjustments.
 
 ** API changes
+   - Fingerprint::V5 removed
 
 ** New functionality
+   - Fingerprint::V6
 
 ** Notable fixes
 
