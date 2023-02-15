@@ -15,9 +15,11 @@
 
 ** API changes
    - Fingerprint::V5 removed
+   - KeyID::V4 removed
 
 ** New functionality
    - Fingerprint::V6
+   - KeyID::Long
 
 ** Notable fixes
 
