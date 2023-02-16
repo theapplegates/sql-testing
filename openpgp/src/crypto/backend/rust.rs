@@ -102,9 +102,10 @@ impl AEADAlgorithm {
     pub(crate) fn is_supported_by_backend(&self) -> bool {
         use self::AEADAlgorithm::*;
         match &self {
-            EAX
-                => true,
-            OCB | Private(_) | Unknown(_)
+            EAX => true,
+            OCB => false,
+            GCM => true,
+            Private(_) | Unknown(_)
                 => false,
         }
     }
@@ -122,6 +123,14 @@ impl AEADAlgorithm {
                     SymmetricAlgorithm::Camellia128 |
                     SymmetricAlgorithm::Camellia192 |
                     SymmetricAlgorithm::Camellia256 => true,
+                    _ => false,
+                },
+
+            AEADAlgorithm::GCM =>
+                match algo {
+                    SymmetricAlgorithm::AES128 |
+                    SymmetricAlgorithm::AES192 |
+                    SymmetricAlgorithm::AES256 => true,
                     _ => false,
                 },
             _ => false

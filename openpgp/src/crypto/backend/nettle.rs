@@ -68,6 +68,8 @@ impl AEADAlgorithm {
                 => true,
             OCB
                 => nettle::aead::OCB_IS_SUPPORTED,
+            GCM
+                => true,
             Private(_) | Unknown(_)
                 => false,
         }
@@ -88,6 +90,17 @@ impl AEADAlgorithm {
                     _ => false,
                 },
             AEADAlgorithm::OCB =>
+                match algo {
+                    SymmetricAlgorithm::AES128 |
+                    SymmetricAlgorithm::AES192 |
+                    SymmetricAlgorithm::AES256 |
+                    SymmetricAlgorithm::Twofish |
+                    SymmetricAlgorithm::Camellia128 |
+                    SymmetricAlgorithm::Camellia192 |
+                    SymmetricAlgorithm::Camellia256 => true,
+                    _ => false,
+                },
+            AEADAlgorithm::GCM =>
                 match algo {
                     SymmetricAlgorithm::AES128 |
                     SymmetricAlgorithm::AES192 |

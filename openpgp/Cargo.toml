@@ -58,6 +58,7 @@ botan = { version = "0.10", optional = true }
 
 # RustCrypto crates.
 aes = { version = "0.8", optional = true }
+aes-gcm = { version = "0.10", optional = true, features = ["std"] }
 block-padding = { version = "0.3", optional = true }
 blowfish = { version = "0.9", optional = true }
 cast5 = { version = "0.11", optional = true }
@@ -127,11 +128,11 @@ crypto-rust = [
     "digest", "eax", "ecb", "ed25519", "ed25519-dalek", "generic-array", "idea",
     "md-5", "num-bigint-dig", "rand", "rand07", "ripemd", "rsa", "sha-1", "sha2",
     "twofish", "typenum", "x25519-dalek-ng", "p256",
-    "rand_core", "rand_core/getrandom", "ecdsa"
+    "rand_core", "rand_core/getrandom", "ecdsa", "aes-gcm"
 ]
 crypto-cng = [
     "cipher", "eax", "winapi", "win-crypto-ng", "ed25519-dalek",
-    "num-bigint-dig"
+    "num-bigint-dig", "aes-gcm"
 ]
 crypto-openssl = ["openssl", "openssl-sys"]
 crypto-botan = ["botan/botan3"]
