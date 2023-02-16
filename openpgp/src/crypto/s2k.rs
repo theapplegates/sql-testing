@@ -372,18 +372,26 @@ impl fmt::Display for S2K {
 #[cfg(test)]
 impl Arbitrary for S2K {
     fn arbitrary(g: &mut Gen) -> Self {
-        use crate::arbitrary_helper::gen_arbitrary_from_range;
+        use crate::arbitrary_helper::*;
 
         #[allow(deprecated)]
         match gen_arbitrary_from_range(0..7, g) {
             0 => S2K::Simple{ hash: HashAlgorithm::arbitrary(g) },
             1 => S2K::Salted{
                 hash: HashAlgorithm::arbitrary(g),
-                salt: [<u8>::arbitrary(g); 8],
+                salt: {
+                    let mut salt = [0u8; 8];
+                    arbitrary_slice(g, &mut salt);
+                    salt
+                },
             },
             2 => S2K::Iterated{
                 hash: HashAlgorithm::arbitrary(g),
-                salt: [<u8>::arbitrary(g); 8],
+                salt: {
+                    let mut salt = [0u8; 8];
+                    arbitrary_slice(g, &mut salt);
+                    salt
+                },
                 hash_bytes: S2K::nearest_hash_count(Arbitrary::arbitrary(g)),
             },
             3 => S2K::Private {

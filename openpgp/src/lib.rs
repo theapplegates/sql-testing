@@ -374,4 +374,11 @@ mod arbitrary_helper {
             panic!()
         }
     }
+
+    pub(crate) fn arbitrary_slice<T>(g: &mut Gen, s: &mut [T])
+    where
+        T: Arbitrary,
+    {
+        s.iter_mut().for_each(|p| *p = Arbitrary::arbitrary(g));
+    }
 }
