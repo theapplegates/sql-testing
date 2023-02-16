@@ -1,5 +1,4 @@
 use std::convert::TryFrom;
-use std::cmp;
 use std::cmp::Ordering;
 use std::borrow::Borrow;
 
@@ -31,6 +30,15 @@ use crate::{
 ///
 ///   [RFC 4880]: https://tools.ietf.org/html/rfc4880
 ///   [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
+///
+/// # A Note on Equality
+///
+/// Like other data types, two `KeyHandle`s are considered equal if
+/// their serialized forms are the same.  That is, if you compare a
+/// key handle that contains a `Fingerprint`, and a key handle that
+/// contains a `KeyID`, they will not be considered equal **even if
+/// the key ID aliases the fingerprint**.  If you want to check for
+/// aliasing, you should use [`KeyHandle::aliases`].
 ///
 /// # Examples
 ///
@@ -173,26 +181,7 @@ impl PartialOrd for KeyHandle {
     fn partial_cmp(&self, other: &KeyHandle) -> Option<Ordering> {
         let a = self.as_bytes();
         let b = other.as_bytes();
-
-        let l = cmp::min(a.len(), b.len());
-
-        // Do a little endian comparison so that for v4 keys (where
-        // the KeyID is a suffix of the Fingerprint) equivalent KeyIDs
-        // and Fingerprints sort next to each other.
-        for (a, b) in a[a.len()-l..].iter().zip(b[b.len()-l..].iter()) {
-            let cmp = a.cmp(b);
-            if cmp != Ordering::Equal {
-                return Some(cmp);
-            }
-        }
-
-        if a.len() == b.len() {
-            Some(Ordering::Equal)
-        } else {
-            // One (a KeyID) is the suffix of the other (a
-            // Fingerprint).
-            None
-        }
+        Some(a.cmp(b))
     }
 }
 
@@ -251,10 +240,6 @@ impl KeyHandle {
     /// fpr1 == keyid and fpr2 == keyid, but fpr1 != fpr2.
     /// ```
     ///
-    /// In these cases (and only these cases) `KeyHandle`'s
-    /// `PartialOrd` implementation returns `None` to correctly
-    /// indicate that a comparison is not possible.
-    ///
     /// This definition of equality makes searching for a given
     /// `KeyHandle` using `PartialEq` awkward.  This function fills
     /// that gap.  It answers the question: given two `KeyHandles`,
@@ -289,11 +274,32 @@ impl KeyHandle {
     pub fn aliases<H>(&self, other: H) -> bool
         where H: Borrow<KeyHandle>
     {
-        // This works, because the PartialOrd implementation only
-        // returns None if one value is a fingerprint and the other is
-        // a key id that matches the fingerprint's key id.
-        self.partial_cmp(other.borrow()).unwrap_or(Ordering::Equal)
-            == Ordering::Equal
+        let other = other.borrow();
+        if self.partial_cmp(other) == Some(Ordering::Equal) {
+            true
+        } else {
+            match (self, other) {
+                (KeyHandle::Fingerprint(Fingerprint::V4(f)),
+                 KeyHandle::KeyID(KeyID::V4(i)))
+                    | (KeyHandle::KeyID(KeyID::V4(i)),
+                       KeyHandle::Fingerprint(Fingerprint::V4(f))) =>
+                {
+                    // Avoid a heap allocation by embedding our
+                    // knowledge of how a v4 key ID is derived from a
+                    // v4 fingerprint:
+                    //
+                    // A v4 key ID are the 8 right-most octets of a v4
+                    // fingerprint.
+                    &f[12..] == i
+                },
+                (KeyHandle::Fingerprint(f), KeyHandle::KeyID(i))
+                    | (KeyHandle::KeyID(i), KeyHandle::Fingerprint(f)) =>
+                {
+                    &KeyID::from(f) == i
+                },
+                _ => false,
+            }
+        }
     }
 
     /// Returns whether the KeyHandle is invalid.
