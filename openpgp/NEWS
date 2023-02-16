@@ -93,6 +93,9 @@
    - impl From<Option<KeyHandle>> for KeyID
    - PKESK::V6
    - PKESK6
+   - SEIP::V2
+   - SEIP2
+   - serialize::stream::Encryptor2::aead_algo
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms

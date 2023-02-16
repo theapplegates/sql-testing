@@ -2877,8 +2877,6 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
 
     /// Enables AEAD and sets the AEAD algorithm to use.
     ///
-    /// This feature is [experimental](super::super#experimental-features).
-    ///
     /// # Examples
     ///
     /// ```
@@ -2901,10 +2899,6 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
     /// message.finalize()?;
     /// # Ok(()) }
     /// ```
-    // Function hidden from the public API due to
-    // https://gitlab.com/sequoia-pgp/sequoia/-/issues/550
-    // It is used only for tests so that it does not bit-rot.
-    #[cfg(test)]
     pub fn aead_algo(mut self, algo: AEADAlgorithm) -> Self {
         self.aead_algo = Some(algo);
         self
@@ -2958,19 +2952,35 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
             ).into());
         }
 
+        if self.aead_algo.is_none() {
+            // See whether all recipients support SEIPDv2.
+            if ! self.recipients.is_empty()
+                && self.recipients.iter().all(|r| {
+                    // XXX: We should be looking at the features, but
+                    // we don't have that context here.  Instead, we
+                    // infer support for SEIPDv2 by looking at the key
+                    // version.
+                    r.key.version() == 6
+                })
+            {
+                // This prefers OCB if supported.  OCB is MTI.
+                self.aead_algo = Some(AEADAlgorithm::const_default());
+            }
+        }
+
         struct AEADParameters {
             algo: AEADAlgorithm,
             chunk_size: usize,
-            nonce: Box<[u8]>,
+            salt: [u8; 32],
         }
 
         let aead = if let Some(algo) = self.aead_algo {
-            let mut nonce = vec![0; algo.nonce_size()?];
-            crypto::random(&mut nonce);
+            let mut salt = [0u8; 32];
+            crypto::random(&mut salt);
             Some(AEADParameters {
                 algo,
                 chunk_size: Self::AEAD_CHUNK_SIZE,
-                nonce: nonce.into_boxed_slice(),
+                salt,
             })
         } else {
             None
@@ -3023,29 +3033,35 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
         }
 
         if let Some(aead) = aead {
-            // Write the AED packet.
-            CTB::new(Tag::AED).serialize(&mut inner)?;
+            // Write the SEIPDv2 packet.
+            CTB::new(Tag::SEIP).serialize(&mut inner)?;
             let mut inner = PartialBodyFilter::new(Message::from(inner),
                                                    Cookie::new(level));
-            let aed = AED1::new(self.sym_algo, aead.algo,
-                                aead.chunk_size as u64, aead.nonce)?;
-            aed.serialize_headers(&mut inner)?;
+            let seip = SEIP2::new(self.sym_algo, aead.algo,
+                                 aead.chunk_size as u64, aead.salt)?;
+            seip.serialize_headers(&mut inner)?;
 
-            use crate::crypto::aead::AEDv1Schedule;
-            let schedule = AEDv1Schedule::new(
-                aed.symmetric_algo(), aed.aead(), aead.chunk_size, aed.iv())?;
+            use crate::crypto::aead::SEIPv2Schedule;
+            let (message_key, schedule) = SEIPv2Schedule::new(
+                &sk,
+                seip.symmetric_algo(), seip.aead(), aead.chunk_size,
+                seip.salt())?;
+
+            // Note: we have consumed self, and we are returning a
+            // different encryptor here.  self will be dropped, and
+            // therefore, Self::emit_mdc will not be invoked.
 
             writer::AEADEncryptor::new(
                 inner,
                 Cookie::new(level),
-                aed.symmetric_algo(),
-                aed.aead(),
+                seip.symmetric_algo(),
+                seip.aead(),
                 aead.chunk_size,
                 schedule,
-                sk,
+                message_key,
             )
         } else {
-            // Write the SEIP packet.
+            // Write the SEIPDv1 packet.
             CTB::new(Tag::SEIP).serialize(&mut inner)?;
             let mut inner = PartialBodyFilter::new(Message::from(inner),
                                                    Cookie::new(level));
@@ -3074,6 +3090,11 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
     }
 
     /// Emits the MDC packet and recovers the original writer.
+    ///
+    /// Note: This is only invoked for SEIPDv1 messages, because
+    /// Self::build consumes self, and will only return a writer stack
+    /// with Self on top for SEIPDv1 messages.  For SEIPDv2 messages,
+    /// a different writer is returned.
     fn emit_mdc(mut self) -> Result<writer::BoxStack<'a, Cookie>> {
         let mut w = self.inner;
 
@@ -3321,7 +3342,7 @@ impl<'a> writer::Stackable<'a, Cookie> for Encryptor<'a>
 #[cfg(test)]
 mod test {
     use std::io::Read;
-    use crate::{Packet, PacketPile, packet::CompressedData};
+    use crate::{Packet, PacketPile, Profile, packet::CompressedData};
     use crate::parse::{Parse, PacketParserResult, PacketParser};
     use super::*;
     use crate::types::DataFormat::Text as T;
@@ -3670,6 +3691,14 @@ mod test {
     }
 
     fn test_aead_messages(algo: AEADAlgorithm) -> Result<()> {
+        test_aead_messages_v(algo, Profile::RFC4880)?;
+        test_aead_messages_v(algo, Profile::RFC9580)?;
+        Ok(())
+    }
+
+    fn test_aead_messages_v(algo: AEADAlgorithm, profile: Profile)
+                            -> Result<()>
+    {
         if ! algo.is_supported() {
             eprintln!("Skipping because {} is not supported.", algo);
             return Ok(());
@@ -3708,6 +3737,7 @@ mod test {
 
         let (tsk, _) = CertBuilder::new()
             .set_cipher_suite(CipherSuite::Cv25519)
+            .set_profile(profile)?
             .add_transport_encryption_subkey()
             .generate().unwrap();
 
