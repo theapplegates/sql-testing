@@ -3103,7 +3103,7 @@ mod test {
     }
 
     impl DecryptionHelper for VHelper {
-        fn decrypt<D>(&mut self, pkesks: &[PKESK], _skesks: &[SKESK],
+        fn decrypt<D>(&mut self, pkesks: &[PKESK], skesks: &[SKESK],
                       sym_algo: Option<SymmetricAlgorithm>, mut decrypt: D)
                       -> Result<Option<Fingerprint>>
             where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
@@ -3111,6 +3111,16 @@ mod test {
             let p = P::new();
             if ! self.for_decryption {
                 unreachable!("Shouldn't be called for verifications");
+            }
+
+            for skesk in skesks {
+                for p in &self.passwords {
+                    if let Ok((algo, sk)) = skesk.decrypt(p) {
+                        if decrypt(algo, &sk) {
+                            return Ok(None);
+                        }
+                    }
+                }
             }
 
             for pkesk in pkesks {
@@ -3823,6 +3833,64 @@ EK8=
         verifier.read_to_end(&mut b)?;
         let h = verifier.into_helper();
         assert!(h.0);
+        Ok(())
+    }
+
+    /// This sample from our test suite generated using GnuPG.
+    #[test]
+    fn v4skesk_v1seip_aes128() -> Result<()> {
+        test_password_encrypted_message(
+            SymmetricAlgorithm::AES128,
+            "messages/encrypted-aes128-password-123456789.gpg",
+            "123456789",
+            crate::tests::manifesto())
+    }
+
+    /// This sample from our test suite generated using GnuPG.
+    #[test]
+    fn v4skesk_v1seip_aes192() -> Result<()> {
+        test_password_encrypted_message(
+            SymmetricAlgorithm::AES192,
+            "messages/encrypted-aes192-password-123456.gpg",
+            "123456",
+            crate::tests::manifesto())
+    }
+
+    /// This sample from our test suite generated using GnuPG.
+    #[test]
+    fn v4skesk_v1seip_aes256() -> Result<()> {
+        test_password_encrypted_message(
+            SymmetricAlgorithm::AES256,
+            "messages/encrypted-aes256-password-123.gpg",
+            "123",
+            crate::tests::manifesto())
+    }
+
+    fn test_password_encrypted_message(cipher: SymmetricAlgorithm,
+                                       name: &str,
+                                       password: &str,
+                                       plaintext: &[u8])
+                                       -> Result<()> {
+        if ! cipher.is_supported() {
+            eprintln!("Skipping test vector {:?}...", name);
+            return Ok(());
+        }
+
+        eprintln!("Test vector {:?}...", name);
+
+        let p = &P::new();
+        let password: Password = String::from(password).into();
+
+        let h = VHelper::for_decryption(0, 0, 0, 0, vec![], vec![],
+                                        vec![password]);
+        let mut d = DecryptorBuilder::from_bytes(crate::tests::file(name))?
+            .with_policy(p, None, h)?;
+        assert!(d.message_processed());
+
+        let mut content = Vec::new();
+        d.read_to_end(&mut content).unwrap();
+        assert_eq!(&content, plaintext);
+
         Ok(())
     }
 }
