@@ -68,14 +68,13 @@ bench = false
 
 [features]
 default = [
-    "sequoia-openpgp/default",
+    "crypto-nettle",
+    "compression-bzip2",
     "autocrypt",
 ]
 crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
 crypto-openssl = ["sequoia-openpgp/crypto-openssl"]
 crypto-cng = ["sequoia-openpgp/crypto-cng"]
 crypto-rust = ["sequoia-openpgp/crypto-rust"]
-compression = ["sequoia-openpgp/compression"]
-compression-deflate = ["sequoia-openpgp/compression-deflate"]
 compression-bzip2 = ["sequoia-openpgp/compression-bzip2"]
 autocrypt = ["sequoia-autocrypt"]
