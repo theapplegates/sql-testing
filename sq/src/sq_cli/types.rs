@@ -141,7 +141,8 @@ impl std::str::FromStr for Time {
 
     fn from_str(s: &str) -> anyhow::Result<Time> {
         let time =
-            Time::parse_iso8601(s, chrono::NaiveTime::from_hms(0, 0, 0))?;
+            Time::parse_iso8601(s, chrono::NaiveTime::from_hms_opt(0, 0, 0)
+                                .unwrap())?;
         Ok(Time { time })
     }
 }
@@ -192,7 +193,7 @@ mod test {
 
     #[test]
     fn test_parse_iso8601() -> anyhow::Result<()> {
-        let z = chrono::NaiveTime::from_hms(0, 0, 0);
+        let z = chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap();
         Time::parse_iso8601("2017-03-04T13:25:35Z", z)?;
         Time::parse_iso8601("2017-03-04T13:25:35+08:30", z)?;
         Time::parse_iso8601("2017-03-04T13:25:35", z)?;

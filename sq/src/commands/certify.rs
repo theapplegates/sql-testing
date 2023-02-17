@@ -45,7 +45,8 @@ pub fn certify(config: Config, c: certify::Command)
 
     let time = if let Some(t) = c.time {
         let time = SystemTime::from(
-            crate::parse_iso8601(&t, chrono::NaiveTime::from_hms(0, 0, 0))
+            crate::parse_iso8601(
+                &t, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())
                 .context(format!("Parsing --time {}", t))?);
         Some(time)
     } else {
@@ -122,7 +123,8 @@ pub fn certify(config: Config, c: certify::Command)
             let now = builder.signature_creation_time()
                 .unwrap_or_else(std::time::SystemTime::now);
             let expiration = SystemTime::from(
-                crate::parse_iso8601(&t, chrono::NaiveTime::from_hms(0, 0, 0))?);
+                crate::parse_iso8601(
+                    &t, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())?);
             let validity = expiration.duration_since(now)?;
             builder = builder.set_signature_creation_time(now)?
                 .set_signature_validity_period(validity)?;

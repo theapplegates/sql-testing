@@ -28,7 +28,8 @@ pub fn inspect(c: inspect::Command, policy: &dyn Policy, output: &mut dyn io::Wr
 
     let time = if let Some(t) = c.time {
         let time = SystemTime::from(
-            crate::parse_iso8601(&t, chrono::NaiveTime::from_hms(0, 0, 0))
+            crate::parse_iso8601(
+                &t, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap())
                 .context(format!("Parsing --time {}", t))?,
         );
         Some(time)

@@ -793,7 +793,7 @@ fn parse_iso8601(s: &str, pad_date_with: chrono::NaiveTime)
 
 #[test]
 fn test_parse_iso8601() {
-    let z = chrono::NaiveTime::from_hms(0, 0, 0);
+    let z = chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap();
     parse_iso8601("2017-03-04T13:25:35Z", z).unwrap();
     parse_iso8601("2017-03-04T13:25:35+08:30", z).unwrap();
     parse_iso8601("2017-03-04T13:25:35", z).unwrap();
