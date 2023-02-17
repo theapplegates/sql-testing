@@ -1,67 +1,81 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH decrypt 1 "July 2022" "sq 0.26.0" "Sequoia Manual"
+.TH SQ 1 0.28.0 Sequoia-PGP "User Commands"
 .SH NAME
-decrypt \- Unwraps an encryption container
+sq packet decrypt \- Unwraps an encryption container
 .SH SYNOPSIS
-\fBdecrypt\fR [\fB\-o\fR|\fB\-\-output\fR] [\fB\-B\fR|\fB\-\-binary\fR] [\fB\-\-recipient\-key\fR] [\fB\-\-private\-key\-store\fR] [\fB\-\-session\-key\fR] [\fB\-\-dump\-session\-key\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fIFILE\fR] 
+.br
+\fBsq\fR [\fIGLOBAL OPTIONS\fR] \fBpacket decrypt\fR [\fIOPTIONS\fR] \fIFILE\fR
 .SH DESCRIPTION
-Unwraps an encryption container
+Unwraps an encryption container.
 .PP
 Decrypts a message, dumping the content of the encryption container
 without further processing.  The result is a valid OpenPGP message
 that can, among other things, be inspected using "sq packet dump".
+.PP
+
+
 .SH OPTIONS
+.SS "Global options"
 .TP
-\fB\-o\fR, \fB\-\-output\fR=\fIFILE\fR
-Writes to FILE or stdout if omitted
+\fB\-f\fR, \fB\-\-force\fR
+Overwrites existing files
+.TP
+\fB\-\-help\fR
+Print help information
+.TP
+\fB\-\-known\-notation\fR=\fINOTATION\fR
+Adds NOTATION to the list of known notations
+.TP
+\fB\-\-output\-format\fR=\fIFORMAT\fR
+Produces output in FORMAT, if possible
+.TP
+\fB\-\-output\-version\fR=\fIVERSION\fR
+Produces output variant VERSION.
+.TP
+\fB\-\-version\fR
+Print version information
+.SS "Subcommand options"
 .TP
 \fB\-B\fR, \fB\-\-binary\fR
 Emits binary data
 .TP
-\fB\-\-recipient\-key\fR=\fIKEY\fR
-Decrypts the message with KEY
+\fB\-\-dump\-session\-key\fR
+Prints the session key to stderr
+.TP
+\fB\-\-help\fR
+Print help information
+.TP
+\fB\-o\fR, \fB\-\-output\fR=\fIFILE\fR
+Writes to FILE or stdout if omitted
 .TP
 \fB\-\-private\-key\-store\fR=\fIKEY_STORE\fR
 Provides parameters for private key store
 .TP
+\fB\-\-recipient\-file\fR=\fIKEY_FILE\fR
+Decrypts the message using the key in KEY_FILE
+.TP
 \fB\-\-session\-key\fR=\fISESSION\-KEY\fR
 Decrypts an encrypted message using SESSION\-KEY
 .TP
-\fB\-\-dump\-session\-key\fR
-Prints the session key to stderr
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help information
-.TP
-[\fIFILE\fR]
-Reads from FILE or stdin if omitted
+\fB\-\-version\fR
+Print version information
 .SH EXAMPLES
- Unwraps the encryption revealing the signed message
+.PP
+
+.PP
+Unwraps the encryption revealing the signed message
 .PP
 .nf
 .RS
- sq packet decrypt \-\-recipient\-key juliet.pgp ciphertext.pgp
+sq packet decrypt \-\-recipient\-file juliet.pgp ciphertext.pgp
 .RE
 .fi
 .SH "SEE ALSO"
-For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.nh
+\fBsq\fR(1).
+.hy
 .PP
-sq(1)
-sq\-armor(1)
-sq\-certify(1)
-sq\-dearmor(1)
-sq\-decrypt(1)
-sq\-encrypt(1)
-sq\-inspect(1)
-sq\-key(1)
-sq\-keyring(1)
-sq\-keyserver(1)
-sq\-packet(1)
-sq\-packet\-dump(1)
-sq\-packet\-join(1)
-sq\-packet\-split(1)
-sq\-revoke(1)
-sq\-sign(1)
-sq\-verify(1)
-sq\-wkd(1)
+For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.SH VERSION
+0.28.0 (sequoia\-openpgp 1.13.0, using Nettle)

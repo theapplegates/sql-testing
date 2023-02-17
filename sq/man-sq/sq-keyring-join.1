@@ -1,57 +1,70 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH join 1 "July 2022" "sq 0.26.0" "Sequoia Manual"
+.TH SQ 1 0.28.0 Sequoia-PGP "User Commands"
 .SH NAME
-join \- Joins keys or keyrings into a single keyring
+sq keyring join \- Joins keys or keyrings into a single keyring
 .SH SYNOPSIS
-\fBjoin\fR [\fB\-o\fR|\fB\-\-output\fR] [\fB\-B\fR|\fB\-\-binary\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fIFILE\fR] 
+.br
+\fBsq\fR [\fIGLOBAL OPTIONS\fR] \fBkeyring join\fR [\fIOPTIONS\fR] \fIFILE\fR
 .SH DESCRIPTION
-Joins keys or keyrings into a single keyring
+Joins keys or keyrings into a single keyring.
 .PP
 Unlike "sq keyring merge", multiple versions of the same key are not
 merged together.
 .PP
 The converse operation is "sq keyring split".
+.PP
+
+
 .SH OPTIONS
+.SS "Global options"
 .TP
-\fB\-o\fR, \fB\-\-output\fR=\fIFILE\fR
-Sets the output file to use
+\fB\-f\fR, \fB\-\-force\fR
+Overwrites existing files
+.TP
+\fB\-\-help\fR
+Print help information
+.TP
+\fB\-\-known\-notation\fR=\fINOTATION\fR
+Adds NOTATION to the list of known notations
+.TP
+\fB\-\-output\-format\fR=\fIFORMAT\fR
+Produces output in FORMAT, if possible
+.TP
+\fB\-\-output\-version\fR=\fIVERSION\fR
+Produces output variant VERSION.
+.TP
+\fB\-\-version\fR
+Print version information
+.SS "Subcommand options"
 .TP
 \fB\-B\fR, \fB\-\-binary\fR
 Don\*(Aqt ASCII\-armor the keyring
 .TP
-\fB\-h\fR, \fB\-\-help\fR
+\fB\-\-help\fR
 Print help information
 .TP
-[\fIFILE\fR]
-Sets the input files to use
+\fB\-o\fR, \fB\-\-output\fR=\fIFILE\fR
+Sets the output file to use
+.TP
+\fB\-\-version\fR
+Print version information
 .SH EXAMPLES
- Collect certs for an email conversation
+.PP
+
+.PP
+Collect certs for an email conversation
 .PP
 .nf
 .RS
- sq keyring join juliet.pgp romeo.pgp alice.pgp
+sq keyring join juliet.pgp romeo.pgp alice.pgp
 .RE
 .fi
 .SH "SEE ALSO"
-For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.nh
+\fBsq\fR(1).
+.hy
 .PP
-sq(1)
-sq\-armor(1)
-sq\-certify(1)
-sq\-dearmor(1)
-sq\-decrypt(1)
-sq\-encrypt(1)
-sq\-inspect(1)
-sq\-key(1)
-sq\-keyring(1)
-sq\-keyring\-filter(1)
-sq\-keyring\-list(1)
-sq\-keyring\-merge(1)
-sq\-keyring\-split(1)
-sq\-keyserver(1)
-sq\-packet(1)
-sq\-revoke(1)
-sq\-sign(1)
-sq\-verify(1)
-sq\-wkd(1)
+For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.SH VERSION
+0.28.0 (sequoia\-openpgp 1.13.0, using Nettle)

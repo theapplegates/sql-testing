@@ -1,13 +1,13 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH dump 1 "July 2022" "sq 0.26.0" "Sequoia Manual"
+.TH SQ 1 0.28.0 Sequoia-PGP "User Commands"
 .SH NAME
-dump \- Lists packets
+sq packet dump \- Lists packets
 .SH SYNOPSIS
-\fBdump\fR [\fB\-o\fR|\fB\-\-output\fR] [\fB\-\-session\-key\fR] [\fB\-\-mpis\fR] [\fB\-x\fR|\fB\-\-hex\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fIFILE\fR] 
+.br
+\fBsq\fR [\fIGLOBAL OPTIONS\fR] \fBpacket dump\fR [\fIOPTIONS\fR] \fIFILE\fR
 .SH DESCRIPTION
-.PP
-Lists packets
+Lists packets.
 .PP
 Creates a human\-readable description of the packet sequence.
 Additionally, it can print cryptographic artifacts, and print the raw
@@ -16,7 +16,36 @@ bytes are parsed into OpenPGP values.
 .PP
 To inspect encrypted messages, either supply the session key, or see
 "sq decrypt \-\-dump" or "sq packet decrypt".
+.PP
+
+
 .SH OPTIONS
+.SS "Global options"
+.TP
+\fB\-f\fR, \fB\-\-force\fR
+Overwrites existing files
+.TP
+\fB\-\-help\fR
+Print help information
+.TP
+\fB\-\-known\-notation\fR=\fINOTATION\fR
+Adds NOTATION to the list of known notations
+.TP
+\fB\-\-output\-format\fR=\fIFORMAT\fR
+Produces output in FORMAT, if possible
+.TP
+\fB\-\-output\-version\fR=\fIVERSION\fR
+Produces output variant VERSION.
+.TP
+\fB\-\-version\fR
+Print version information
+.SS "Subcommand options"
+.TP
+\fB\-\-help\fR
+Print help information
+.TP
+\fB\-\-mpis\fR
+Prints cryptographic artifacts
 .TP
 \fB\-o\fR, \fB\-\-output\fR=\fIFILE\fR
 Writes to FILE or stdout if omitted
@@ -24,67 +53,57 @@ Writes to FILE or stdout if omitted
 \fB\-\-session\-key\fR=\fISESSION\-KEY\fR
 Decrypts an encrypted message using SESSION\-KEY
 .TP
-\fB\-\-mpis\fR
-Prints cryptographic artifacts
+\fB\-\-version\fR
+Print version information
 .TP
 \fB\-x\fR, \fB\-\-hex\fR
 Prints a hexdump
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help information
-.TP
-[\fIFILE\fR]
-Reads from FILE or stdin if omitted
 .SH EXAMPLES
- Prints the packets of a certificate
+.PP
+
+.PP
+Prints the packets of a certificate
 .PP
 .nf
 .RS
- sq packet dump juliet.pgp
+sq packet dump juliet.pgp
 .RE
 .fi
 .PP
- Prints cryptographic artifacts of a certificate
+
+.PP
+Prints cryptographic artifacts of a certificate
 .PP
 .nf
 .RS
- sq packet dump \-\-mpis juliet.pgp
+sq packet dump \-\-mpis juliet.pgp
 .RE
 .fi
 .PP
- Prints a hexdump of a certificate
+
+.PP
+Prints a hexdump of a certificate
 .PP
 .nf
 .RS
- sq packet dump \-\-hex juliet.pgp
+sq packet dump \-\-hex juliet.pgp
 .RE
 .fi
 .PP
- Prints the packets of an encrypted message
+
+.PP
+Prints the packets of an encrypted message
 .PP
 .nf
 .RS
- sq packet dump \-\-session\-key AAAABBBBCCCC... ciphertext.pgp
+sq packet dump \-\-session\-key AAAABBBBCCCC... ciphertext.pgp
 .RE
 .fi
 .SH "SEE ALSO"
-For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.nh
+\fBsq\fR(1).
+.hy
 .PP
-sq(1)
-sq\-armor(1)
-sq\-certify(1)
-sq\-dearmor(1)
-sq\-decrypt(1)
-sq\-encrypt(1)
-sq\-inspect(1)
-sq\-key(1)
-sq\-keyring(1)
-sq\-keyserver(1)
-sq\-packet(1)
-sq\-packet\-decrypt(1)
-sq\-packet\-join(1)
-sq\-packet\-split(1)
-sq\-revoke(1)
-sq\-sign(1)
-sq\-verify(1)
-sq\-wkd(1)
+For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.SH VERSION
+0.28.0 (sequoia\-openpgp 1.13.0, using Nettle)

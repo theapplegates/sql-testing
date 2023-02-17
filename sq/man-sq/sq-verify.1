@@ -1,12 +1,13 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH verify 1 "July 2022" "sq 0.26.0" "Sequoia Manual"
+.TH SQ 1 0.28.0 Sequoia-PGP "User Commands"
 .SH NAME
-verify \- Verifies signed messages or detached signatures
+sq verify \- Verifies signed messages or detached signatures
 .SH SYNOPSIS
-\fBverify\fR [\fB\-o\fR|\fB\-\-output\fR] [\fB\-\-detached\fR] [\fB\-n\fR|\fB\-\-signatures\fR] [\fB\-\-signer\-cert\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fIFILE\fR] 
+.br
+\fBsq\fR [\fIGLOBAL OPTIONS\fR] \fBverify\fR [\fIOPTIONS\fR] \fIFILE\fR
 .SH DESCRIPTION
-Verifies signed messages or detached signatures
+Verifies signed messages or detached signatures.
 .PP
 When verifying signed messages, the message is written to stdout or
 the file given to \-\-output.
@@ -23,58 +24,77 @@ i.e. if the message is smaller than 25 MiB, no output is produced, and
 if it is larger, then the output will be truncated.
 .PP
 The converse operation is "sq sign".
+.PP
+If you are looking for a standalone program to verify detached
+signatures, consider using sequoia\-sqv.
+.PP
+
+
 .SH OPTIONS
+.SS "Global options"
 .TP
-\fB\-o\fR, \fB\-\-output\fR=\fIFILE\fR
-Writes to FILE or stdout if omitted
+\fB\-f\fR, \fB\-\-force\fR
+Overwrites existing files
+.TP
+\fB\-\-help\fR
+Print help information
+.TP
+\fB\-\-known\-notation\fR=\fINOTATION\fR
+Adds NOTATION to the list of known notations
+.TP
+\fB\-\-output\-format\fR=\fIFORMAT\fR
+Produces output in FORMAT, if possible
+.TP
+\fB\-\-output\-version\fR=\fIVERSION\fR
+Produces output variant VERSION.
+.TP
+\fB\-\-version\fR
+Print version information
+.SS "Subcommand options"
 .TP
 \fB\-\-detached\fR=\fISIG\fR
 Verifies a detached signature
 .TP
-\fB\-n\fR, \fB\-\-signatures\fR=\fIN\fR [default: 1]
-Sets the threshold of valid signatures to N. If this threshold is not reached, the message will not be considered verified.
-.TP
-\fB\-\-signer\-cert\fR=\fICERT\fR
-Verifies signatures with CERT
-.TP
-\fB\-h\fR, \fB\-\-help\fR
+\fB\-\-help\fR
 Print help information
 .TP
-[\fIFILE\fR]
-Reads from FILE or stdin if omitted
+\fB\-n\fR, \fB\-\-signatures\fR=\fIN\fR
+Sets the threshold of valid signatures to N
+.TP
+\fB\-o\fR, \fB\-\-output\fR=\fIFILE\fR
+Writes to FILE or stdout if omitted
+.TP
+\fB\-\-signer\-file\fR=\fICERT_FILE\fR
+Verifies signatures using the certificate in CERT_FILE
+.TP
+\fB\-\-version\fR
+Print version information
 .SH EXAMPLES
- Verify a signed message
+.PP
+
+.PP
+Verify a signed message
 .PP
 .nf
 .RS
- sq verify \-\-signer\-cert juliet.pgp signed\-message.pgp
+sq verify \-\-signer\-file juliet.pgp signed\-message.pgp
 .RE
 .fi
 .PP
- Verify a detached message
+
+.PP
+Verify a detached message
 .PP
 .nf
 .RS
- sq verify \-\-signer\-cert juliet.pgp \-\-detached message.sig message.txt
+sq verify \-\-signer\-file juliet.pgp \-\-detached message.sig message.txt
 .RE
 .fi
-SEE ALSO:
-If you are looking for a standalone program to verify detached
-signatures, consider using sequoia\-sqv.
 .SH "SEE ALSO"
-For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.nh
+\fBsq\fR(1).
+.hy
 .PP
-sq(1)
-sq\-armor(1)
-sq\-certify(1)
-sq\-dearmor(1)
-sq\-decrypt(1)
-sq\-encrypt(1)
-sq\-inspect(1)
-sq\-key(1)
-sq\-keyring(1)
-sq\-keyserver(1)
-sq\-packet(1)
-sq\-revoke(1)
-sq\-sign(1)
-sq\-wkd(1)
+For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.SH VERSION
+0.28.0 (sequoia\-openpgp 1.13.0, using Nettle)

@@ -1,12 +1,13 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH generate 1 "July 2022" "sq 0.26.0" "Sequoia Manual"
+.TH SQ 1 0.28.0 Sequoia-PGP "User Commands"
 .SH NAME
-generate \- Generates a new key
+sq key generate \- Generates a new key
 .SH SYNOPSIS
-\fBgenerate\fR [\fB\-u\fR|\fB\-\-userid\fR] [\fB\-c\fR|\fB\-\-cipher\-suite\fR] [\fB\-\-with\-password\fR] [\fB\-\-creation\-time\fR] [\fB\-\-expires\fR] [\fB\-\-expires\-in\fR] [\fB\-\-can\-sign\fR] [\fB\-\-cannot\-sign\fR] [\fB\-\-can\-authenticate\fR] [\fB\-\-cannot\-authenticate\fR] [\fB\-\-can\-encrypt\fR] [\fB\-\-cannot\-encrypt\fR] [\fB\-e\fR|\fB\-\-export\fR] [\fB\-\-rev\-cert\fR] [\fB\-h\fR|\fB\-\-help\fR] 
+.br
+\fBsq\fR [\fIGLOBAL OPTIONS\fR] \fBkey generate\fR [\fIOPTIONS\fR]  
 .SH DESCRIPTION
-Generates a new key
+Generates a new key.
 .PP
 Generating a key is the prerequisite to receiving encrypted messages
 and creating signatures.  There are a few parameters to this process,
@@ -20,114 +21,124 @@ After generating a key, use "sq key extract\-cert" to get the
 certificate corresponding to the key.  The key must be kept secure,
 while the certificate should be handed out to correspondents, e.g. by
 uploading it to a keyserver.
+.PP
+
+
 .SH OPTIONS
+.SS "Global options"
 .TP
-\fB\-u\fR, \fB\-\-userid\fR=\fIEMAIL\fR
-Adds a userid to the key
+\fB\-f\fR, \fB\-\-force\fR
+Overwrites existing files
 .TP
-\fB\-c\fR, \fB\-\-cipher\-suite\fR=\fICIPHER\-SUITE\fR [default: cv25519] [possible values: rsa3k, rsa4k, cv25519]
+\fB\-\-help\fR
+Print help information
+.TP
+\fB\-\-known\-notation\fR=\fINOTATION\fR
+Adds NOTATION to the list of known notations
+.TP
+\fB\-\-output\-format\fR=\fIFORMAT\fR
+Produces output in FORMAT, if possible
+.TP
+\fB\-\-output\-version\fR=\fIVERSION\fR
+Produces output variant VERSION.
+.TP
+\fB\-\-version\fR
+Print version information
+.SS "Subcommand options"
+.TP
+\fB\-c\fR, \fB\-\-cipher\-suite\fR=\fICIPHER\-SUITE\fR
 Selects the cryptographic algorithms for the key
-.TP
-\fB\-\-with\-password\fR
-Protects the key with a password
-.TP
-\fB\-\-creation\-time\fR=\fICREATION_TIME\fR
-Sets the key\*(Aqs creation time to TIME.  TIME is interpreted as an ISO 8601
-timestamp.  To set the creation time to June 9, 2011 at midnight UTC,
-you can do:
-
-$ sq key generate \-\-creation\-time 20110609 \-\-export noam.pgp
-
-To include a time, add a T, the time and optionally the timezone (the
-default timezone is UTC):
-
-$ sq key generate \-\-creation\-time 20110609T1938+0200 \-\-export noam.pgp
-
-.TP
-\fB\-\-expires\fR=\fITIME\fR
-Makes the key expire at TIME (as ISO 8601). Use "never" to create keys that do not expire.
-.TP
-\fB\-\-expires\-in\fR=\fIDURATION\fR
-Makes the key expire after DURATION. Either "N[ymwds]", for N years, months, weeks, days, seconds, or "never".
-.TP
-\fB\-\-can\-sign\fR
-Adds a signing\-capable subkey (default)
-.TP
-\fB\-\-cannot\-sign\fR
-Adds no signing\-capable subkey
 .TP
 \fB\-\-can\-authenticate\fR
 Adds an authentication\-capable subkey (default)
 .TP
+\fB\-\-can\-encrypt\fR=\fIPURPOSE\fR
+Adds an encryption\-capable subkey [default: universal]
+.TP
+\fB\-\-can\-sign\fR
+Adds a signing\-capable subkey (default)
+.TP
 \fB\-\-cannot\-authenticate\fR
 Adds no authentication\-capable subkey
-.TP
-\fB\-\-can\-encrypt\fR=\fIPURPOSE\fR [possible values: transport, storage, universal]
-Adds an encryption\-capable subkey. Encryption\-capable subkeys can be marked as suitable for transport encryption, storage encryption, or both. [default: universal]
 .TP
 \fB\-\-cannot\-encrypt\fR
 Adds no encryption\-capable subkey
 .TP
+\fB\-\-cannot\-sign\fR
+Adds no signing\-capable subkey
+.TP
+\fB\-\-creation\-time\fR=\fICREATION_TIME\fR
+Sets the key\*(Aqs creation time to TIME (as ISO 8601)
+.TP
 \fB\-e\fR, \fB\-\-export\fR=\fIOUTFILE\fR
 Writes the key to OUTFILE
 .TP
-\fB\-\-rev\-cert\fR=\fIFILE or \-\fR
-Writes the revocation certificate to FILE. mandatory if OUTFILE is "\-". [default: <OUTFILE>.rev]
+\fB\-\-expires\fR=\fITIME\fR
+Makes the key expire at TIME (as ISO 8601)
 .TP
-\fB\-h\fR, \fB\-\-help\fR
+\fB\-\-expires\-in\fR=\fIDURATION\fR
+Makes the key expire after DURATION (as N[ymwds]) [default: 5y]
+.TP
+\fB\-\-help\fR
 Print help information
+.TP
+\fB\-\-rev\-cert\fR=\fIFILE or \-\fR
+Writes the revocation certificate to FILE
+.TP
+\fB\-u\fR, \fB\-\-userid\fR=\fIEMAIL\fR
+Adds a userid to the key
+.TP
+\fB\-\-version\fR
+Print version information
+.TP
+\fB\-\-with\-password\fR
+Protects the key with a password
 .SH EXAMPLES
- First, this generates a key
+.PP
+
+.PP
+First, this generates a key
 .PP
 .nf
 .RS
- sq key generate \-\-userid "<juliet@example.org>" \-\-export juliet.key.pgp
+sq key generate \-\-userid "<juliet@example.org>" \-\-export juliet.key.pgp
 .RE
 .fi
 .PP
- Then, this extracts the certificate for distribution
+
+.PP
+Then, this extracts the certificate for distribution
 .PP
 .nf
 .RS
- sq key extract\-cert \-\-output juliet.cert.pgp juliet.key.pgp
+sq key extract\-cert \-\-output juliet.cert.pgp juliet.key.pgp
 .RE
 .fi
 .PP
- Generates a key protecting it with a password
+
+.PP
+Generates a key protecting it with a password
 .PP
 .nf
 .RS
- sq key generate \-\-userid "<juliet@example.org>" \-\-with\-password
+sq key generate \-\-userid "<juliet@example.org>" \-\-with\-password
 .RE
 .fi
 .PP
- Generates a key with multiple userids
+
+.PP
+Generates a key with multiple userids
 .PP
 .nf
 .RS
- sq key generate \-\-userid "<juliet@example.org>" \-\-userid "Juliet Capulet"
+sq key generate \-\-userid "<juliet@example.org>" \-\-userid "Juliet Capulet"
 .RE
 .fi
 .SH "SEE ALSO"
-For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.nh
+\fBsq\fR(1).
+.hy
 .PP
-sq(1)
-sq\-armor(1)
-sq\-certify(1)
-sq\-dearmor(1)
-sq\-decrypt(1)
-sq\-encrypt(1)
-sq\-inspect(1)
-sq\-key(1)
-sq\-key\-adopt(1)
-sq\-key\-attest\-certifications(1)
-sq\-key\-extract\-cert(1)
-sq\-key\-password(1)
-sq\-key\-userid(1)
-sq\-keyring(1)
-sq\-keyserver(1)
-sq\-packet(1)
-sq\-revoke(1)
-sq\-sign(1)
-sq\-verify(1)
-sq\-wkd(1)
+For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.SH VERSION
+0.28.0 (sequoia\-openpgp 1.13.0, using Nettle)

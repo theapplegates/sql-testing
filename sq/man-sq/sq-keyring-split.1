@@ -1,65 +1,80 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH split 1 "July 2022" "sq 0.26.0" "Sequoia Manual"
+.TH SQ 1 0.28.0 Sequoia-PGP "User Commands"
 .SH NAME
-split \- Splits a keyring into individual keys
+sq keyring split \- Splits a keyring into individual keys
 .SH SYNOPSIS
-\fBsplit\fR [\fB\-p\fR|\fB\-\-prefix\fR] [\fB\-B\fR|\fB\-\-binary\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fIFILE\fR] 
+.br
+\fBsq\fR [\fIGLOBAL OPTIONS\fR] \fBkeyring split\fR [\fIOPTIONS\fR] \fIFILE\fR
 .SH DESCRIPTION
-Splits a keyring into individual keys
+Splits a keyring into individual keys.
 .PP
 Splitting up a keyring into individual keys helps with curating a
 keyring.
 .PP
 The converse operation is "sq keyring join".
+.PP
+
+
 .SH OPTIONS
+.SS "Global options"
 .TP
-\fB\-p\fR, \fB\-\-prefix\fR=\fIPREFIX\fR
-Writes to files with PREFIX [defaults: "FILE\-" if FILE is set, or "output\-" if read from stdin]
+\fB\-f\fR, \fB\-\-force\fR
+Overwrites existing files
+.TP
+\fB\-\-help\fR
+Print help information
+.TP
+\fB\-\-known\-notation\fR=\fINOTATION\fR
+Adds NOTATION to the list of known notations
+.TP
+\fB\-\-output\-format\fR=\fIFORMAT\fR
+Produces output in FORMAT, if possible
+.TP
+\fB\-\-output\-version\fR=\fIVERSION\fR
+Produces output variant VERSION.
+.TP
+\fB\-\-version\fR
+Print version information
+.SS "Subcommand options"
 .TP
 \fB\-B\fR, \fB\-\-binary\fR
 Emits binary data
 .TP
-\fB\-h\fR, \fB\-\-help\fR
+\fB\-\-help\fR
 Print help information
 .TP
-[\fIFILE\fR]
-Reads from FILE or stdin if omitted
+\fB\-p\fR, \fB\-\-prefix\fR=\fIPREFIX\fR
+Writes to files with PREFIX [defaults: "FILE\-" if FILE is set, or "output\-" if read from stdin]
+.TP
+\fB\-\-version\fR
+Print version information
 .SH EXAMPLES
- Split all certs
+.PP
+
+.PP
+Split all certs
 .PP
 .nf
 .RS
- sq keyring split certs.pgp
+sq keyring split certs.pgp
 .RE
 .fi
 .PP
- Split all certs, merging them first to avoid duplicates
+
+.PP
+Split all certs, merging them first to avoid duplicates
 .PP
 .nf
 .RS
- sq keyring merge certs.pgp | sq keyring split
+sq keyring merge certs.pgp | sq keyring split
 .RE
 .fi
 .SH "SEE ALSO"
-For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.nh
+\fBsq\fR(1).
+.hy
 .PP
-sq(1)
-sq\-armor(1)
-sq\-certify(1)
-sq\-dearmor(1)
-sq\-decrypt(1)
-sq\-encrypt(1)
-sq\-inspect(1)
-sq\-key(1)
-sq\-keyring(1)
-sq\-keyring\-filter(1)
-sq\-keyring\-join(1)
-sq\-keyring\-list(1)
-sq\-keyring\-merge(1)
-sq\-keyserver(1)
-sq\-packet(1)
-sq\-revoke(1)
-sq\-sign(1)
-sq\-verify(1)
-sq\-wkd(1)
+For the full documentation see <https://docs.sequoia\-pgp.org/sq/>.
+.SH VERSION
+0.28.0 (sequoia\-openpgp 1.13.0, using Nettle)
