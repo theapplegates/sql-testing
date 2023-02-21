@@ -1,9 +1,9 @@
 use std::env;
 use std::fs;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use clap_complete::Shell;
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 pub mod sq_cli {
     include!("src/sq_cli/mod.rs");
@@ -39,7 +39,10 @@ fn main() {
 fn dump_help(mut cmd: clap::Command) -> Result<()> {
     cmd = cmd.term_width(80);
     cmd.build();
-    let mut sink = fs::File::create("sq-usage.md")?;
+    let path = PathBuf::from(env::var_os("OUT_DIR").unwrap())
+        .join("sq-usage.md");
+    let mut sink = fs::File::create(&path)
+        .with_context(|| format!("trying to create {}", path.display()))?;
 
     writeln!(sink, "A command-line frontend for Sequoia.")?;
     writeln!(sink)?;
