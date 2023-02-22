@@ -95,9 +95,21 @@ impl AEADAlgorithm {
                 };
                 let mut ctx = CipherCtx::new()?;
                 match op {
-                    CipherOp::Encrypt => ctx.encrypt_init(Some(cipher), Some(key), Some(nonce))?,
+                    CipherOp::Encrypt =>
+                        ctx.encrypt_init(Some(cipher), Some(key), None)?,
 
-                    CipherOp::Decrypt => ctx.decrypt_init(Some(cipher), Some(key), Some(nonce))?,
+                    CipherOp::Decrypt =>
+                        ctx.decrypt_init(Some(cipher), Some(key), None)?,
+                }
+                // We have to set the IV length before supplying the
+                // IV.  Otherwise, it will be silently truncated.
+                ctx.set_iv_length(self.nonce_size()?)?;
+                match op {
+                    CipherOp::Encrypt =>
+                        ctx.encrypt_init(None, None, Some(nonce))?,
+
+                    CipherOp::Decrypt =>
+                        ctx.decrypt_init(None, None, Some(nonce))?,
                 }
                 ctx.set_padding(false);
                 Ok(Box::new(OpenSslContext {
