@@ -232,6 +232,9 @@ impl Hash for Encrypted {
     }
 }
 
+/// Opt out of memory encryption.
+const DANGER_DISABLE_ENCRYPTED_MEMORY: bool = false;
+
 /// The number of pages containing random bytes to derive the prekey
 /// from.
 const ENCRYPTED_MEMORY_PREKEY_PAGES: usize = 4;
@@ -285,6 +288,13 @@ mod has_access_to_prekey {
 
         /// Encrypts the given chunk of memory.
         pub fn new(p: Protected) -> Self {
+            if DANGER_DISABLE_ENCRYPTED_MEMORY {
+                return Encrypted {
+                    ciphertext: p,
+                    salt: Default::default(),
+                };
+            }
+
             let mut salt = [0; 32];
             crate::crypto::random(&mut salt);
             let mut ciphertext = Vec::new();
@@ -312,6 +322,10 @@ mod has_access_to_prekey {
         pub fn map<F, T>(&self, mut fun: F) -> T
             where F: FnMut(&Protected) -> T
         {
+            if DANGER_DISABLE_ENCRYPTED_MEMORY {
+                return fun(&self.ciphertext);
+            }
+
             let ciphertext =
                 Memory::with_cookie(&self.ciphertext, Default::default());
             let mut plaintext = Vec::new();
