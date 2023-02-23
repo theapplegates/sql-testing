@@ -56,35 +56,7 @@ bookworm:
     - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-nettle,compression --example supported-algorithms
     - $MAKE_TOP test
     - if ! git diff --quiet Cargo.lock ; then echo "Cargo.lock changed.  Please add the change to the corresponding commit." ; git diff ; false ; fi
-    - if ! git diff --quiet sq ; then echo "Please commit the changes to sq/sq-usage.md." ; false ; fi
     - if ! git diff --quiet ; then echo "The build changed the source.  Please investigate." ; git diff ; fi
-  variables:
-    CARGO_TARGET_DIR: /target
-    CARGO_HOME: /cargo
-
-sq-features:
-  tags:
-    - linux
-  stage: build
-  interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
-  only:
-    refs:
-      # Run unconditionally for branch names that contain sq and main,
-      # changes only applies to "branches" here
-      - sq #branch names containing 'sq'
-      - tags
-      - web
-      - schedules
-  parallel:
-    matrix:
-      - FEATURES:
-        - ""
-        - "autocrypt"
-        - "autocrypt,compression-bzip2"
-        - "compression-bzip2"
-  script:
-    - cargo test --package sequoia-sq --no-default-features --features crypto-nettle --features $FEATURES
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
