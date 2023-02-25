@@ -339,9 +339,14 @@ mod has_access_to_prekey {
                                      Self::sealing_key(&self.salt),
                                      Box::new(ciphertext))
                 .expect("Mandatory algorithm unsupported");
-            io::copy(&mut decryptor, &mut plaintext)
-                .expect("Encrypted memory modified or corrupted");
+
+            // Be careful not to leak partially decrypted plain text.
+            let r = io::copy(&mut decryptor, &mut plaintext);
             let plaintext: Protected = plaintext.into();
+            if r.is_err() {
+                drop(plaintext); // Securely erase partial plaintext.
+                panic!("Encrypted memory modified or corrupted");
+            }
             fun(&plaintext)
         }
     }
