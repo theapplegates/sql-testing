@@ -11,6 +11,26 @@ use crate::{
 impl<R> Key6<SecretParts, R>
     where R: key::KeyRole,
 {
+    /// Generates a new X25519 key.
+    pub fn generate_x25519() -> Result<Self> {
+        Key4::generate_x25519().map(Key6::from_common)
+    }
+
+    /// Generates a new X448 key.
+    pub fn generate_x448() -> Result<Self> {
+        Key4::generate_x448().map(Key6::from_common)
+    }
+
+    /// Generates a new Ed25519 key.
+    pub fn generate_ed25519() -> Result<Self> {
+        Key4::generate_ed25519().map(Key6::from_common)
+    }
+
+    /// Generates a new Ed448 key.
+    pub fn generate_ed448() -> Result<Self> {
+        Key4::generate_ed448().map(Key6::from_common)
+    }
+
     /// Generates a new RSA key with a public modulos of size `bits`.
     pub fn generate_rsa(bits: usize) -> Result<Self> {
         Key4::generate_rsa(bits)

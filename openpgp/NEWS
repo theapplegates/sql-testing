@@ -38,6 +38,30 @@
    - key::Encrypted::new_aead
    - key::Encrypted::aead_algo
    - key::Encrypted::aead_iv
+   - mpi::PublicKey::X25519
+   - mpi::PublicKey::X448
+   - mpi::PublicKey::Ed25519
+   - mpi::PublicKey::Ed448
+   - mpi::SecretKeyMaterial::X25519
+   - mpi::SecretKeyMaterial::X448
+   - mpi::SecretKeyMaterial::Ed25519
+   - mpi::SecretKeyMaterial::Ed448
+   - mpi::Ciphertext::X25519
+   - mpi::Ciphertext::X448
+   - mpi::Signature::Ed25519
+   - mpi::Signature::Ed448
+   - Key4::generate_x25519
+   - Key4::generate_x448
+   - Key4::generate_ed25519
+   - Key4::generate_ed448
+   - policy::AsymmetricAlgorithm::X25519
+   - policy::AsymmetricAlgorithm::X448
+   - policy::AsymmetricAlgorithm::Ed25519
+   - policy::AsymmetricAlgorithm::Ed448
+   - PublicKeyAlgorithm::X25519
+   - PublicKeyAlgorithm::X448
+   - PublicKeyAlgorithm::Ed25519
+   - PublicKeyAlgorithm::Ed448
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms
