@@ -53,11 +53,11 @@ pub trait Aead : seal::Sealed {
     /// Adds associated data `ad`.
     fn update(&mut self, ad: &[u8]) -> Result<()>;
 
-    /// Encrypts one block `src` to `dst`.
-    fn encrypt(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()>;
-
-    /// Produce the digest.
-    fn digest(&mut self, digest: &mut [u8]) -> Result<()>;
+    /// Encrypts one chunk `src` to `dst` adding a digest.
+    ///
+    /// Note: `dst` must be large enough to accommodate both the
+    /// ciphertext and the digest!
+    fn encrypt_seal(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()>;
 
     /// Length of the digest in bytes.
     fn digest_size(&self) -> usize;
@@ -633,7 +633,7 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
             chunk_index: 0,
             bytes_encrypted: 0,
             buffer: Vec::with_capacity(chunk_size),
-            scratch: vec![0; chunk_size],
+            scratch: vec![0; chunk_size + aead.digest_size()?],
         })
     }
 
@@ -667,15 +667,12 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
                 let inner = self.inner.as_mut().unwrap();
 
                 // Encrypt the chunk.
-                aead.encrypt(&mut self.scratch, &self.buffer)?;
-                self.bytes_encrypted += self.scratch.len() as u64;
+                aead.encrypt_seal(&mut self.scratch, &self.buffer)?;
+                self.bytes_encrypted += self.chunk_size as u64;
                 self.chunk_index += 1;
+                // XXX: clear plaintext buffer.
                 crate::vec_truncate(&mut self.buffer, 0);
                 inner.write_all(&self.scratch)?;
-
-                // Write digest.
-                aead.digest(&mut self.scratch[..self.digest_size])?;
-                inner.write_all(&self.scratch[..self.digest_size])?;
             }
         }
 
@@ -696,14 +693,10 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
                 let inner = self.inner.as_mut().unwrap();
 
                 // Encrypt the chunk.
-                aead.encrypt(&mut self.scratch, chunk)?;
-                self.bytes_encrypted += self.scratch.len() as u64;
+                aead.encrypt_seal(&mut self.scratch, chunk)?;
+                self.bytes_encrypted += self.chunk_size as u64;
                 self.chunk_index += 1;
                 inner.write_all(&self.scratch)?;
-
-                // Write digest.
-                aead.digest(&mut self.scratch[..self.digest_size])?;
-                inner.write_all(&self.scratch[..self.digest_size])?;
             } else {
                 // Stash for later.
                 assert!(self.buffer.is_empty());
@@ -729,17 +722,19 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
                     })??;
 
                 // Encrypt the chunk.
-                unsafe { self.scratch.set_len(self.buffer.len()) }
-                aead.encrypt(&mut self.scratch, &self.buffer)?;
-                self.bytes_encrypted += self.scratch.len() as u64;
+                unsafe {
+                    // Safety: remaining data is less than the chunk
+                    // size.  The vector has capacity chunk size plus
+                    // digest size.
+                    debug_assert!(self.buffer.len() < self.chunk_size);
+                    self.scratch.set_len(self.buffer.len() + aead.digest_size())
+                }
+                aead.encrypt_seal(&mut self.scratch, &self.buffer)?;
+                self.bytes_encrypted += self.buffer.len() as u64;
                 self.chunk_index += 1;
+                // XXX: clear plaintext buffer
                 crate::vec_truncate(&mut self.buffer, 0);
                 inner.write_all(&self.scratch)?;
-
-                // Write digest.
-                unsafe { self.scratch.set_len(self.digest_size) }
-                aead.digest(&mut self.scratch[..self.digest_size])?;
-                inner.write_all(&self.scratch[..self.digest_size])?;
             }
 
             // Write final digest.
@@ -753,7 +748,7 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
                             Ok::<Box<dyn Aead>, anyhow::Error>(aead)
                         })
                 })??;
-            aead.digest(&mut self.scratch[..self.digest_size])?;
+            aead.encrypt_seal(&mut self.scratch[..self.digest_size], b"")?;
             inner.write_all(&self.scratch[..self.digest_size])?;
 
             Ok(inner)

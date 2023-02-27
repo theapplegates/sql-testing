@@ -10,12 +10,6 @@ use openssl::cipher_ctx::CipherCtx;
 
 struct OpenSslContext {
     ctx: CipherCtx,
-    // The last chunk to be processed does not call `encrypt` thus
-    // leaves the crypter in non-finalized state.  This makes the
-    // `get_tag` function of the crypter panic when calling `digest`.
-    // If this flag is set to `false` it means the crypter needs to be
-    // finalized.
-    finalized: bool,
 }
 
 impl Aead for OpenSslContext {
@@ -24,20 +18,15 @@ impl Aead for OpenSslContext {
         Ok(())
     }
 
-    fn encrypt(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
-        // SAFETY: This condition makes the unsafe calls below correct.
-        if dst.len() != src.len() {
-            return Err(
-                Error::InvalidArgument("src and dst need to be of the same length".into()).into(),
-            );
-        }
+    fn encrypt_seal(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
+        debug_assert_eq!(dst.len(), src.len() + self.digest_size());
 
         // SAFETY: Process completely one full chunk.  Since `update`
         // is not being called again with partial block info and the
         // cipher is finalized afterwards these two calls are safe.
         let size = unsafe { self.ctx.cipher_update_unchecked(src, Some(dst))? };
         unsafe { self.ctx.cipher_final_unchecked(&mut dst[size..])? };
-        self.finalized = true;
+        self.ctx.tag(&mut dst[src.len()..])?;
         Ok(())
     }
 
@@ -55,18 +44,6 @@ impl Aead for OpenSslContext {
         let size = unsafe { self.ctx.cipher_update_unchecked(src, Some(dst))? };
         self.ctx.set_tag(digest)?;
         unsafe { self.ctx.cipher_final_unchecked(&mut dst[size..])? };
-        Ok(())
-    }
-
-    fn digest(&mut self, digest: &mut [u8]) -> Result<()> {
-        if !self.finalized {
-            // SAFETY: If we reach this point the `update` has not
-            // been called at all with chunk data (only with AAD data)
-            // `final` will not return any data but it must be called
-            // exactly once so that the `tag` function succeeds.
-            unsafe { self.ctx.cipher_final_unchecked(&mut [])? };
-        }
-        self.ctx.tag(digest)?;
         Ok(())
     }
 
@@ -114,7 +91,6 @@ impl AEADAlgorithm {
                 ctx.set_padding(false);
                 Ok(Box::new(OpenSslContext {
                     ctx,
-                    finalized: false,
                 }))
             }
             _ => Err(Error::UnsupportedAEADAlgorithm(*self).into()),

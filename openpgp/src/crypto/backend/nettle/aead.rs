@@ -22,8 +22,10 @@ impl<T: nettle::aead::Aead> Aead for T {
         self.update(ad);
         Ok(())
     }
-    fn encrypt(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
+    fn encrypt_seal(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
+        debug_assert_eq!(dst.len(), src.len() + self.digest_size());
         self.encrypt(dst, src);
+        self.digest(&mut dst[src.len()..]);
         Ok(())
     }
     fn decrypt_verify(&mut self, dst: &mut [u8], src: &[u8], digest: &[u8]) -> Result<()> {
@@ -36,10 +38,6 @@ impl<T: nettle::aead::Aead> Aead for T {
             {
                  return Err(Error::ManipulatedMessage.into());
             }
-        Ok(())
-    }
-    fn digest(&mut self, digest: &mut [u8]) -> Result<()> {
-        self.digest(digest);
         Ok(())
     }
     fn digest_size(&self) -> usize {

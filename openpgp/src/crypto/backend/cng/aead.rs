@@ -96,15 +96,14 @@ macro_rules! impl_aead {
             fn digest_size(&self) -> usize {
                 <eax::Tag as GenericArrayExt<_, _>>::LEN
             }
-            fn digest(&mut self, digest: &mut [u8]) -> Result<()> {
-                let tag = self.tag_clone();
-                digest[..tag.len()].copy_from_slice(&tag[..]);
-                Ok(())
-            }
-            fn encrypt(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
+            fn encrypt_seal(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
+                debug_assert_eq!(dst.len(), src.len() + self.digest_size());
                 let len = core::cmp::min(dst.len(), src.len());
                 dst[..len].copy_from_slice(&src[..len]);
                 EaxOnline::<$type, Encrypt>::encrypt(self, &mut dst[..len]);
+
+                let tag = self.tag_clone();
+                dst[src.len()..].copy_from_slice(&tag[..]);
                 Ok(())
             }
             fn decrypt_verify(&mut self, _dst: &mut [u8], _src: &[u8], _digest: &[u8]) -> Result<()> {
@@ -122,21 +121,15 @@ macro_rules! impl_aead {
             fn digest_size(&self) -> usize {
                 <eax::Tag as GenericArrayExt<_, _>>::LEN
             }
-            fn digest(&mut self, digest: &mut [u8]) -> Result<()> {
-                let tag = self.tag_clone();
-                digest[..tag.len()].copy_from_slice(&tag[..]);
-                Ok(())
-            }
-            fn encrypt(&mut self, _dst: &mut [u8], _src: &[u8]) -> Result<()> {
+            fn encrypt_seal(&mut self, _dst: &mut [u8], _src: &[u8]) -> Result<()> {
                 panic!("AEAD encryption called in the decryption context")
             }
             fn decrypt_verify(&mut self, dst: &mut [u8], src: &[u8], digest: &[u8]) -> Result<()> {
                 let len = core::cmp::min(dst.len(), src.len());
                 dst[..len].copy_from_slice(&src[..len]);
                 self.decrypt_unauthenticated_hazmat(&mut dst[..len]);
-                let mut chunk_digest = vec![0u8; self.digest_size()];
 
-                self.digest(&mut chunk_digest)?;
+                let chunk_digest = self.tag_clone();
                 if secure_cmp(&chunk_digest[..], digest)
                     != Ordering::Equal && ! DANGER_DISABLE_AUTHENTICATION
                 {

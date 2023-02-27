@@ -465,12 +465,15 @@ impl SKESK5 {
         ctx.update(&ad)?;
 
         // Encrypt the session key with the KEK.
-        let mut esk = vec![0u8; session_key.len()];
-        ctx.encrypt(&mut esk, session_key)?;
+        let mut esk_digest =
+            vec![0u8; session_key.len() + esk_aead.digest_size()?];
+        ctx.encrypt_seal(&mut esk_digest, session_key)?;
 
-        // Digest.
-        let mut digest = vec![0u8; esk_aead.digest_size()?];
-        ctx.digest(&mut digest)?;
+        let digest = esk_digest[session_key.len()..].to_vec();
+        let esk = {
+            crate::vec_truncate(&mut esk_digest, session_key.len());
+            esk_digest
+        };
 
         SKESK5::new(esk_algo, esk_aead, s2k, iv.into_boxed_slice(), esk.into(),
                     digest.into_boxed_slice())
