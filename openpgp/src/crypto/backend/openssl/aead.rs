@@ -13,11 +13,6 @@ struct OpenSslContext {
 }
 
 impl Aead for OpenSslContext {
-    fn update(&mut self, ad: &[u8]) -> Result<()> {
-        self.ctx.cipher_update(ad, None)?;
-        Ok(())
-    }
-
     fn encrypt_seal(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
         debug_assert_eq!(dst.len(), src.len() + self.digest_size());
 
@@ -59,6 +54,7 @@ impl AEADAlgorithm {
         &self,
         sym_algo: SymmetricAlgorithm,
         key: &[u8],
+        aad: &[u8],
         nonce: &[u8],
         op: CipherOp,
     ) -> Result<Box<dyn Aead>> {
@@ -89,6 +85,7 @@ impl AEADAlgorithm {
                         ctx.decrypt_init(None, None, Some(nonce))?,
                 }
                 ctx.set_padding(false);
+                ctx.cipher_update(aad, None)?;
                 Ok(Box::new(OpenSslContext {
                     ctx,
                 }))

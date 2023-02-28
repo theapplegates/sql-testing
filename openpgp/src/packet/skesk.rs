@@ -458,11 +458,9 @@ impl SKESK5 {
         let key = s2k.derive_key(password, esk_algo.key_size()?)?;
         let mut iv = vec![0u8; esk_aead.nonce_size()?];
         crypto::random(&mut iv);
-        let mut ctx = esk_aead.context(esk_algo, &key, &iv, CipherOp::Encrypt)?;
-
-        // Prepare associated data.
-        let ad = [0xc3, 5, esk_algo.into(), esk_aead.into()];
-        ctx.update(&ad)?;
+        let aad = [0xc3, 5, esk_algo.into(), esk_aead.into()];
+        let mut ctx = esk_aead.context(esk_algo, &key, &aad, &iv,
+                                       CipherOp::Encrypt)?;
 
         // Encrypt the session key with the KEK.
         let mut esk_digest =
@@ -497,12 +495,12 @@ impl SKESK5 {
 
         if let Some(esk) = self.esk()? {
             // Use the derived key to decrypt the ESK.
+            let aad = [0xc3, 5 /* Version.  */, self.symmetric_algo().into(),
+                       self.aead_algo.into()];
             let mut cipher = self.aead_algo.context(
-                self.symmetric_algo(), &key, self.aead_iv()?, CipherOp::Decrypt)?;
+                self.symmetric_algo(), &key, &aad, self.aead_iv()?,
+                CipherOp::Decrypt)?;
 
-            let ad = [0xc3, 5 /* Version.  */, self.symmetric_algo().into(),
-                      self.aead_algo.into()];
-            cipher.update(&ad)?;
             let mut plain: SessionKey = vec![0; esk.len()].into();
             cipher.decrypt_verify(&mut plain, esk, &self.aead_digest[..])?;
             Ok((SymmetricAlgorithm::Unencrypted, plain))

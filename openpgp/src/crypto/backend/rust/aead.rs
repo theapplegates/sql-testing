@@ -45,11 +45,6 @@ where
     Cipher: BlockCipher<BlockSize = U16> + NewBlockCipher + Clone,
     Cipher::ParBlocks: ArrayLength<Block<Cipher>>,
 {
-    fn update(&mut self, ad: &[u8]) -> Result<()> {
-        self.update_assoc(ad);
-        Ok(())
-    }
-
     fn digest_size(&self) -> usize {
         eax::Tag::LEN
     }
@@ -74,11 +69,6 @@ where
     Cipher: BlockCipher<BlockSize = U16> + NewBlockCipher + Clone,
     Cipher::ParBlocks: ArrayLength<Block<Cipher>>,
 {
-    fn update(&mut self, ad: &[u8]) -> Result<()> {
-        self.update_assoc(ad);
-        Ok(())
-    }
-
     fn digest_size(&self) -> usize {
         eax::Tag::LEN
     }
@@ -114,41 +104,66 @@ impl AEADAlgorithm {
         &self,
         sym_algo: SymmetricAlgorithm,
         key: &[u8],
+        aad: &[u8],
         nonce: &[u8],
         op: CipherOp,
     ) -> Result<Box<dyn Aead>> {
         match self {
             AEADAlgorithm::EAX => match sym_algo {
                 SymmetricAlgorithm::AES128 => match op {
-                    CipherOp::Encrypt => Ok(Box::new(
-                        Eax::<aes::Aes128, Encrypt>::with_key_and_nonce(
-                            GenericArray::try_from_slice(key)?,
-                            GenericArray::try_from_slice(nonce)?))),
-                    CipherOp::Decrypt => Ok(Box::new(
-                        Eax::<aes::Aes128, Decrypt>::with_key_and_nonce(
-                            GenericArray::try_from_slice(key)?,
-                            GenericArray::try_from_slice(nonce)?))),
-                }
+                    CipherOp::Encrypt => {
+                        let mut ctx =
+                            Eax::<aes::Aes128, Encrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                    CipherOp::Decrypt => {
+                        let mut ctx =
+                            Eax::<aes::Aes128, Decrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                },
                 SymmetricAlgorithm::AES192 => match op {
-                    CipherOp::Encrypt => Ok(Box::new(
-                        Eax::<aes::Aes192, Encrypt>::with_key_and_nonce(
-                            GenericArray::try_from_slice(key)?,
-                            GenericArray::try_from_slice(nonce)?))),
-                    CipherOp::Decrypt => Ok(Box::new(
-                        Eax::<aes::Aes192, Decrypt>::with_key_and_nonce(
-                            GenericArray::try_from_slice(key)?,
-                            GenericArray::try_from_slice(nonce)?))),
-                }
+                    CipherOp::Encrypt => {
+                        let mut ctx =
+                            Eax::<aes::Aes192, Encrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                    CipherOp::Decrypt => {
+                        let mut ctx =
+                            Eax::<aes::Aes192, Decrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                },
                 SymmetricAlgorithm::AES256 => match op {
-                    CipherOp::Encrypt => Ok(Box::new(
-                        Eax::<aes::Aes256, Encrypt>::with_key_and_nonce(
-                            GenericArray::try_from_slice(key)?,
-                            GenericArray::try_from_slice(nonce)?))),
-                    CipherOp::Decrypt => Ok(Box::new(
-                        Eax::<aes::Aes256, Decrypt>::with_key_and_nonce(
-                            GenericArray::try_from_slice(key)?,
-                            GenericArray::try_from_slice(nonce)?))),
-                }
+                    CipherOp::Encrypt => {
+                        let mut ctx =
+                            Eax::<aes::Aes256, Encrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                    CipherOp::Decrypt => {
+                        let mut ctx =
+                            Eax::<aes::Aes256, Decrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                },
                 | SymmetricAlgorithm::IDEA
                 | SymmetricAlgorithm::TripleDES
                 | SymmetricAlgorithm::CAST5

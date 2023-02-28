@@ -50,9 +50,6 @@ pub(crate) fn chunk_size_usize(chunk_size: u64) -> Result<usize> {
 ///
 /// [sealed]: https://rust-lang.github.io/api-guidelines/future-proofing.html#sealed-traits-protect-against-downstream-implementations-c-sealed
 pub trait Aead : seal::Sealed {
-    /// Adds associated data `ad`.
-    fn update(&mut self, ad: &[u8]) -> Result<()>;
-
     /// Encrypts one chunk `src` to `dst` adding a digest.
     ///
     /// Note: `dst` must be large enough to accommodate both the
@@ -387,13 +384,9 @@ impl<'a, S: Schedule> Decryptor<'a, S> {
                 let mut aead = self.schedule.next_chunk(
                     self.chunk_index,
                     |iv, ad| {
-                        self.aead.context(self.sym_algo, &self.key, iv,
+                        self.aead.context(self.sym_algo, &self.key, ad, iv,
                                           CipherOp::Decrypt)
-                            .map(|mut aead| {
-                                aead.update(ad)?;
-                                Ok::<Box<dyn Aead>, anyhow::Error>(aead)
-                            })
-                    })??;
+                    })?;
 
                 // Decrypt the chunk and check the tag.
                 let to_decrypt = chunk.len() - self.digest_size;
@@ -438,13 +431,9 @@ impl<'a, S: Schedule> Decryptor<'a, S> {
                 let mut aead = self.schedule.final_chunk(
                     self.chunk_index, self.bytes_decrypted,
                     |iv, ad| {
-                        self.aead.context(self.sym_algo, &self.key, iv,
+                        self.aead.context(self.sym_algo, &self.key, ad, iv,
                                           CipherOp::Decrypt)
-                            .map(|mut aead| {
-                                aead.update(ad)?;
-                                Ok::<Box<dyn Aead>, anyhow::Error>(aead)
-                            })
-                    })??;
+                    })?;
 
                 let final_digest = self.source.data(final_digest_size)?;
 
@@ -656,13 +645,9 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
             if self.buffer.len() == self.chunk_size {
                 let mut aead =
                     self.schedule.next_chunk(self.chunk_index, |iv, ad| {
-                        self.aead.context(self.sym_algo, &self.key, iv,
+                        self.aead.context(self.sym_algo, &self.key, ad, iv,
                                           CipherOp::Encrypt)
-                            .map(|mut aead| {
-                                aead.update(ad)?;
-                                Ok::<Box<dyn Aead>, anyhow::Error>(aead)
-                            })
-                    })??;
+                    })?;
 
                 let inner = self.inner.as_mut().unwrap();
 
@@ -682,13 +667,9 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
                 // Complete chunk.
                 let mut aead =
                     self.schedule.next_chunk(self.chunk_index, |iv, ad| {
-                        self.aead.context(self.sym_algo, &self.key, iv,
+                        self.aead.context(self.sym_algo, &self.key, ad, iv,
                                           CipherOp::Encrypt)
-                            .map(|mut aead| {
-                                aead.update(ad)?;
-                                Ok::<Box<dyn Aead>, anyhow::Error>(aead)
-                            })
-                    })??;
+                    })?;
 
                 let inner = self.inner.as_mut().unwrap();
 
@@ -713,13 +694,9 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
             if !self.buffer.is_empty() {
                 let mut aead =
                     self.schedule.next_chunk(self.chunk_index, |iv, ad| {
-                        self.aead.context(self.sym_algo, &self.key, iv,
+                        self.aead.context(self.sym_algo, &self.key, ad, iv,
                                           CipherOp::Encrypt)
-                            .map(|mut aead| {
-                                aead.update(ad)?;
-                                Ok::<Box<dyn Aead>, anyhow::Error>(aead)
-                            })
-                    })??;
+                    })?;
 
                 // Encrypt the chunk.
                 unsafe {
@@ -741,13 +718,9 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
             let mut aead = self.schedule.final_chunk(
                 self.chunk_index, self.bytes_encrypted,
                 |iv, ad| {
-                    self.aead.context(self.sym_algo, &self.key, iv,
+                    self.aead.context(self.sym_algo, &self.key, ad, iv,
                                       CipherOp::Encrypt)
-                        .map(|mut aead| {
-                            aead.update(ad)?;
-                            Ok::<Box<dyn Aead>, anyhow::Error>(aead)
-                        })
-                })??;
+                })?;
             aead.encrypt_seal(&mut self.scratch[..self.digest_size], b"")?;
             inner.write_all(&self.scratch[..self.digest_size])?;
 
