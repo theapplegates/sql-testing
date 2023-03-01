@@ -204,7 +204,6 @@ impl PublicKeyAlgorithm {
     ///
     /// assert!(PublicKeyAlgorithm::EdDSA.is_supported());
     /// assert!(PublicKeyAlgorithm::RSAEncryptSign.is_supported());
-    /// assert!(!PublicKeyAlgorithm::ElGamalEncrypt.is_supported());
     /// assert!(!PublicKeyAlgorithm::Private(101).is_supported());
     /// ```
     pub fn is_supported(&self) -> bool {
