@@ -952,7 +952,7 @@ pub enum Ciphertext {
     ElGamal {
         /// Ephemeral key.
         e: MPI,
-        /// .
+        /// Ciphertext.
         c: MPI,
     },
 
