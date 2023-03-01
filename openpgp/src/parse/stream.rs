@@ -2976,7 +2976,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> io::Read for Decryptor<'a, H>
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use std::io::Read;
     use super::*;
     use std::convert::TryFrom;
@@ -2988,7 +2988,7 @@ mod test {
     };
 
     #[derive(PartialEq)]
-    struct VHelper {
+    pub struct VHelper {
         good: usize,
         unknown: usize,
         bad: usize,
@@ -3029,9 +3029,9 @@ mod test {
     }
 
     impl VHelper {
-        fn new(good: usize, unknown: usize, bad: usize, error: usize,
-               certs: Vec<Cert>)
-               -> Self {
+        pub fn new(good: usize, unknown: usize, bad: usize, error: usize,
+                   certs: Vec<Cert>)
+                   -> Self {
             VHelper {
                 good,
                 unknown,
@@ -3045,11 +3045,12 @@ mod test {
             }
         }
 
-        fn for_decryption(good: usize, unknown: usize, bad: usize, error: usize,
-                          certs: Vec<Cert>,
-                          keys: Vec<Cert>,
-                          passwords: Vec<Password>)
-               -> Self {
+        pub fn for_decryption(good: usize, unknown: usize, bad: usize,
+                              error: usize,
+                              certs: Vec<Cert>,
+                              keys: Vec<Cert>,
+                              passwords: Vec<Password>)
+                              -> Self {
             VHelper {
                 good,
                 unknown,

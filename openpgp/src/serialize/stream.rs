@@ -3917,4 +3917,134 @@ mod test {
         assert_eq!(content, b"Hello world.");
         Ok(())
     }
+
+    /// Signs using our set of public keys.
+    #[test]
+    fn signer() -> Result<()> {
+        use crate::policy::StandardPolicy;
+        use crate::parse::stream::{
+            VerifierBuilder,
+            test::VHelper,
+        };
+
+        let p = StandardPolicy::new();
+        for alg in &[
+            "rsa", "dsa",
+            "nistp256", "nistp384", "nistp521",
+            "brainpoolP256r1", "brainpoolP384r1", "brainpoolP512r1",
+            "secp256k1",
+        ] {
+            eprintln!("Test vector {:?}...", alg);
+            let key = Cert::from_bytes(crate::tests::key(
+                &format!("signing/{}.gpg", alg)))?;
+            if let Some(k) = key.with_policy(&p, None).ok()
+                .and_then(|vcert| vcert.keys().for_signing().supported().next())
+            {
+                use crate::crypto::mpi::PublicKey;
+                match k.mpis() {
+                    PublicKey::ECDSA { curve, .. } |
+                    PublicKey::EdDSA { curve, .. }
+                    if ! curve.is_supported() => {
+                        eprintln!("Skipping {} because we don't support \
+                                   the curve {}", alg, curve);
+                        continue;
+                    },
+                    _ => (),
+                }
+            } else {
+                eprintln!("Skipping {} because we don't support the algorithm",
+                          alg);
+                continue;
+            }
+
+            let signing_keypair = key.keys().secret()
+                .with_policy(&p, None).supported()
+                .alive().revoked(false).for_signing()
+                .nth(0).unwrap()
+                .key().clone().into_keypair()?;
+
+            let mut sink = vec![];
+            let message = Message::new(&mut sink);
+            let message = Signer::new(message, signing_keypair)
+                .build()?;
+            let mut message = LiteralWriter::new(message).build()?;
+            message.write_all(b"Hello world.")?;
+            message.finalize()?;
+
+            let h = VHelper::new(1, 0, 0, 0, vec![key]);
+            let mut d = VerifierBuilder::from_bytes(&sink)?
+                .with_policy(&p, None, h)?;
+            assert!(d.message_processed());
+
+            let mut content = Vec::new();
+            d.read_to_end(&mut content).unwrap();
+            assert_eq!(&b"Hello world."[..], &content[..]);
+        }
+
+        Ok(())
+    }
+
+    /// Encrypts using public key cryptography.
+    #[test]
+    fn pk_encryptor() -> Result<()> {
+        use crate::policy::StandardPolicy;
+        use crate::parse::stream::{
+            DecryptorBuilder,
+            test::VHelper,
+        };
+
+        let p = StandardPolicy::new();
+        for alg in &[
+            "rsa", "elg", "cv25519", "cv25519.unclamped",
+            "nistp256", "nistp384", "nistp521",
+            "brainpoolP256r1", "brainpoolP384r1", "brainpoolP512r1",
+            "secp256k1",
+        ] {
+            eprintln!("Test vector {:?}...", alg);
+            let key = Cert::from_bytes(crate::tests::message(
+                &format!("encrypted/{}.sec.pgp", alg)))?;
+            if let Some(k) =
+                key.with_policy(&p, None)?.keys().subkeys().supported().next()
+            {
+                use crate::crypto::mpi::PublicKey;
+                match k.mpis() {
+                    PublicKey::ECDH { curve, .. } if ! curve.is_supported() => {
+                        eprintln!("Skipping {} because we don't support \
+                                   the curve {}", alg, curve);
+                        continue;
+                    },
+                    _ => (),
+                }
+            } else {
+                eprintln!("Skipping {} because we don't support the algorithm",
+                          alg);
+                continue;
+            }
+
+            let recipients =
+                key.with_policy(&p, None)?.keys().for_storage_encryption();
+
+            let mut sink = vec![];
+            let message = Message::new(&mut sink);
+            let message =
+                Encryptor::for_recipients(message, recipients)
+                .aead_algo(AEADAlgorithm::const_default())
+                .build()?;
+            let mut message = LiteralWriter::new(message).build()?;
+            message.write_all(b"Hello world.")?;
+            message.finalize()?;
+
+            let h = VHelper::for_decryption(0, 0, 0, 0, Vec::new(),
+                                            vec![key], Vec::new());
+            let mut d = DecryptorBuilder::from_bytes(&sink)?
+                .with_policy(&p, None, h)?;
+            assert!(d.message_processed());
+
+            let mut content = Vec::new();
+            d.read_to_end(&mut content).unwrap();
+            assert_eq!(&b"Hello world."[..], &content[..]);
+        }
+
+        Ok(())
+    }
 }
