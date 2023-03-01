@@ -39,6 +39,7 @@ fn main() {
         Curve::NistP384,
         Curve::NistP521,
         Curve::BrainpoolP256,
+        Curve::Unknown([0x2B, 0x24, 0x03, 0x03, 0x02, 0x08, 0x01, 0x01, 0x0B].into()), // XXX
         Curve::BrainpoolP512,
         Curve::Ed25519,
         Curve::Cv25519,

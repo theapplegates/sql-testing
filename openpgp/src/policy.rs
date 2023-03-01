@@ -700,7 +700,7 @@ a_cutoff_list!(SubpacketTagCutoffList, SubpacketTag, 38,
                    ACCEPT,                 // 37. AttestedCertifications.
                ]);
 
-a_cutoff_list!(AsymmetricAlgorithmCutoffList, AsymmetricAlgorithm, 18,
+a_cutoff_list!(AsymmetricAlgorithmCutoffList, AsymmetricAlgorithm, 19,
                [
                    Some(Timestamp::Y2014M2), // 0. RSA1024.
                    ACCEPT,                   // 1. RSA2048.
@@ -720,6 +720,7 @@ a_cutoff_list!(AsymmetricAlgorithmCutoffList, AsymmetricAlgorithm, 18,
                    ACCEPT,                   // 15. BrainpoolP256.
                    ACCEPT,                   // 16. BrainpoolP512.
                    ACCEPT,                   // 17. Cv25519.
+                   ACCEPT,                   // 16. BrainpoolP384.
                ]);
 
 a_cutoff_list!(SymmetricAlgorithmCutoffList, SymmetricAlgorithm, 14,
@@ -1560,6 +1561,8 @@ impl<'a> Policy for StandardPolicy<'a> {
                     Curve::NistP384 => NistP384,
                     Curve::NistP521 => NistP521,
                     Curve::BrainpoolP256 => BrainpoolP256,
+                    Curve::Unknown(_) if curve.is_brainpoolp384()
+                        => BrainpoolP384,
                     Curve::BrainpoolP512 => BrainpoolP512,
                     Curve::Ed25519 => Cv25519,
                     Curve::Cv25519 => Cv25519,
@@ -1688,6 +1691,8 @@ pub enum AsymmetricAlgorithm {
     NistP521,
     /// brainpoolP256r1.
     BrainpoolP256,
+    /// brainpoolP384r1.
+    BrainpoolP384,
     /// brainpoolP512r1.
     BrainpoolP512,
     /// D.J. Bernstein's Curve25519.
@@ -1697,7 +1702,7 @@ pub enum AsymmetricAlgorithm {
 }
 assert_send_and_sync!(AsymmetricAlgorithm);
 
-const ASYMMETRIC_ALGORITHM_VARIANTS: [AsymmetricAlgorithm; 18] = [
+const ASYMMETRIC_ALGORITHM_VARIANTS: [AsymmetricAlgorithm; 19] = [
     AsymmetricAlgorithm::RSA1024,
     AsymmetricAlgorithm::RSA2048,
     AsymmetricAlgorithm::RSA3072,
@@ -1714,6 +1719,7 @@ const ASYMMETRIC_ALGORITHM_VARIANTS: [AsymmetricAlgorithm; 18] = [
     AsymmetricAlgorithm::NistP384,
     AsymmetricAlgorithm::NistP521,
     AsymmetricAlgorithm::BrainpoolP256,
+    AsymmetricAlgorithm::BrainpoolP384,
     AsymmetricAlgorithm::BrainpoolP512,
     AsymmetricAlgorithm::Cv25519,
 ];
@@ -1754,6 +1760,7 @@ impl From<AsymmetricAlgorithm> for u8 {
             NistP384 => 13,
             NistP521 => 14,
             BrainpoolP256 => 15,
+            BrainpoolP384 => 18,
             BrainpoolP512 => 16,
             Cv25519 => 17,
             Unknown => 255,

@@ -70,8 +70,12 @@ impl TryFrom<&Curve> for Nid {
             Curve::NistP384 => Nid::SECP384R1,
             Curve::NistP521 => Nid::SECP521R1,
             Curve::BrainpoolP256 => Nid::BRAINPOOL_P256R1,
+            Curve::Unknown(_) if curve.is_brainpoolp384() =>  Nid::BRAINPOOL_P384R1,
             Curve::BrainpoolP512 => Nid::BRAINPOOL_P512R1,
-            _ => return Err(crate::Error::UnsupportedEllipticCurve(curve.clone()).into()),
+            Curve::Ed25519 | // Handled differently.
+            Curve::Cv25519 | // Handled differently.
+            Curve::Unknown(_) =>
+                return Err(crate::Error::UnsupportedEllipticCurve(curve.clone()).into()),
         })
     }
 }
