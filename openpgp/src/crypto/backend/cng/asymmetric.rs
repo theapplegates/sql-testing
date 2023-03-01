@@ -234,6 +234,9 @@ impl Signer for KeyPair {
                             // so we can't use an empty buffer here.
                             let (count, seed) = ([0x0; 4], vec![0x0; q.value().len()]);
 
+                            let group_size = std::cmp::min(q.value().len(), 32);
+                            let key_size = y.len();
+
                             DsaPrivateBlob::V2(Blob::<DsaKeyPrivateV2Blob>::clone_from_parts(
                                 &winapi::shared::bcrypt::BCRYPT_DSA_KEY_BLOB_V2 {
                                     dwMagic: winapi::shared::bcrypt::BCRYPT_DSA_PRIVATE_MAGIC_V2,
@@ -242,8 +245,8 @@ impl Signer for KeyPair {
                                     // Currently, if the key is less than 128
                                     // bits, q is 20 bytes long.
                                     // If the key exceeds 256 bits, q is 32 bytes long.
-                                    cbGroupSize: std::cmp::min(q.value().len(), 32) as u32,
-                                    cbKey: y.len() as u32,
+                                    cbGroupSize: group_size as u32,
+                                    cbKey: key_size as u32,
                                     cbSeedLength: seed.len() as u32,
                                     hashAlgorithm: hash,
                                     standardVersion: 1, // FIPS 186-3
@@ -251,11 +254,11 @@ impl Signer for KeyPair {
                                 },
                                 &DsaKeyPrivateV2Payload {
                                     seed: &seed,
-                                    group: q.value(),
-                                    modulus: p.value(),
-                                    generator: g.value(),
+                                    group: &q.value_padded(group_size)?,
+                                    modulus: &p.value_padded(key_size)?,
+                                    generator: &g.value_padded(key_size)?,
                                     public: &y,
-                                    priv_exp: x.value(),
+                                    priv_exp: &x.value_padded(group_size),
                                 },
                             ))
                         },
