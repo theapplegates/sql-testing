@@ -350,6 +350,35 @@ mod tests {
     }
 
     #[test]
+    fn decrypt_elgamal() -> Result<()> {
+        if ! (PublicKeyAlgorithm::DSA.is_supported()
+              && PublicKeyAlgorithm::ElGamalEncrypt.is_supported()) {
+            eprintln!("Skipping test, algorithm is not supported.");
+            return Ok(());
+        }
+
+        let cert = Cert::from_bytes(
+            crate::tests::key("dsa2048-elgamal3072-private.pgp"))?;
+        let pile = PacketPile::from_bytes(
+            crate::tests::message("encrypted-to-dsa2048-elgamal3072.pgp"))?;
+        let mut keypair =
+            cert.subkeys().next().unwrap()
+            .key().clone().parts_into_secret()?.into_keypair()?;
+
+        let pkesk: &PKESK =
+            pile.descendants().next().unwrap().downcast_ref().unwrap();
+
+        let plain = pkesk.decrypt(&mut keypair, None).unwrap();
+        let plain_ =
+            pkesk.decrypt(&mut keypair, Some(SymmetricAlgorithm::AES256))
+            .unwrap();
+        assert_eq!(plain, plain_);
+
+        eprintln!("plain: {:?}", plain);
+        Ok(())
+    }
+
+    #[test]
     fn decrypt_ecdh_nistp521() {
         if ! (PublicKeyAlgorithm::ECDSA.is_supported()
               && PublicKeyAlgorithm::ECDH.is_supported()
