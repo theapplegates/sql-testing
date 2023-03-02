@@ -76,6 +76,10 @@ at compile time.  Currently, these libraries are available:
     `default-features = false`, you need to explicitly include
     the `crypto-nettle` feature to enable it.
 
+  - The OpenSSL backend.  To select this backend, use
+    `default-features = false`, and explicitly include the
+    `crypto-openssl` feature to enable it.
+
   - The Windows Cryptography API: Next Generation (CNG).  To select
     this backend, use `default-features = false`, and explicitly
     include the `crypto-cng` feature to enable it.  Currently, the CNG
@@ -87,10 +91,6 @@ at compile time.  Currently, these libraries are available:
     RustCrypto crates are not recommended for general use as they
     cannot offer the same security guarantees as more mature
     cryptographic libraries.
-
-  - The OpenSSL backend.  To select this backend, use
-    `default-features = false`, and explicitly include the
-    `crypto-openssl` feature to enable it.
 
 ### Experimental and variable-time cryptographic backends
 
