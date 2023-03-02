@@ -25,19 +25,22 @@ impl Aead for OpenSslContext {
         Ok(())
     }
 
-    fn decrypt_verify(&mut self, dst: &mut [u8], src: &[u8], digest: &[u8]) -> Result<()> {
-        // SAFETY: This condition makes the unsafe calls below correct.
-        if dst.len() != src.len() {
-            return Err(
-                Error::InvalidArgument("src and dst need to be of the same length".into()).into(),
-            );
-        }
+    fn decrypt_verify(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
+        debug_assert!(src.len() >= self.digest_size());
+        debug_assert_eq!(dst.len() + self.digest_size(), src.len());
+
+        // Split src into ciphertext and tag.
+        let l = self.digest_size();
+        let ciphertext = &src[..src.len().saturating_sub(l)];
+        let tag = &src[src.len().saturating_sub(l)..];
 
         // SAFETY: Process completely one full chunk.  Since `update`
         // is not being called again with partial block info and the
         // cipher is finalized afterwards these two calls are safe.
-        let size = unsafe { self.ctx.cipher_update_unchecked(src, Some(dst))? };
-        self.ctx.set_tag(digest)?;
+        let size = unsafe {
+            self.ctx.cipher_update_unchecked(ciphertext, Some(dst))?
+        };
+        self.ctx.set_tag(tag)?;
         unsafe { self.ctx.cipher_final_unchecked(&mut dst[size..])? };
         Ok(())
     }

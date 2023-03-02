@@ -502,7 +502,11 @@ impl SKESK5 {
                 CipherOp::Decrypt)?;
 
             let mut plain: SessionKey = vec![0; esk.len()].into();
-            cipher.decrypt_verify(&mut plain, esk, &self.aead_digest[..])?;
+            let mut chunk =
+                Vec::with_capacity(esk.len() + self.aead_digest.len());
+            chunk.extend_from_slice(esk);
+            chunk.extend_from_slice(&self.aead_digest);
+            cipher.decrypt_verify(&mut plain, &chunk)?;
             Ok((SymmetricAlgorithm::Unencrypted, plain))
         } else {
             Err(Error::MalformedPacket(

@@ -24,11 +24,25 @@ impl<T: nettle::aead::Aead> Aead for T {
         self.digest(&mut dst[src.len()..]);
         Ok(())
     }
-    fn decrypt_verify(&mut self, dst: &mut [u8], src: &[u8], digest: &[u8]) -> Result<()> {
-        self.decrypt(dst, src);
-        let mut chunk_digest = vec![0u8; self.digest_size()];
+    fn decrypt_verify(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
+        debug_assert!(src.len() >= self.digest_size());
+        debug_assert_eq!(dst.len() + self.digest_size(), src.len());
 
-        self.digest(&mut chunk_digest);
+        // Split src into ciphertext and digest.
+        let l = self.digest_size();
+        let ciphertext = &src[..src.len().saturating_sub(l)];
+        let digest = &src[src.len().saturating_sub(l)..];
+
+        // Decrypt the chunk.
+        self.decrypt(dst, ciphertext);
+
+        // Compute the digest, storing it on the stack.
+        let mut chunk_digest_store = [0u8; 16];
+        debug_assert!(chunk_digest_store.len() >= l);
+        let chunk_digest = &mut chunk_digest_store[..l];
+        self.digest(chunk_digest);
+
+        // Authenticate the chunk.
         if secure_cmp(&chunk_digest[..], digest)
              != Ordering::Equal && ! DANGER_DISABLE_AUTHENTICATION
             {

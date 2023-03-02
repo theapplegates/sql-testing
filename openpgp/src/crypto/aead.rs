@@ -59,9 +59,9 @@ pub trait Aead : seal::Sealed {
     /// Length of the digest in bytes.
     fn digest_size(&self) -> usize;
 
-    /// Decrypt one block `src` to `dst` and verify if the digest
-    /// matches `digest`.
-    fn decrypt_verify(&mut self, dst: &mut [u8], src: &[u8], digest: &[u8]) -> Result<()>;
+    /// Decrypt one chunk `src` to `dst` and verify that the digest is
+    /// correct.
+    fn decrypt_verify(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()>;
 }
 
 /// Whether AEAD cipher is used for data encryption or decryption.
@@ -401,7 +401,7 @@ impl<'a, S: Schedule> Decryptor<'a, S> {
                     &mut plaintext[pos..pos + to_decrypt]
                 };
 
-                aead.decrypt_verify(buffer, &chunk[..to_decrypt], &chunk[to_decrypt..])?;
+                aead.decrypt_verify(buffer, chunk)?;
 
                 if double_buffer {
                     let to_copy = plaintext.len() - pos;
@@ -437,7 +437,7 @@ impl<'a, S: Schedule> Decryptor<'a, S> {
 
                 let final_digest = self.source.data(final_digest_size)?;
 
-                aead.decrypt_verify(&mut [], &[], final_digest)?;
+                aead.decrypt_verify(&mut [], final_digest)?;
 
                 // Consume the data only on success so that we keep
                 // returning the error.

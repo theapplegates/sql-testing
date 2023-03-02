@@ -59,7 +59,7 @@ where
         Ok(())
     }
 
-    fn decrypt_verify(&mut self, _dst: &mut [u8], _src: &[u8], _digest: &[u8]) -> Result<()> {
+    fn decrypt_verify(&mut self, _dst: &mut [u8], _src: &[u8]) -> Result<()> {
         panic!("AEAD decryption called in the encryption context")
     }
 }
@@ -77,7 +77,14 @@ where
         panic!("AEAD encryption called in the decryption context")
     }
 
-    fn decrypt_verify(&mut self, dst: &mut [u8], src: &[u8], digest: &[u8]) -> Result<()> {
+    fn decrypt_verify(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
+        debug_assert_eq!(dst.len() + self.digest_size(), src.len());
+
+        // Split src into ciphertext and digest.
+        let l = self.digest_size();
+        let digest = &src[src.len().saturating_sub(l)..];
+        let src = &src[..src.len().saturating_sub(l)];
+
         let len = core::cmp::min(dst.len(), src.len());
         dst[..len].copy_from_slice(&src[..len]);
         self.decrypt_unauthenticated_hazmat(&mut dst[..len]);
