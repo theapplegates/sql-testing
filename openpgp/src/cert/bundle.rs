@@ -239,6 +239,17 @@ impl<C> ComponentBundle<C> {
     {
         let t = t.into().unwrap_or_else(crate::now);
 
+      /// Finds the active binding signature.
+      ///
+      /// This function does not depend on the type of `C`, but it
+      /// is unfortunately monomorphized for every `C`.  Prevent
+      /// this by moving the code to a function independent of `C`.
+      fn find_binding_signature<'s>(policy: &dyn Policy,
+                                    self_signatures: &'s [Signature],
+                                    hash_algo_security: HashAlgoSecurity,
+                                    t: time::SystemTime)
+                                    -> Result<&'s Signature>
+      {
         // Recall: the signatures are sorted by their creation time in
         // descending order, i.e., newest first.
         //
@@ -248,12 +259,12 @@ impl<C> ComponentBundle<C> {
         let i =
             // Usually, the first signature is what we are looking for.
             // Short circuit the binary search.
-            if Some(t) >= self.self_signatures.get(0)
+            if Some(t) >= self_signatures.get(0)
                               .and_then(|s| s.signature_creation_time())
             {
                 0
             } else {
-                match self.self_signatures.binary_search_by(
+                match self_signatures.binary_search_by(
                     |s| canonical_signature_order(
                         s.signature_creation_time(), Some(t)))
                 {
@@ -267,7 +278,7 @@ impl<C> ComponentBundle<C> {
                     // return index 1, 2, 3 or 4.
                     Ok(mut i) => {
                         while i > 0
-                            && self.self_signatures[i - 1].signature_creation_time()
+                            && self_signatures[i - 1].signature_creation_time()
                             == Some(t)
                         {
                             i -= 1;
@@ -296,7 +307,7 @@ impl<C> ComponentBundle<C> {
         // `t`.
         let mut error = None;
 
-        'next_sig: for s in self.self_signatures[i..].iter() {
+        'next_sig: for s in self_signatures[i..].iter() {
             if let Err(e) = s.signature_alive(t, time::Duration::new(0, 0)) {
                 // We know that t >= signature's creation time.  So,
                 // it is expired.  But an older signature might not
@@ -307,7 +318,7 @@ impl<C> ComponentBundle<C> {
                 continue;
             }
 
-            if let Err(e) = policy.signature(s, self.hash_algo_security)
+            if let Err(e) = policy.signature(s, hash_algo_security)
             {
                 if error.is_none() {
                     error = Some(e);
@@ -336,7 +347,7 @@ impl<C> ComponentBundle<C> {
                     }
 
                     if let Err(e) = policy
-                        .signature(backsig, self.hash_algo_security)
+                        .signature(backsig, hash_algo_security)
                     {
                         if error.is_none() {
                             error = Some(e);
@@ -376,6 +387,10 @@ impl<C> ComponentBundle<C> {
         } else {
             Err(Error::NoBindingSignature(t).into())
         }
+      }
+
+        find_binding_signature(policy, &self.self_signatures,
+                               self.hash_algo_security, t)
     }
 
     /// Returns the component's self-signatures.
