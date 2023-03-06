@@ -308,7 +308,7 @@ macro_rules! impl_parse_with_buffered_reader {
     ($typ: ident) => {
         impl_parse_with_buffered_reader!(
             $typ,
-            |br| -> Result<$typ> {
+            |br: Box<dyn BufferedReader<Cookie>>| -> Result<$typ> {
                 let parser = PacketHeaderParser::new_naked(br);
 
                 let mut pp = Self::parse(parser)?;
@@ -335,7 +335,7 @@ macro_rules! impl_parse_with_buffered_reader {
             fn from_buffered_reader<'a, B>(br: B) -> Result<Self>
             where B: 'a + BufferedReader<Cookie>,
             {
-                Ok($from_buffered_reader(br)?)
+                Ok($from_buffered_reader(br.as_boxed())?)
             }
         }
 
@@ -397,11 +397,11 @@ pub const DEFAULT_MAX_PACKET_SIZE: u32 = 1 << 20; // 1 MiB
 //
 // This struct is not exposed to the user.  Instead, when a header has
 // been successfully parsed, a `PacketParser` is returned.
-pub(crate) struct PacketHeaderParser<T: BufferedReader<Cookie>> {
+pub(crate) struct PacketHeaderParser<'a> {
     // The reader stack wrapped in a buffered_reader::Dup so that if
     // there is a parse error, we can abort and still return an
     // Unknown packet.
-    reader: buffered_reader::Dup<T, Cookie>,
+    reader: buffered_reader::Dup<Box<dyn BufferedReader<Cookie> + 'a>, Cookie>,
 
     // The current packet's header.
     header: Header,
@@ -454,7 +454,7 @@ macro_rules! make_php_try {
     };
 }
 
-impl<T: BufferedReader<Cookie>> std::fmt::Debug for PacketHeaderParser<T> {
+impl std::fmt::Debug for PacketHeaderParser<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("PacketHeaderParser")
             .field("header", &self.header)
@@ -466,11 +466,11 @@ impl<T: BufferedReader<Cookie>> std::fmt::Debug for PacketHeaderParser<T> {
     }
 }
 
-impl<'a, T: 'a + BufferedReader<Cookie>> PacketHeaderParser<T> {
+impl<'a> PacketHeaderParser<'a> {
     // Returns a `PacketHeaderParser` to parse an OpenPGP packet.
     // `inner` points to the start of the OpenPGP framing information,
     // i.e., the CTB.
-    fn new(inner: T,
+    fn new(inner: Box<dyn BufferedReader<Cookie> + 'a>,
            state: PacketParserState,
            path: Vec<usize>, header: Header,
            header_bytes: Vec<u8>) -> Self
@@ -501,7 +501,7 @@ impl<'a, T: 'a + BufferedReader<Cookie>> PacketHeaderParser<T> {
     // framing has already been processed, and `inner` already
     // includes any required filters (e.g., a
     // `BufferedReaderPartialBodyFilter`, etc.).
-    fn new_naked(inner: T) -> Self {
+    fn new_naked(inner: Box<dyn BufferedReader<Cookie> + 'a>) -> Self {
         PacketHeaderParser::new(inner,
                                 PacketParserState::new(Default::default()),
                                 vec![ 0 ],
@@ -1016,13 +1016,13 @@ impl Default for PacketParserSettings {
 
 impl S2K {
     /// Reads an S2K from `php`.
-    fn parse_v4<T: BufferedReader<Cookie>>(php: &mut PacketHeaderParser<T>)
+    fn parse_v4(php: &mut PacketHeaderParser<'_>)
                                            -> Result<Self> {
         Self::parse_common(php, None)
     }
 
     /// Reads an S2K from `php` with optional explicit S2K length.
-    fn parse_common<T: BufferedReader<Cookie>>(php: &mut PacketHeaderParser<T>,
+    fn parse_common(php: &mut PacketHeaderParser<'_>,
                                                s2k_len: Option<u8>)
                                                -> Result<Self>
     {
@@ -1091,7 +1091,7 @@ impl S2K {
         Ok(ret)
     }
 
-    fn read_salt<'a, T: 'a + BufferedReader<Cookie>>(php: &mut PacketHeaderParser<T>) -> Result<[u8; 8]> {
+    fn read_salt(php: &mut PacketHeaderParser<'_>) -> Result<[u8; 8]> {
         let mut b = [0u8; 8];
         b.copy_from_slice(&php.parse_bytes("s2k_salt", 8)?);
 
@@ -1104,7 +1104,7 @@ impl<'a> Parse<'a, S2K> for S2K {
     fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut parser = PacketHeaderParser::new_naked(bio);
+        let mut parser = PacketHeaderParser::new_naked(bio.as_boxed());
         Self::parse_v4(&mut parser)
     }
 }
@@ -1232,8 +1232,8 @@ fn body_length_old_format() {
 
 impl Unknown {
     /// Parses the body of any packet and returns an Unknown.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(php: PacketHeaderParser<T>, error: anyhow::Error)
-                 -> Result<PacketParser<'a>>
+    fn parse(php: PacketHeaderParser, error: anyhow::Error)
+             -> Result<PacketParser>
     {
         let tag = php.header.ctb().tag();
         php.ok(Packet::Unknown(Unknown::new(tag, error)))
@@ -1282,8 +1282,8 @@ pub(crate) fn to_unknown_packet<R: Read + Send + Sync>(reader: R) -> Result<Unkn
 
 impl Signature {
     // Parses a signature packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>)
-        -> Result<PacketParser<'a>>
+    fn parse(mut php: PacketHeaderParser)
+             -> Result<PacketParser>
     {
         let indent = php.recursion_depth();
         tracer!(TRACE, "Signature::parse", indent);
@@ -1401,8 +1401,8 @@ impl Signature {
 
 impl Signature4 {
     // Parses a signature packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>)
-        -> Result<PacketParser<'a>>
+    fn parse(mut php: PacketHeaderParser)
+             -> Result<PacketParser>
     {
         let indent = php.recursion_depth();
         tracer!(TRACE, "Signature4::parse", indent);
@@ -1491,8 +1491,8 @@ impl Signature4 {
 
 impl Signature3 {
     // Parses a v3 signature packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>)
-        -> Result<PacketParser<'a>>
+    fn parse(mut php: PacketHeaderParser)
+             -> Result<PacketParser>
     {
         let indent = php.recursion_depth();
         tracer!(TRACE, "Signature3::parse", indent);
@@ -1558,11 +1558,10 @@ fn signature_parser_test () {
 
 impl SubpacketArea {
     // Parses a subpacket area.
-    fn parse<'a, T>(php: &mut PacketHeaderParser<T>,
-                    mut limit: usize,
-                    hash_algo: HashAlgorithm)
-                    -> Result<Self>
-    where T: 'a + BufferedReader<Cookie>,
+    fn parse(php: &mut PacketHeaderParser,
+             mut limit: usize,
+             hash_algo: HashAlgorithm)
+             -> Result<Self>
     {
         let indent = php.recursion_depth();
         tracer!(TRACE, "SubpacketArea::parse", indent);
@@ -1584,11 +1583,10 @@ impl SubpacketArea {
 
 impl Subpacket {
     // Parses a raw subpacket.
-    fn parse<'a, T>(php: &mut PacketHeaderParser<T>,
-                    limit: usize,
-                    hash_algo: HashAlgorithm)
-                    -> Result<Self>
-    where T: 'a + BufferedReader<Cookie>,
+    fn parse(php: &mut PacketHeaderParser,
+             limit: usize,
+             hash_algo: HashAlgorithm)
+             -> Result<Self>
     {
         let length = SubpacketLength::parse(&mut php.reader)?;
         php.field("subpacket length", length.serialized_len());
@@ -1899,8 +1897,8 @@ quickcheck! {
 }
 
 impl OnePassSig {
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(php: PacketHeaderParser<T>)
-        -> Result<PacketParser<'a>>
+    fn parse(php: PacketHeaderParser)
+             -> Result<PacketParser>
     {
         OnePassSig3::parse(php)
     }
@@ -1910,8 +1908,8 @@ impl_parse_with_buffered_reader!(OnePassSig);
 
 impl OnePassSig3 {
     #[allow(clippy::blocks_in_if_conditions)]
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>)
-        -> Result<PacketParser<'a>>
+    fn parse(mut php: PacketHeaderParser)
+             -> Result<PacketParser>
     {
         let indent = php.recursion_depth();
         tracer!(TRACE, "OnePassSig", indent);
@@ -2170,7 +2168,7 @@ impl Key<key::UnspecifiedParts, key::UnspecifiedRole>
 {
     /// Parses the body of a public key, public subkey, secret key or
     /// secret subkey packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
         let tag = php.header.ctb().tag();
         assert!(tag == Tag::Reserved
@@ -2202,7 +2200,7 @@ impl Key4<key::UnspecifiedParts, key::UnspecifiedRole>
 {
     /// Parses the body of a public key, public subkey, secret key or
     /// secret subkey packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
         let tag = php.header.ctb().tag();
         assert!(tag == Tag::Reserved
@@ -2382,7 +2380,7 @@ impl_parse_with_buffered_reader!(
 
 impl Trust {
     /// Parses the body of a trust packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
         let value = php_try!(php.parse_bytes_eof("value"));
         php.ok(Packet::Trust(Trust::from(value)))
@@ -2393,7 +2391,7 @@ impl_parse_with_buffered_reader!(Trust);
 
 impl UserID {
     /// Parses the body of a user id packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
 
         let value = php_try!(php.parse_bytes_eof("value"));
@@ -2406,7 +2404,7 @@ impl_parse_with_buffered_reader!(UserID);
 
 impl UserAttribute {
     /// Parses the body of a user attribute packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
 
         let value = php_try!(php.parse_bytes_eof("value"));
@@ -2419,7 +2417,7 @@ impl_parse_with_buffered_reader!(UserAttribute);
 
 impl Marker {
     /// Parses the body of a marker packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>>
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser>
     {
         make_php_try!(php);
         let marker = php_try!(php.parse_bytes("marker", Marker::BODY.len()));
@@ -2469,7 +2467,7 @@ impl Literal {
     /// Parses the body of a literal packet.
     ///
     /// Condition: Hashing has been disabled by the callee.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>>
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser>
     {
         make_php_try!(php);
 
@@ -2553,7 +2551,7 @@ fn literal_parser_test () {
 
 impl CompressedData {
     /// Parses the body of a compressed data packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         let recursion_depth = php.recursion_depth();
         tracer!(TRACE, "CompressedData::parse", recursion_depth);
 
@@ -2672,8 +2670,8 @@ fn compressed_data_parser_test () {
 
 impl SKESK {
     /// Parses the body of an SK-ESK packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>)
-                                                 -> Result<PacketParser<'a>>
+    fn parse(mut php: PacketHeaderParser)
+             -> Result<PacketParser>
     {
         make_php_try!(php);
         let version = php_try!(php.parse_u8("version"));
@@ -2687,8 +2685,8 @@ impl SKESK {
 
 impl SKESK4 {
     /// Parses the body of an SK-ESK packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>)
-                                                 -> Result<PacketParser<'a>>
+    fn parse(mut php: PacketHeaderParser)
+             -> Result<PacketParser>
     {
         make_php_try!(php);
         let sym_algo = php_try!(php.parse_u8("sym_algo"));
@@ -2716,8 +2714,8 @@ impl SKESK4 {
 
 impl SKESK5 {
     /// Parses the body of an SK-ESK packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>)
-                                                 -> Result<PacketParser<'a>>
+    fn parse(mut php: PacketHeaderParser)
+             -> Result<PacketParser>
     {
         make_php_try!(php);
         let sym_algo: SymmetricAlgorithm =
@@ -2825,7 +2823,7 @@ fn skesk_parser_test() {
 
 impl SEIP {
     /// Parses the body of a SEIP packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
         let version = php_try!(php.parse_u8("version"));
         if version != 1 {
@@ -2841,7 +2839,7 @@ impl_parse_with_buffered_reader!(SEIP);
 
 impl MDC {
     /// Parses the body of an MDC packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
 
         // Find the HashedReader pushed by the containing SEIP packet.
@@ -2896,7 +2894,7 @@ impl_parse_with_buffered_reader!(MDC);
 
 impl AED {
     /// Parses the body of a AED packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
         let version = php_try!(php.parse_u8("version"));
 
@@ -2911,7 +2909,7 @@ impl_parse_with_buffered_reader!(AED);
 
 impl AED1 {
     /// Parses the body of a AED packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
         let cipher: SymmetricAlgorithm =
             php_try!(php.parse_u8("sym_algo")).into();
@@ -2944,10 +2942,10 @@ impl MPI {
     /// See [Section 3.2 of RFC 4880] for details.
     ///
     ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(
+    fn parse(
         name_len: &'static str,
         name: &'static str,
-        php: &mut PacketHeaderParser<T>)
+        php: &mut PacketHeaderParser<'_>)
                  -> Result<Self> {
         // This function is used to parse MPIs from unknown
         // algorithms, which may use an encoding unknown to us.
@@ -3004,14 +3002,14 @@ impl<'a> Parse<'a, MPI> for MPI {
     fn from_reader<R: io::Read + Send + Sync>(reader: R) -> Result<Self> {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut parser = PacketHeaderParser::new_naked(bio);
+        let mut parser = PacketHeaderParser::new_naked(bio.as_boxed());
         Self::parse("(none_len)", "(none)", &mut parser)
     }
 }
 
 impl PKESK {
     /// Parses the body of an PK-ESK packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
         let version = php_try!(php.parse_u8("version"));
         match version {
@@ -3025,7 +3023,7 @@ impl_parse_with_buffered_reader!(PKESK);
 
 impl PKESK3 {
     /// Parses the body of an PK-ESK packet.
-    fn parse<'a, T: 'a + BufferedReader<Cookie>>(mut php: PacketHeaderParser<T>) -> Result<PacketParser<'a>> {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         make_php_try!(php);
         let mut keyid = [0u8; 8];
         keyid.copy_from_slice(&php_try!(php.parse_bytes("keyid", 8)));

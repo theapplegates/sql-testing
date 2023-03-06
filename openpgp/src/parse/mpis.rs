@@ -26,7 +26,7 @@ impl mpi::PublicKey {
     {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio);
+        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
         Self::_parse(algo, &mut php)
     }
 
@@ -35,9 +35,9 @@ impl mpi::PublicKey {
     /// See [Section 3.2 of RFC 4880] for details.
     ///
     ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
-    pub(crate) fn _parse<'a, T: 'a + BufferedReader<Cookie>>(
+    pub(crate) fn _parse(
         algo: PublicKeyAlgorithm,
-        php: &mut PacketHeaderParser<T>)
+        php: &mut PacketHeaderParser<'_>)
         -> Result<Self>
     {
         use crate::PublicKeyAlgorithm::*;
@@ -157,7 +157,7 @@ impl mpi::SecretKeyMaterial {
                                         -> Result<Self> {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio);
+        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
         Self::_parse(algo, &mut php, Some(checksum))
     }
 
@@ -170,7 +170,7 @@ impl mpi::SecretKeyMaterial {
     {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio);
+        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
         Self::_parse(algo, &mut php, None)
     }
 
@@ -179,9 +179,9 @@ impl mpi::SecretKeyMaterial {
     /// See [Section 3.2 of RFC 4880] for details.
     ///
     ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
-    pub(crate) fn _parse<'a, T: 'a + BufferedReader<Cookie>>(
+    pub(crate) fn _parse(
         algo: PublicKeyAlgorithm,
-        php: &mut PacketHeaderParser<T>,
+        php: &mut PacketHeaderParser<'_>,
         checksum: Option<mpi::SecretKeyChecksum>,
     )
         -> Result<Self>
@@ -309,7 +309,7 @@ impl mpi::Ciphertext {
     {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio);
+        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
         Self::_parse(algo, &mut php)
     }
 
@@ -319,9 +319,9 @@ impl mpi::Ciphertext {
     /// See [Section 3.2 of RFC 4880] for details.
     ///
     ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
-    pub(crate) fn _parse<'a, T: 'a + BufferedReader<Cookie>>(
+    pub(crate) fn _parse(
         algo: PublicKeyAlgorithm,
-        php: &mut PacketHeaderParser<T>)
+        php: &mut PacketHeaderParser<'_>)
         -> Result<Self> {
         use crate::PublicKeyAlgorithm::*;
 
@@ -388,7 +388,7 @@ impl mpi::Signature {
     {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio);
+        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
         Self::_parse(algo, &mut php)
     }
 
@@ -398,9 +398,9 @@ impl mpi::Signature {
     /// See [Section 3.2 of RFC 4880] for details.
     ///
     ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
-    pub(crate) fn _parse<'a, T: 'a + BufferedReader<Cookie>>(
+    pub(crate) fn _parse(
         algo: PublicKeyAlgorithm,
-        php: &mut PacketHeaderParser<T>)
+        php: &mut PacketHeaderParser<'_>)
         -> Result<Self> {
         use crate::PublicKeyAlgorithm::*;
 
