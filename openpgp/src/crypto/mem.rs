@@ -230,6 +230,7 @@ impl fmt::Debug for Protected {
 pub struct Encrypted {
     ciphertext: Protected,
     salt: [u8; 32],
+    plaintext_len: usize,
 }
 assert_send_and_sync!(Encrypted);
 
@@ -262,7 +263,7 @@ const ENCRYPTED_MEMORY_PAGE_SIZE: usize = 4096;
 ///
 /// Code outside of it cannot access it, because `PREKEY` is private.
 mod has_access_to_prekey {
-    use std::io::{self, Write};
+    use std::io::{self, Read, Write};
     use buffered_reader::Memory;
     use crate::types::{AEADAlgorithm, HashAlgorithm, SymmetricAlgorithm};
     use crate::crypto::{aead, SessionKey};
@@ -297,7 +298,7 @@ mod has_access_to_prekey {
                 .expect("Mandatory algorithm unsupported");
             ctx.update(salt);
             PREKEY.iter().for_each(|page| ctx.update(page));
-            let mut sk: SessionKey = vec![0; 256/8].into();
+            let mut sk: SessionKey = Protected::new(256/8).into();
             let _ = ctx.digest(&mut sk);
             sk
         }
@@ -306,6 +307,7 @@ mod has_access_to_prekey {
         pub fn new(p: Protected) -> Self {
             if DANGER_DISABLE_ENCRYPTED_MEMORY {
                 return Encrypted {
+                    plaintext_len: p.len(),
                     ciphertext: p,
                     salt: Default::default(),
                 };
@@ -313,22 +315,25 @@ mod has_access_to_prekey {
 
             let mut salt = [0; 32];
             crate::crypto::random(&mut salt);
-            let mut ciphertext = Vec::new();
+            let mut ciphertext = Protected::new(
+                p.len() + 2 * AEAD_ALGO.digest_size().expect("supported"));
+
             {
                 let mut encryptor =
                     aead::Encryptor::new(SYMMETRIC_ALGO,
                                          AEAD_ALGO,
-                                         4096,
+                                         p.len(),
                                          CounterSchedule::default(),
                                          Self::sealing_key(&salt),
-                                         &mut ciphertext)
+                                         io::Cursor::new(&mut ciphertext[..]))
                     .expect("Mandatory algorithm unsupported");
                 encryptor.write_all(&p).unwrap();
                 encryptor.finish().unwrap();
             }
 
             Encrypted {
-                ciphertext: ciphertext.into(),
+                plaintext_len: p.len(),
+                ciphertext,
                 salt,
             }
         }
@@ -344,21 +349,20 @@ mod has_access_to_prekey {
 
             let ciphertext =
                 Memory::with_cookie(&self.ciphertext, Default::default());
-            let mut plaintext = Vec::new();
+            let mut plaintext = Protected::new(self.plaintext_len);
 
             let mut decryptor =
                 aead::Decryptor::from_buffered_reader(
                                      SYMMETRIC_ALGO,
                                      AEAD_ALGO,
-                                     4096,
+                                     self.plaintext_len,
                                      CounterSchedule::default(),
                                      Self::sealing_key(&self.salt),
                                      Box::new(ciphertext))
                 .expect("Mandatory algorithm unsupported");
 
             // Be careful not to leak partially decrypted plain text.
-            let r = io::copy(&mut decryptor, &mut plaintext);
-            let plaintext: Protected = plaintext.into();
+            let r = decryptor.read_exact(&mut plaintext);
             if r.is_err() {
                 drop(plaintext); // Securely erase partial plaintext.
                 panic!("Encrypted memory modified or corrupted");
