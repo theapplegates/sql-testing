@@ -85,6 +85,16 @@ impl Hash for Protected {
 }
 
 impl Protected {
+    /// Allocates a chunk of protected memory.
+    ///
+    /// Effective protection of sensitive values requires avoiding any
+    /// copying and reallocations.  Therefore, it is required to
+    /// provide the size upfront at allocation time, then copying the
+    /// secrets into this protected memory region.
+    pub fn new(size: usize) -> Protected {
+        vec![0; size].into_boxed_slice().into()
+    }
+
     /// Converts to a buffer for modification.
     ///
     /// Don't expose `Protected` values unless you know what you're doing.

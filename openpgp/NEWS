@@ -5,6 +5,7 @@
 
 * Changes in 1.14.0
 ** New functionality
+   - crypto::mem::Protected::new
    - policy::AsymmetricAlgorithm::BrainpoolP384
 * Changes in 1.13.0
 ** New cryptographic backends
