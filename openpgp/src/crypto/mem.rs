@@ -133,10 +133,10 @@ impl DerefMut for Protected {
 
 impl From<Vec<u8>> for Protected {
     fn from(mut v: Vec<u8>) -> Self {
-        // Make a vector with the correct size to avoid potential
-        // reallocations when turning it into a `Protected`.
-        let mut p = Vec::with_capacity(v.len());
-        p.extend_from_slice(&v);
+        // Make a careful copy of the data.  We do this instead of
+        // reusing v's allocation so that our allocation has the exact
+        // size.
+        let p = Protected::from(&v[..]);
 
         // Now clear the previous allocation.  Just to be safe, we
         // clear the whole allocation.
@@ -148,7 +148,7 @@ impl From<Vec<u8>> for Protected {
             memsec::memzero(v.as_mut_ptr(), capacity);
         }
 
-        p.into_boxed_slice().into()
+        p
     }
 }
 
@@ -160,7 +160,13 @@ impl From<Box<[u8]>> for Protected {
 
 impl From<&[u8]> for Protected {
     fn from(v: &[u8]) -> Self {
-        Vec::from(v).into()
+        let mut p = Protected::new(v.len());
+
+        // Very carefully copy the slice.  The obvious
+        // `p.copy_from_slice(v);` indeed leaks secrets.
+        v.iter().zip(p.iter_mut()).for_each(|(f, t)| *t = *f);
+
+        p
     }
 }
 
