@@ -1435,13 +1435,15 @@ assert_send_and_sync!(Unencrypted);
 
 impl From<mpi::SecretKeyMaterial> for Unencrypted {
     fn from(mpis: mpi::SecretKeyMaterial) -> Self {
-        use crate::serialize::Marshal;
+        use crate::serialize::MarshalInto;
         // We need to store the type.
-        let mut plaintext =
-            vec![mpis.algo().unwrap_or(PublicKeyAlgorithm::Unknown(0)).into()];
-        mpis.serialize(&mut plaintext)
+        let mut plaintext = mem::Protected::new(1 + mpis.serialized_len());
+        plaintext[0] =
+            mpis.algo().unwrap_or(PublicKeyAlgorithm::Unknown(0)).into();
+
+        mpis.serialize_into(&mut plaintext[1..])
             .expect("MPI serialization to vec failed");
-        Unencrypted { mpis: mem::Encrypted::new(plaintext.into()), }
+        Unencrypted { mpis: mem::Encrypted::new(plaintext), }
     }
 }
 
