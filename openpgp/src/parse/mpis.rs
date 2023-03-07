@@ -151,6 +151,9 @@ impl mpi::SecretKeyMaterial {
     /// Parses secret key MPIs for `algo` plus their SHA1 checksum.
     ///
     /// Fails if the checksum is wrong.
+    #[deprecated(
+        since = "1.14.0",
+        note = "Leaks secrets into the heap, use [`SecretKeyMaterial::from_bytes_with_checksum`]")]
     pub fn parse_with_checksum<R: Read + Send + Sync>(algo: PublicKeyAlgorithm,
                                         reader: R,
                                         checksum: mpi::SecretKeyChecksum)
@@ -161,15 +164,43 @@ impl mpi::SecretKeyMaterial {
         Self::_parse(algo, &mut php, Some(checksum))
     }
 
+    /// Parses secret key MPIs for `algo` plus their SHA1 checksum.
+    ///
+    /// Fails if the checksum is wrong.
+    pub fn from_bytes_with_checksum(algo: PublicKeyAlgorithm,
+                                    bytes: &[u8],
+                                    checksum: mpi::SecretKeyChecksum)
+                                    -> Result<Self> {
+        let bio = buffered_reader::Memory::with_cookie(
+            bytes, Cookie::default());
+        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
+        Self::_parse(algo, &mut php, Some(checksum))
+    }
+
     /// Parses a set of OpenPGP MPIs representing a secret key.
     ///
     /// See [Section 3.2 of RFC 4880] for details.
     ///
     ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
+    #[deprecated(
+        since = "1.14.0",
+        note = "Leaks secrets into the heap, use [`SecretKeyMaterial::from_bytes`]")]
     pub fn parse<R: Read + Send + Sync>(algo: PublicKeyAlgorithm, reader: R) -> Result<Self>
     {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
+        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
+        Self::_parse(algo, &mut php, None)
+    }
+
+    /// Parses a set of OpenPGP MPIs representing a secret key.
+    ///
+    /// See [Section 3.2 of RFC 4880] for details.
+    ///
+    ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
+    pub fn from_bytes(algo: PublicKeyAlgorithm, buf: &[u8]) -> Result<Self> {
+        let bio = buffered_reader::Memory::with_cookie(
+            buf, Cookie::default());
         let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
         Self::_parse(algo, &mut php, None)
     }

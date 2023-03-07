@@ -1452,7 +1452,7 @@ impl Unencrypted {
     {
         self.mpis.map(|plaintext| {
             let algo: PublicKeyAlgorithm = plaintext[0].into();
-            let mpis = mpi::SecretKeyMaterial::parse(algo, &plaintext[1..])
+            let mpis = mpi::SecretKeyMaterial::from_bytes(algo, &plaintext[1..])
                 .expect("Decrypted secret key is malformed");
             fun(&mpis)
         })
@@ -1626,15 +1626,21 @@ impl Encrypted {
         use crate::crypto::symmetric::Decryptor;
 
         let key = self.s2k.derive_key(password, self.algo.key_size()?)?;
-        let cur = Cursor::new(self.ciphertext()?);
+        let ciphertext = self.ciphertext()?;
+        let cur = Cursor::new(ciphertext);
         let mut dec = Decryptor::new(self.algo, &key, cur)?;
 
         // Consume the first block.
-        let mut trash = vec![0u8; self.algo.block_size()?];
+        let block_size = self.algo.block_size()?;
+        let mut trash = mem::Protected::new(block_size);
         dec.read_exact(&mut trash)?;
 
-        mpi::SecretKeyMaterial::parse_with_checksum(
-            pk_algo, &mut dec, self.checksum.unwrap_or_default())
+        // Read the secret key.
+        let mut secret = mem::Protected::new(ciphertext.len() - block_size);
+        dec.read_exact(&mut secret)?;
+
+        mpi::SecretKeyMaterial::from_bytes_with_checksum(
+            pk_algo, &secret, self.checksum.unwrap_or_default())
             .map(|m| m.into())
     }
 }

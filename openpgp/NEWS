@@ -6,7 +6,12 @@
 * Changes in 1.14.0
 ** New functionality
    - crypto::mem::Protected::new
+   - crypto::mpi::SecretKeyMaterial::from_bytes
+   - crypto::mpi::SecretKeyMaterial::from_bytes_with_checksum
    - policy::AsymmetricAlgorithm::BrainpoolP384
+** Deprecated functionality
+   - crypto::mpi::SecretKeyMaterial::parse
+   - crypto::mpi::SecretKeyMaterial::parse_with_checksum
 * Changes in 1.13.0
 ** New cryptographic backends
    - We added a backend that uses OpenSSL.
