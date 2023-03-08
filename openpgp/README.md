@@ -80,6 +80,12 @@ at compile time.  Currently, these libraries are available:
     `default-features = false`, and explicitly include the
     `crypto-openssl` feature to enable it.
 
+  - The Botan backend.  To select this backend, use
+    `default-features = false`, and explicitly include the
+    `crypto-botan` feature to enable it.
+
+    **Note**: Using the Botan backend raises the MSRV to 1.64.
+
   - The Windows Cryptography API: Next Generation (CNG).  To select
     this backend, use `default-features = false`, and explicitly
     include the `crypto-cng` feature to enable it.  Currently, the CNG

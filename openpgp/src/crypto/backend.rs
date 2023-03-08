@@ -14,11 +14,13 @@ pub(crate) mod sha1cd;
 #[cfg(all(feature = "crypto-nettle",
           not(all(feature = "__implicit-crypto-backend-for-tests",
                   any(feature = "crypto-openssl",
+                      feature = "crypto-botan",
                       feature = "crypto-rust")))))]
 mod nettle;
 #[cfg(all(feature = "crypto-nettle",
           not(all(feature = "__implicit-crypto-backend-for-tests",
                   any(feature = "crypto-openssl",
+                      feature = "crypto-botan",
                       feature = "crypto-rust")))))]
 pub use self::nettle::*;
 
@@ -34,12 +36,14 @@ pub use self::nettle::*;
           not(all(feature = "__implicit-crypto-backend-for-tests",
                   any(feature = "crypto-nettle",
                       feature = "crypto-openssl",
+                      feature = "crypto-botan",
                       feature = "crypto-rust")))))]
 mod cng;
 #[cfg(all(feature = "crypto-cng",
           not(all(feature = "__implicit-crypto-backend-for-tests",
                   any(feature = "crypto-nettle",
                       feature = "crypto-openssl",
+                      feature = "crypto-botan",
                       feature = "crypto-rust")))))]
 pub use self::cng::*;
 
@@ -52,3 +56,8 @@ pub use self::rust::*;
 mod openssl;
 #[cfg(feature = "crypto-openssl")]
 pub use self::openssl::*;
+
+#[cfg(feature = "crypto-botan")]
+mod botan;
+#[cfg(feature = "crypto-botan")]
+pub use self::botan::*;

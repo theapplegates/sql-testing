@@ -4,6 +4,8 @@
 #+STARTUP: content hidestars
 
 * Changes in 1.14.0
+** New cryptographic backends
+   - We added a backend that uses Botan.
 ** New functionality
    - crypto::mem::Protected::new
    - crypto::mpi::SecretKeyMaterial::from_bytes

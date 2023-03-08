@@ -113,6 +113,24 @@ fedora-crypto-openssl:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
 
+rust-stable-crypto-botan:
+  tags:
+    - linux
+  stage: build
+  interruptible: true
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
+  before_script:
+    - *before_script_start
+    - apt -y install libbotan-2-dev
+    - rustup override set stable
+    - *before_script_end
+  script:
+    - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-botan,compression --example supported-algorithms
+    - cargo test --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-botan,compression
+  variables:
+    CARGO_TARGET_DIR: /target
+    CARGO_HOME: /cargo
+
 benchmarks:
   stage: test
   interruptible: true
