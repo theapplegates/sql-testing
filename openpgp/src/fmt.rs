@@ -71,10 +71,21 @@ pub mod hex {
         /// The dump is written to `inner`.  Every line is indented with
         /// `indent`.
         pub fn new<I: AsRef<str>>(inner: W, indent: I) -> Self {
+            Self::with_offset(inner, indent, 0)
+        }
+
+        /// Creates a new dumper starting at the given offset.
+        ///
+        /// The dump is written to `inner`.  Every line is indented with
+        /// `indent`.
+        pub fn with_offset<I>(inner: W, indent: I, offset: usize) -> Self
+        where
+            I: AsRef<str>,
+        {
             Dumper {
                 inner,
                 indent: indent.as_ref().into(),
-                offset: 0,
+                offset,
             }
         }
 
