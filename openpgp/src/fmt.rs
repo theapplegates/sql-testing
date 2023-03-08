@@ -108,6 +108,10 @@ pub mod hex {
             where B: AsRef<[u8]>,
         {
             self.write_labeled(buf, |offset, data| {
+                if data.is_empty() {
+                    return None;
+                }
+
                 let mut l = String::new();
                 for _ in 0..offset {
                     l.push(' ');
