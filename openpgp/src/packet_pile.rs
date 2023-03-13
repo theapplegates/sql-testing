@@ -52,7 +52,7 @@ use crate::parse::Cookie;
 /// use openpgp::serialize::Serialize;
 /// use openpgp::policy::StandardPolicy;
 /// use openpgp::crypto::mpi;
-/// use openpgp::types::RevocationStatus::{Revoked, CouldBe};
+/// use openpgp::types::RevocationStatus;
 ///
 /// # fn main() -> openpgp::Result<()> {
 /// let (cert, revocation) = CertBuilder::new().generate()?;
@@ -68,7 +68,7 @@ use crate::parse::Cookie;
 /// // revocation signature
 /// let pp: PacketPile = PacketPile::from_bytes(&buffer)?;
 /// let cert = Cert::try_from(pp)?;
-/// if let Revoked(_) = cert.revocation_status(policy, None) {
+/// if let RevocationStatus::Revoked(_) = cert.revocation_status(policy, None) {
 ///     // cert is considered revoked
 /// }
 /// # else {
@@ -92,7 +92,7 @@ use crate::parse::Cookie;
 /// }
 ///
 /// let cert = Cert::try_from(pp)?;
-/// if let NotAsFarAsWeKnow = cert.revocation_status(policy, None) {
+/// if let RevocationStatus::NotAsFarAsWeKnow = cert.revocation_status(policy, None) {
 ///     // revocation signature is broken and the cert is not revoked
 ///     assert_eq!(cert.bad_signatures().count(), 1);
 /// }
