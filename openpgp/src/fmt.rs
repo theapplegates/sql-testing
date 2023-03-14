@@ -119,10 +119,6 @@ pub mod hex {
             where B: AsRef<[u8]>,
         {
             self.write_labeled(buf, |offset, data| {
-                if data.is_empty() {
-                    return None;
-                }
-
                 let mut l = String::new();
                 for _ in 0..offset {
                     l.push(' ');
@@ -176,8 +172,9 @@ pub mod hex {
                 self.offset += 1;
                 match self.offset % 16 {
                     0 => {
-                        if let Some(msg) = labeler(
-                            first_label_offset, &buf[data_start..i + 1])
+                        if let Some(msg) = Some(&buf[data_start..i + 1])
+                            .filter(|b| ! b.is_empty())
+                            .and_then(|b| labeler(first_label_offset, b))
                         {
                             write!(self.inner, "   {}", msg)?;
                             // Only the first label is offset.
@@ -191,8 +188,9 @@ pub mod hex {
                 }
             }
 
-            if let Some(msg) = labeler(
-                first_label_offset, &buf[data_start..])
+            if let Some(msg) = Some(&buf[data_start..])
+                .filter(|b| ! b.is_empty())
+                .and_then(|b| labeler(first_label_offset, b))
             {
                 for i in self.offset % 16 .. 16 {
                     if i != 7 {
