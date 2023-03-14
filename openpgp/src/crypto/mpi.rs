@@ -46,6 +46,12 @@ assert_send_and_sync!(MPI);
 
 impl From<Vec<u8>> for MPI {
     fn from(v: Vec<u8>) -> Self {
+        // XXX: This will leak secrets in v into the heap.  But,
+        // eagerly clearing the memory may have a very high overhead,
+        // after all, most MPIs that we encounter will not contain
+        // secrets.  I think it is better to avoid creating MPIs that
+        // contain secrets in the first place.  In 2.0, we can remove
+        // the impl From<MPI> for ProtectedMPI.
         Self::new(&v)
     }
 }
@@ -353,6 +359,8 @@ impl From<Protected> for ProtectedMPI {
     }
 }
 
+// XXX: In 2.0, get rid of this conversion.  If the value has been
+// parsed into an MPI, it may have already leaked.
 impl From<MPI> for ProtectedMPI {
     fn from(m: MPI) -> Self {
         ProtectedMPI {

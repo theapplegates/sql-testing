@@ -226,7 +226,7 @@ use crate::types::{
     SymmetricAlgorithm,
     Timestamp,
 };
-use crate::crypto::{self, mpi::{PublicKey, MPI}};
+use crate::crypto::{self, mpi::{PublicKey, MPI, ProtectedMPI}};
 use crate::crypto::symmetric::{Decryptor, BufferedReaderDecryptor};
 use crate::message;
 use crate::message::MessageValidator;
@@ -2942,11 +2942,22 @@ impl MPI {
     /// See [Section 3.2 of RFC 4880] for details.
     ///
     ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
-    fn parse(
+    fn parse(name_len: &'static str,
+             name: &'static str,
+             php: &mut PacketHeaderParser<'_>) -> Result<Self> {
+        Ok(MPI::parse_common(name_len, name, php)?.into())
+    }
+
+    /// Parses an OpenPGP MPI.
+    ///
+    /// See [Section 3.2 of RFC 4880] for details.
+    ///
+    ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
+    fn parse_common(
         name_len: &'static str,
         name: &'static str,
         php: &mut PacketHeaderParser<'_>)
-                 -> Result<Self> {
+                 -> Result<Vec<u8>> {
         // This function is used to parse MPIs from unknown
         // algorithms, which may use an encoding unknown to us.
         // Therefore, we need to be extra careful only to consume the
@@ -2958,7 +2969,7 @@ impl MPI {
         if bits == 0 {
             // Now consume the data.
             php.parse_be_u16(name_len).expect("worked before");
-            return Ok(vec![].into());
+            return Ok(vec![]);
         }
 
         let bytes = (bits + 7) / 8;
@@ -2999,7 +3010,7 @@ impl MPI {
         php.field(name_len, 2);
         php.field(name, bytes);
 
-        Ok(value.into())
+        Ok(value)
     }
 }
 
@@ -3013,6 +3024,18 @@ impl<'a> Parse<'a, MPI> for MPI {
     }
 }
 
+impl ProtectedMPI {
+    /// Parses an OpenPGP MPI containing secrets.
+    ///
+    /// See [Section 3.2 of RFC 4880] for details.
+    ///
+    ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
+    fn parse(name_len: &'static str,
+             name: &'static str,
+             php: &mut PacketHeaderParser<'_>) -> Result<Self> {
+        Ok(MPI::parse_common(name_len, name, php)?.into())
+    }
+}
 impl PKESK {
     /// Parses the body of an PK-ESK packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {

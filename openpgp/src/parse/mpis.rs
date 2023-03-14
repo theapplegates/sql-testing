@@ -10,7 +10,7 @@ use crate::{
     HashAlgorithm,
 };
 use crate::types::Curve;
-use crate::crypto::mpi::{self, MPI};
+use crate::crypto::mpi::{self, MPI, ProtectedMPI};
 use crate::parse::{
     PacketHeaderParser,
     Cookie,
@@ -222,62 +222,58 @@ impl mpi::SecretKeyMaterial {
         #[allow(deprecated)]
         let mpis: Result<Self> = match algo {
             RSAEncryptSign | RSAEncrypt | RSASign => {
-                let d = MPI::parse("rsa_secret_d_len", "rsa_secret_d", php)?;
-                let p = MPI::parse("rsa_secret_p_len", "rsa_secret_p", php)?;
-                let q = MPI::parse("rsa_secret_q_len", "rsa_secret_q", php)?;
-                let u = MPI::parse("rsa_secret_u_len", "rsa_secret_u", php)?;
-
                 Ok(mpi::SecretKeyMaterial::RSA {
-                    d: d.into(),
-                    p: p.into(),
-                    q: q.into(),
-                    u: u.into(),
+                    d: ProtectedMPI::parse(
+                        "rsa_secret_d_len", "rsa_secret_d", php)?,
+                    p: ProtectedMPI::parse(
+                        "rsa_secret_p_len", "rsa_secret_p", php)?,
+                    q: ProtectedMPI::parse(
+                        "rsa_secret_q_len", "rsa_secret_q", php)?,
+                    u: ProtectedMPI::parse(
+                        "rsa_secret_u_len", "rsa_secret_u", php)?,
                 })
             }
 
             DSA => {
-                let x = MPI::parse("dsa_secret_len", "dsa_secret", php)?;
-
                 Ok(mpi::SecretKeyMaterial::DSA {
-                    x: x.into(),
+                    x: ProtectedMPI::parse(
+                        "dsa_secret_len", "dsa_secret", php)?,
                 })
             }
 
             ElGamalEncrypt | ElGamalEncryptSign => {
-                let x = MPI::parse("elgamal_secret_len", "elgamal_secret",
-                                   php)?;
-
                 Ok(mpi::SecretKeyMaterial::ElGamal {
-                    x: x.into(),
+                    x: ProtectedMPI::parse(
+                        "elgamal_secret_len", "elgamal_secret", php)?,
                 })
             }
 
             EdDSA => {
                 Ok(mpi::SecretKeyMaterial::EdDSA {
-                    scalar: MPI::parse("eddsa_secret_len", "eddsa_secret", php)?
-                                .into()
+                    scalar: ProtectedMPI::parse(
+                        "eddsa_secret_len", "eddsa_secret", php)?,
                 })
             }
 
             ECDSA => {
                 Ok(mpi::SecretKeyMaterial::ECDSA {
-                    scalar: MPI::parse("ecdsa_secret_len", "ecdsa_secret", php)?
-                                .into()
+                    scalar: ProtectedMPI::parse(
+                        "ecdsa_secret_len", "ecdsa_secret", php)?,
                 })
             }
 
             ECDH => {
                 Ok(mpi::SecretKeyMaterial::ECDH {
-                    scalar: MPI::parse("ecdh_secret_len", "ecdh_secret", php)?
-                                .into()
+                    scalar: ProtectedMPI::parse(
+                        "ecdh_secret_len", "ecdh_secret", php)?,
                 })
             }
 
             Unknown(_) | Private(_) => {
                 let mut mpis = Vec::new();
-                while let Ok(mpi) = MPI::parse("unknown_len",
+                while let Ok(mpi) = ProtectedMPI::parse("unknown_len",
                                                "unknown", php) {
-                    mpis.push(mpi.into());
+                    mpis.push(mpi);
                 }
                 let rest = php.parse_bytes_eof("rest")?;
 
