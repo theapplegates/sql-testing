@@ -456,7 +456,7 @@ where
                 q: public_key.into(),
             },
             mpi::SecretKeyMaterial::EdDSA {
-                scalar: mpi::MPI::new(&private_key).into(),
+                scalar: private_key.into(),
             }
             .into(),
         )
@@ -504,8 +504,8 @@ where
             },
             mpi::SecretKeyMaterial::RSA {
                 d: d_bn.into(),
-                p: mpi::MPI::new(p).into(),
-                q: mpi::MPI::new(q).into(),
+                p: p.into(),
+                q: q.into(),
                 u: u.into(),
             }
             .into(),

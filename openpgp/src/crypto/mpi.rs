@@ -329,6 +329,15 @@ pub struct ProtectedMPI {
 }
 assert_send_and_sync!(ProtectedMPI);
 
+impl From<&[u8]> for ProtectedMPI {
+    fn from(m: &[u8]) -> Self {
+        let value = Protected::from(MPI::trim_leading_zeros(m));
+        ProtectedMPI {
+            value,
+        }
+    }
+}
+
 impl From<Vec<u8>> for ProtectedMPI {
     fn from(m: Vec<u8>) -> Self {
         let value = Protected::from(MPI::trim_leading_zeros(&m));

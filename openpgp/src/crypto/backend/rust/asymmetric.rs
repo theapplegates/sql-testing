@@ -412,7 +412,7 @@ impl<R> Key4<SecretParts, R>
                 q: mpi::MPI::new(&public)
             },
             mpi::SecretKeyMaterial::EdDSA {
-                scalar: mpi::MPI::new(private_key).into(),
+                scalar: private_key.into(),
             }.into()
         )
     }
@@ -452,10 +452,10 @@ impl<R> Key4<SecretParts, R>
                 n: mpi::MPI::new(&n.to_bytes_be()),
             },
             mpi::SecretKeyMaterial::RSA {
-                d: mpi::MPI::new(d).into(),
-                p: mpi::MPI::new(p).into(),
-                q: mpi::MPI::new(q).into(),
-                u: mpi::MPI::new(&u.to_bytes_be()).into(),
+                d: d.into(),
+                p: p.into(),
+                q: q.into(),
+                u: u.to_bytes_be().into(),
             }.into()
         )
     }
@@ -477,10 +477,10 @@ impl<R> Key4<SecretParts, R>
         };
 
         let private = mpi::SecretKeyMaterial::RSA {
-            p: mpi::MPI::new(&p.to_bytes_be()).into(),
-            q: mpi::MPI::new(&q.to_bytes_be()).into(),
-            d: mpi::MPI::new(&key.d().to_bytes_be()).into(),
-            u: mpi::MPI::new(&u.to_bytes_be()).into(),
+            p: p.to_bytes_be().into(),
+            q: q.to_bytes_be().into(),
+            d: key.d().to_bytes_be().into(),
+            u: u.to_bytes_be().into(),
         };
 
         Self::with_secret(

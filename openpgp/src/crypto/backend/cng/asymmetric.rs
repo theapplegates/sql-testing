@@ -770,7 +770,7 @@ where
                 q: mpi::MPI::new(&public)
             },
             mpi::SecretKeyMaterial::EdDSA {
-                scalar: mpi::MPI::new(&private_key).into(),
+                scalar: private_key.into(),
             }.into()
         )
     }
@@ -810,10 +810,10 @@ where
                 n: mpi::MPI::new(&n.to_bytes_be()),
             },
             mpi::SecretKeyMaterial::RSA {
-                d: mpi::MPI::new(d).into(),
-                p: mpi::MPI::new(p).into(),
-                q: mpi::MPI::new(q).into(),
-                u: mpi::MPI::new(&u.to_bytes_be()).into(),
+                d: d.into(),
+                p: p.into(),
+                q: q.into(),
+                u: u.to_bytes_be().into(),
             }.into()
         )
     }
@@ -847,8 +847,8 @@ where
         let private = mpi::SecretKeyMaterial::RSA {
             p: p.into(),
             q: q.into(),
-            d: mpi::MPI::new(blob.priv_exp()).into(),
-            u: mpi::MPI::new(&u.to_bytes_be()).into(),
+            d: blob.priv_exp().into(),
+            u: u.to_bytes_be().into(),
         };
 
         Self::with_secret(

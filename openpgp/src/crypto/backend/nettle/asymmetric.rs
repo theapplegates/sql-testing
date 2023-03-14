@@ -380,7 +380,7 @@ impl<R> Key4<SecretParts, R>
                 q: MPI::new_compressed_point(&public_key),
             },
             mpi::SecretKeyMaterial::EdDSA {
-                scalar: mpi::MPI::new(private_key).into(),
+                scalar: private_key.into(),
             }.into())
     }
 
@@ -405,7 +405,7 @@ impl<R> Key4<SecretParts, R>
                 n: mpi::MPI::new(&key.n()[..]),
             },
             mpi::SecretKeyMaterial::RSA {
-                d: mpi::MPI::new(d).into(),
+                d: d.into(),
                 p: a.into(),
                 q: b.into(),
                 u: c.into(),
