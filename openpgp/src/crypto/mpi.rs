@@ -325,23 +325,31 @@ assert_send_and_sync!(ProtectedMPI);
 
 impl From<Vec<u8>> for ProtectedMPI {
     fn from(m: Vec<u8>) -> Self {
-        let p = MPI::new(&m).into();
+        let value = Protected::from(MPI::trim_leading_zeros(&m));
         drop(Protected::from(m)); // Erase source.
-        p
+        ProtectedMPI {
+            value,
+        }
     }
 }
 
 impl From<Box<[u8]>> for ProtectedMPI {
     fn from(m: Box<[u8]>) -> Self {
-        let p = MPI::new(&m).into();
+        let value = Protected::from(MPI::trim_leading_zeros(&m));
         drop(Protected::from(m)); // Erase source.
-        p
+        ProtectedMPI {
+            value,
+        }
     }
 }
 
 impl From<Protected> for ProtectedMPI {
     fn from(m: Protected) -> Self {
-        MPI::new(&m).into()
+        let value = Protected::from(MPI::trim_leading_zeros(&m));
+        drop(m); // Erase source.
+        ProtectedMPI {
+            value,
+        }
     }
 }
 
