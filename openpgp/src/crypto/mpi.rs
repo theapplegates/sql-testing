@@ -51,20 +51,17 @@ impl From<Vec<u8>> for MPI {
 }
 
 impl MPI {
+    /// Trims leading zero octets.
+    fn trim_leading_zeros(v: &[u8]) -> &[u8] {
+        let offset = v.iter().take_while(|&&o| o == 0).count();
+        &v[offset..]
+    }
+
     /// Creates a new MPI.
     ///
     /// This function takes care of removing leading zeros.
     pub fn new(value: &[u8]) -> Self {
-        let mut leading_zeros = 0;
-        for b in value {
-            leading_zeros += b.leading_zeros() as usize;
-            if *b != 0 {
-                break;
-            }
-        }
-
-        let offset = leading_zeros / 8;
-        let value = Vec::from(&value[offset..]).into_boxed_slice();
+        let value = Self::trim_leading_zeros(value).to_vec().into_boxed_slice();
 
         MPI {
             value,
