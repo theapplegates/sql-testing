@@ -2990,9 +2990,15 @@ impl MPI {
                              first_used_bit, value[0], value[0])).into());
         }
 
-        // Now consume the data.
-        php.parse_be_u16(name_len).expect("worked before");
-        php.parse_bytes(name, bytes).expect("worked before");
+        // Now consume the data.  Note: we avoid using parse_bytes
+        // here because MPIs may contain secrets, and we don't want to
+        // casually leak them into the heap.  Also, we avoid doing a
+        // heap allocation.
+        php.reader.consume(2 + bytes);
+        // Now fix the map.
+        php.field(name_len, 2);
+        php.field(name, bytes);
+
         Ok(value.into())
     }
 }
