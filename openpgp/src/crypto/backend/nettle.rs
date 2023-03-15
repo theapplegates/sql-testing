@@ -12,9 +12,12 @@ pub mod symmetric;
 
 /// Returns a short, human-readable description of the backend.
 pub fn backend() -> String {
-    // XXX: Once we depend on nettle-rs 7.1, add cv448 feature
-    // XXX: Once we depend on nettle-rs 7.2, add nettle::version
-    "Nettle".to_string()
+    let (major, minor) = nettle::version();
+    format!(
+        "Nettle {}.{} (Cv448: {:?})",
+        major, minor,
+        nettle::curve448::IS_SUPPORTED,
+    )
 }
 
 /// Fills the given buffer with random data.
