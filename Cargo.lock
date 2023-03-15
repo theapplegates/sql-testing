@@ -1573,9 +1573,9 @@ dependencies = [
 
 [[package]]
 name = "nettle"
-version = "7.1.0"
+version = "7.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c511dff9452c522101505be4b5bbe07afd4f4565c65ca7d8118d4b804bd6a199"
+checksum = "91ff5d538c014cb58ab701db16e28aa66fbbb8b472bf65821d0e84f72aae6d4f"
 dependencies = [
  "getrandom 0.2.6",
  "libc",
