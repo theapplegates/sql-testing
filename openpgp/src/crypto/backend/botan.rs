@@ -3,9 +3,7 @@
 use crate::types::*;
 
 pub mod aead;
-#[allow(unused_variables)]
 pub mod asymmetric;
-#[allow(unused_variables)]
 pub mod ecdh;
 pub mod hash;
 pub mod symmetric;

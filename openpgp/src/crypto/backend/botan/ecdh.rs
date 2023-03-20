@@ -1,10 +1,7 @@
 //! Elliptic Curve Diffie-Hellman.
 
-#[allow(unused_imports)]
-
 use botan::{
     RandomNumberGenerator,
-    //Pubkey,
     Privkey,
 };
 

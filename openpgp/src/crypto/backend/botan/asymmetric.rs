@@ -188,7 +188,7 @@ impl Decryptor for KeyPair {
     }
 
     fn decrypt(&mut self, ciphertext: &mpi::Ciphertext,
-               plaintext_len: Option<usize>)
+               _plaintext_len: Option<usize>)
                -> Result<SessionKey>
     {
         fn bad(e: impl ToString) -> anyhow::Error {
@@ -474,7 +474,7 @@ impl<R> Key4<SecretParts, R>
 
         let (public, secret) = rsa_rfc4880(secret)?;
         Self::with_secret(
-            crate::now(),
+            ctime.into().unwrap_or_else(crate::now),
             PublicKeyAlgorithm::RSAEncryptSign,
             public, secret.into())
     }
