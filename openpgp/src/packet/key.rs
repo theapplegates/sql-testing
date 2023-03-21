@@ -775,6 +775,8 @@ pub struct Key4<P, R>
     /// Optional secret part of the key.
     secret: Option<SecretKeyMaterial>,
 
+    fingerprint: once_cell::sync::OnceCell<Fingerprint>,
+
     p: std::marker::PhantomData<P>,
     r: std::marker::PhantomData<R>,
 }
@@ -930,6 +932,7 @@ where
             pk_algo,
             mpis,
             secret,
+            fingerprint: Default::default(),
             p: std::marker::PhantomData,
             r: std::marker::PhantomData,
         })
@@ -951,6 +954,7 @@ impl<R> Key4<key::PublicParts, R>
             pk_algo,
             mpis,
             secret: None,
+            fingerprint: Default::default(),
             p: std::marker::PhantomData,
             r: std::marker::PhantomData,
         })
@@ -1044,6 +1048,7 @@ impl<R> Key4<SecretParts, R>
             pk_algo,
             mpis,
             secret: Some(secret),
+            fingerprint: Default::default(),
             p: std::marker::PhantomData,
             r: std::marker::PhantomData,
         })
@@ -1153,13 +1158,15 @@ impl<P, R> Key4<P, R>
     ///
     /// [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
     pub fn fingerprint(&self) -> Fingerprint {
-        let mut h = HashAlgorithm::SHA1.context().unwrap();
+        self.fingerprint.get_or_init(|| {
+            let mut h = HashAlgorithm::SHA1.context().unwrap();
 
-        self.hash(&mut h);
+            self.hash(&mut h);
 
-        let mut digest = vec![0u8; h.digest_size()];
-        let _ = h.digest(&mut digest);
-        Fingerprint::from_bytes(digest.as_slice())
+            let mut digest = vec![0u8; h.digest_size()];
+            let _ = h.digest(&mut digest);
+            Fingerprint::from_bytes(digest.as_slice())
+        }).clone()
     }
 
     /// Computes and returns the `Key`'s `Key ID`.
@@ -1683,6 +1690,7 @@ impl Arbitrary for Key4<PublicParts, UnspecifiedRole> {
                 .expect("mpi::PublicKey::arbitrary only uses known algos"),
             mpis,
             secret: None,
+            fingerprint: Default::default(),
             p: std::marker::PhantomData,
             r: std::marker::PhantomData,
         }

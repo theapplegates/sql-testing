@@ -2367,6 +2367,7 @@ dependencies = [
  "memsec",
  "nettle",
  "num-bigint-dig",
+ "once_cell",
  "openssl",
  "openssl-sys",
  "p256",
