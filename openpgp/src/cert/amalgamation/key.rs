@@ -1350,7 +1350,7 @@ impl<'a, P, R, R2> ValidKeyAmalgamation<'a, P, R, R2>
         };
         if let Some(sig) = sig {
             sig.key_alive(self.key(), self.time())
-                .context(if self.primary() {
+                .with_context(|| if self.primary() {
                     "The primary key is not live"
                 } else {
                     "The subkey is not live"

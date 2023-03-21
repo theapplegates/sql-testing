@@ -8,7 +8,6 @@ use std::sync::Mutex;
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
 
-use anyhow::Context;
 use regex::Regex;
 
 use crate::Result;
@@ -854,8 +853,8 @@ impl UserID {
                 Ok(puid) => puid,
                 Err(err) => {
                     // Return the error from the NameAddrOrOther parser.
-                    return Err(err).context(format!(
-                        "Failed to parse User ID: {:?}", s))?;
+                    return Err(err.context(format!(
+                        "Failed to parse User ID: {:?}", s)));
                 }
             });
         }

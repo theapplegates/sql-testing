@@ -1455,14 +1455,14 @@ impl<'a> Policy for StandardPolicy<'a> {
                     .collision_resistant_hash_algos
                     .check(sig.hash_algo(), time,
                            Some(self.hash_revocation_tolerance))
-                    .context(format!(
+                    .with_context(|| format!(
                         "Policy rejected revocation signature ({}) requiring \
                          collision resistance", sig.typ()))?
             } else {
                 self
                     .collision_resistant_hash_algos
                     .check(sig.hash_algo(), time, None)
-                    .context(format!(
+                    .with_context(|| format!(
                         "Policy rejected non-revocation signature ({}) requiring \
                          collision resistance", sig.typ()))?
             }
@@ -1473,14 +1473,14 @@ impl<'a> Policy for StandardPolicy<'a> {
                 .second_pre_image_resistant_hash_algos
                 .check(sig.hash_algo(), time,
                        Some(self.hash_revocation_tolerance))
-                .context(format!(
+                .with_context(|| format!(
                     "Policy rejected revocation signature ({}) requiring \
                      second pre-image resistance", sig.typ()))?
         } else {
             self
                 .second_pre_image_resistant_hash_algos
                 .check(sig.hash_algo(), time, None)
-                .context(format!(
+                .with_context(|| format!(
                     "Policy rejected non-revocation signature ({}) requiring \
                      second pre-image resistance", sig.typ()))?
         }
