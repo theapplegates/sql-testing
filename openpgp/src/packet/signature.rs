@@ -1513,12 +1513,12 @@ impl SignatureBuilder {
     /// # fn main() -> openpgp::Result<()> {
     /// let p = &StandardPolicy::new();
     ///
-    /// let (cert, _) = CertBuilder::new().generate()?;
+    /// let (cert, _) = CertBuilder::new().add_signing_subkey().generate()?;
     ///
-    /// // Get a usable (alive, non-revoked) certification key.
+    /// // Get a usable (alive, non-revoked) signing key.
     /// let key : &Key<_, _> = cert
     ///     .keys().with_policy(p, None)
-    ///     .for_certification().alive().revoked(false).nth(0).unwrap().key();
+    ///     .for_signing().alive().revoked(false).nth(0).unwrap().key();
     /// // Derive a signer.
     /// let mut signer = key.clone().parts_into_secret()?.into_keypair()?;
     ///
