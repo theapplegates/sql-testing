@@ -58,7 +58,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::convert::{TryInto, TryFrom};
 use std::hash::{Hash, Hasher};
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 use std::ops::{Deref, DerefMut};
 use std::fmt;
 use std::cmp;
@@ -676,17 +676,25 @@ impl SubpacketArea {
         Ok(area)
     }
 
-    // Initialize `Signature::hashed_area_parsed` from
-    // `Signature::hashed_area`, if necessary.
-    fn cache_init(&self) {
-        if self.parsed.lock().unwrap().borrow().is_none() {
+    /// Initialize the cache mapping subpacket tags to positions in
+    /// the subpacket area.
+    ///
+    /// If the cache is already initialized, this is a NOP.
+    ///
+    /// Returns the locked cache.
+    fn cache_init(&self)
+        -> MutexGuard<'_, RefCell<Option<HashMap<SubpacketTag, usize>>>>
+    {
+        let cache = self.parsed.lock().unwrap();
+        if cache.borrow().is_none() {
             let mut hash = HashMap::new();
             for (i, sp) in self.packets.iter().enumerate() {
                 hash.insert(sp.tag(), i);
             }
 
-            *self.parsed.lock().unwrap().borrow_mut() = Some(hash);
+            *cache.borrow_mut() = Some(hash);
         }
+        cache
     }
 
     /// Invalidates the cache.
@@ -793,9 +801,7 @@ impl SubpacketArea {
     /// # }
     /// ```
     pub fn subpacket(&self, tag: SubpacketTag) -> Option<&Subpacket> {
-        self.cache_init();
-
-        match self.parsed.lock().unwrap().borrow().as_ref().unwrap().get(&tag) {
+        match self.cache_init().borrow().as_ref().unwrap().get(&tag) {
             Some(&n) => Some(&self.packets[n]),
             None => None,
         }
@@ -854,10 +860,10 @@ impl SubpacketArea {
     /// ```
     pub fn subpacket_mut(&mut self, tag: SubpacketTag)
                          -> Option<&mut Subpacket> {
-        self.cache_init();
-
-        match self.parsed.lock().unwrap().borrow().as_ref().unwrap().get(&tag) {
-            Some(&n) => Some(&mut self.packets[n]),
+        let n = self.cache_init().borrow().as_ref().unwrap().get(&tag).cloned();
+        // Cache is dropped here so that we can mutably borrow self.packets.
+        match n {
+            Some(n) => Some(&mut self.packets[n]),
             None => None,
         }
     }
