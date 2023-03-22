@@ -687,7 +687,7 @@ impl SubpacketArea {
     {
         let cache = self.parsed.lock().unwrap();
         if cache.borrow().is_none() {
-            let mut hash = HashMap::new();
+            let mut hash = HashMap::with_capacity(self.packets.len());
             for (i, sp) in self.packets.iter().enumerate() {
                 hash.insert(sp.tag(), i);
             }
