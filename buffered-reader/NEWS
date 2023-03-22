@@ -2,6 +2,10 @@
 #+TITLE: buffered-reader NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 1.2.0
+** Notable changes
+   - BufferedReader::copy is like std::io::copy, but more efficient.
+
 * Changes in 1.1.2
 ** Notable changes
    - The generic buffered reader now correctly handles end-of-file

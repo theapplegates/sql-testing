@@ -862,6 +862,37 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
         Ok(at_least_one_byte)
     }
 
+    /// Copies data to the given writer returning the copied amount.
+    ///
+    /// This is like using [`std::io::copy`], but more efficient as it
+    /// avoids an extra copy, and it will try to copy all the data the
+    /// reader has already buffered.
+    ///
+    /// On success, returns the amount of data (in bytes) that has
+    /// been copied.
+    ///
+    /// Note: this function reads and copies the data a chunk at a
+    /// time.  A consequence of this is that an error may occur after
+    /// we have consumed some of the data.
+    fn copy(&mut self, sink: &mut dyn io::Write) -> io::Result<u64> {
+        let buf_size = default_buf_size();
+        let mut total = 0;
+        loop {
+            let data = self.data(buf_size)?;
+            sink.write_all(data)?;
+
+            let n = data.len();
+            total += n as u64;
+            self.consume(n);
+            if n < buf_size {
+                // EOF.
+                break;
+            }
+        }
+
+        Ok(total)
+    }
+
     /// A helpful debugging aid to pretty print a Buffered Reader stack.
     ///
     /// Uses the Buffered Readers' `fmt::Display` implementations.
@@ -1084,6 +1115,10 @@ fn buffered_reader_test_data_check<'a, T: BufferedReader<C> + 'a, C: fmt::Debug 
 }
 
 #[cfg(test)]
+const BUFFERED_READER_TEST_DATA: &[u8] =
+    include_bytes!("buffered-reader-test.txt");
+
+#[cfg(test)]
 mod test {
     use super::*;
 
@@ -1227,5 +1262,25 @@ mod test {
         assert!(reader.drop_through(b"def", false).is_err());
         // Matches EOF.
         assert!(reader.drop_through(b"def", true).unwrap().0.is_none());
+    }
+
+    #[test]
+    fn copy() -> io::Result<()> {
+        // The memory reader has all the data buffered, copying it
+        // will issue a single write.
+        let mut bio = Memory::new(BUFFERED_READER_TEST_DATA);
+        let mut sink = Vec::new();
+        let amount = bio.copy(&mut sink)?;
+        assert_eq!(amount, 50_000);
+        assert_eq!(&sink[..], BUFFERED_READER_TEST_DATA);
+
+        // The generic reader uses buffers of the given chunk size,
+        // copying it will issue multiple writes.
+        let mut bio = Generic::new(BUFFERED_READER_TEST_DATA, Some(64));
+        let mut sink = Vec::new();
+        let amount = bio.copy(&mut sink)?;
+        assert_eq!(amount, 50_000);
+        assert_eq!(&sink[..], BUFFERED_READER_TEST_DATA);
+        Ok(())
     }
 }
