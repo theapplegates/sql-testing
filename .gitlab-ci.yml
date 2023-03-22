@@ -278,7 +278,7 @@ windows-gnu-nettle:
     - clang -v
     - gpg --version
   script:
-    - cargo test --workspace
+    - cargo test --tests --workspace
   after_script: [] # scriptlet doesn't work on Powershell
   variables:
     CFLAGS: "" # Silence some C warnings when compiling under Windows
@@ -310,7 +310,7 @@ windows-gnu-cng:
     - gpg --version
   script:
     # https://github.com/rust-lang/cargo/issues/5015
-    - cargo test --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-cng,compression
+    - cargo test --tests --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-cng,compression
   after_script: [] # scriptlet doesn't work on Powershell
   variables:
     CFLAGS: "" # Silence some C warnings when compiling under Windows
@@ -336,7 +336,7 @@ windows-msvc-cng:
   script:
     # https://github.com/rust-lang/cargo/issues/5015
     - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-cng,compression --example supported-algorithms
-    - cargo test --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-cng,compression
+    - cargo test --tests --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-cng,compression
   after_script: [] # scriptlet doesn't work on Powershell
   variables:
     CFLAGS: "" # Silence some C warnings when compiling with MSVC
@@ -376,7 +376,7 @@ windows-msvc32-cng:
     - cargo --version
   script:
     # https://github.com/rust-lang/cargo/issues/5015
-    - cargo test --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-cng,compression --target i686-pc-windows-msvc
+    - cargo test --tests --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-cng,compression --target i686-pc-windows-msvc
   after_script: [] # scriptlet doesn't work on Powershell
   variables:
     CFLAGS: "" # Silence some C warnings when compiling with MSVC
