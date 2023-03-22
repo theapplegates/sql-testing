@@ -218,7 +218,6 @@ clippy:
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   before_script:
     - *before_script_start
-    - apt-get -y install libssl-dev capnproto libsqlite3-dev
     - rustup default 1.60.0 # Pin clippy.
     - rustup component add clippy
     - cargo clippy --version
