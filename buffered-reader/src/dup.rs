@@ -152,7 +152,7 @@ mod test {
 
     #[test]
     fn buffered_reader_memory_test () {
-        let data : &[u8] = include_bytes!("buffered-reader-test.txt");
+        let data = crate::BUFFERED_READER_TEST_DATA;
         let reader = Memory::new(data);
         let mut reader = Dup::new(reader);
 

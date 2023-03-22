@@ -350,8 +350,7 @@ mod test {
 
         // Same test, but as a slice.
         {
-            let mut data : &[u8] = include_bytes!("buffered-reader-test.txt");
-            let mut bio = Generic::new(&mut data, None);
+            let mut bio = Generic::new(crate::BUFFERED_READER_TEST_DATA, None);
 
             buffered_reader_test_data_check(&mut bio);
         }

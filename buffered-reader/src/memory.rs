@@ -140,8 +140,7 @@ mod test {
     use super::*;
     #[test]
     fn buffered_reader_memory_test () {
-        let data : &[u8] = include_bytes!("buffered-reader-test.txt");
-        let mut bio = Memory::new(data);
+        let mut bio = Memory::new(crate::BUFFERED_READER_TEST_DATA);
 
         buffered_reader_test_data_check(&mut bio);
     }

@@ -1124,8 +1124,7 @@ mod test {
 
     #[test]
     fn buffered_reader_eof_test() {
-        let data : &[u8] = include_bytes!("buffered-reader-test.txt");
-
+        let data = BUFFERED_READER_TEST_DATA;
         // Make sure data_eof works.
         {
             let mut bio = Memory::new(data);
@@ -1203,8 +1202,7 @@ mod test {
 
     #[test]
     fn buffered_reader_read_test() {
-        let data : &[u8] = include_bytes!("buffered-reader-test.txt");
-
+        let data = BUFFERED_READER_TEST_DATA;
         {
             let bio = Memory::new(data);
             buffered_reader_read_test_aux (bio, data);
