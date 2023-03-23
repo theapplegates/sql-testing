@@ -82,6 +82,7 @@ impl SymmetricAlgorithm {
     /// Fails if Sequoia does not support this algorithm.
     pub fn key_size(self) -> Result<usize> {
         match self {
+            SymmetricAlgorithm::IDEA => Ok(16),
             SymmetricAlgorithm::TripleDES => Ok(24),
             SymmetricAlgorithm::CAST5 => Ok(16),
             // RFC4880, Section 9.2: Blowfish (128 bit key, 16 rounds)
@@ -102,6 +103,7 @@ impl SymmetricAlgorithm {
     /// Fails if Sequoia does not support this algorithm.
     pub fn block_size(self) -> Result<usize> {
         match self {
+            SymmetricAlgorithm::IDEA => Ok(8),
             SymmetricAlgorithm::TripleDES => Ok(8),
             SymmetricAlgorithm::CAST5 => Ok(8),
             SymmetricAlgorithm::Blowfish => Ok(8),
