@@ -122,7 +122,7 @@ impl SymmetricAlgorithm {
         use SymmetricAlgorithm::*;
         match self {
             IDEA => Ok(<idea::Idea as NewBlockCipher>::KeySize::to_usize()),
-            TripleDES => Ok(<des::TdesEde2 as NewBlockCipher>::KeySize::to_usize()),
+            TripleDES => Ok(<des::TdesEde3 as NewBlockCipher>::KeySize::to_usize()),
             CAST5 => Ok(<cast5::Cast5 as NewBlockCipher>::KeySize::to_usize()),
             Blowfish => Ok(<blowfish::Blowfish as NewBlockCipher>::KeySize::to_usize()),
             AES128 => Ok(<aes::Aes128 as NewBlockCipher>::KeySize::to_usize()),
@@ -141,7 +141,7 @@ impl SymmetricAlgorithm {
         use SymmetricAlgorithm::*;
         match self {
             IDEA => Ok(<idea::Idea as BlockCipher>::BlockSize::to_usize()),
-            TripleDES => Ok(<des::TdesEde2 as BlockCipher>::BlockSize::to_usize()),
+            TripleDES => Ok(<des::TdesEde3 as BlockCipher>::BlockSize::to_usize()),
             CAST5 => Ok(<cast5::Cast5 as BlockCipher>::BlockSize::to_usize()),
             Blowfish => Ok(<blowfish::Blowfish as BlockCipher>::BlockSize::to_usize()),
             AES128 => Ok(<aes::Aes128 as BlockCipher>::BlockSize::to_usize()),
@@ -158,7 +158,7 @@ impl SymmetricAlgorithm {
         use SymmetricAlgorithm::*;
         match self {
             IDEA => Ok(Box::new(Cfb::<idea::Idea, ZeroPadding>::new_var(key, &iv)?)),
-            TripleDES => Ok(Box::new(Cfb::<des::TdesEde2, ZeroPadding>::new_var(key, &iv)?)),
+            TripleDES => Ok(Box::new(Cfb::<des::TdesEde3, ZeroPadding>::new_var(key, &iv)?)),
             CAST5 => Ok(Box::new(Cfb::<cast5::Cast5, ZeroPadding>::new_var(key, &iv)?)),
             Blowfish => Ok(Box::new(Cfb::<blowfish::Blowfish, ZeroPadding>::new_var(key, &iv)?)),
             AES128 => Ok(Box::new(Cfb::<aes::Aes128, ZeroPadding>::new_var(key, &iv)?)),
@@ -180,7 +180,7 @@ impl SymmetricAlgorithm {
         use SymmetricAlgorithm::*;
         match self {
             IDEA => Ok(Box::new(Ecb::<idea::Idea, ZeroPadding>::new_var(key, &[])?)),
-            TripleDES => Ok(Box::new(Ecb::<des::TdesEde2, ZeroPadding>::new_var(key, &[])?)),
+            TripleDES => Ok(Box::new(Ecb::<des::TdesEde3, ZeroPadding>::new_var(key, &[])?)),
             CAST5 => Ok(Box::new(Ecb::<cast5::Cast5, ZeroPadding>::new_var(key, &[])?)),
             Blowfish => Ok(Box::new(Ecb::<blowfish::Blowfish, ZeroPadding>::new_var(key, &[])?)),
             AES128 => Ok(Box::new(Ecb::<aes::Aes128, ZeroPadding>::new_var(key, &[])?)),
