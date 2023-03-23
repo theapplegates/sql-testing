@@ -19,7 +19,7 @@ use crate::crypto::SessionKey;
 use crate::crypto::pad_truncating;
 use crate::packet::{key, Key};
 use crate::packet::key::{Key4, SecretParts};
-use crate::types::{Curve, HashAlgorithm, PublicKeyAlgorithm, SymmetricAlgorithm};
+use crate::types::{Curve, HashAlgorithm, PublicKeyAlgorithm};
 
 const CURVE25519_SIZE: usize = 32;
 
@@ -345,42 +345,12 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
 impl<R> Key4<SecretParts, R>
     where R: key::KeyRole,
 {
-
-    /// Creates a new OpenPGP secret key packet for an existing X25519 key.
-    ///
-    /// The ECDH key will use hash algorithm `hash` and symmetric
-    /// algorithm `sym`.  If one or both are `None` secure defaults
-    /// will be used.  The key will have it's creation date set to
-    /// `ctime` or the current time if `None` is given.
-    pub fn import_secret_cv25519<H, S, T>(private_key: &[u8],
-                                          hash: H, sym: S, ctime: T)
-        -> Result<Self> where H: Into<Option<HashAlgorithm>>,
-                              S: Into<Option<SymmetricAlgorithm>>,
-                              T: Into<Option<SystemTime>>
+    pub(crate) fn derive_cv25519_public_key(private_key: &Protected) -> Result<[u8; 32]>
     {
         use x25519_dalek::{PublicKey, StaticSecret};
 
-        let secret = StaticSecret::from(<[u8; 32]>::try_from(private_key)?);
-        let public_key = PublicKey::from(&secret);
-
-        let mut private_key = Vec::from(private_key);
-        private_key.reverse();
-
-        use crate::crypto::ecdh;
-        Self::with_secret(
-            ctime.into().unwrap_or_else(crate::now),
-            PublicKeyAlgorithm::ECDH,
-            mpi::PublicKey::ECDH {
-                curve: Curve::Cv25519,
-                hash: hash.into().unwrap_or_else(
-                    || ecdh::default_ecdh_kdf_hash(&Curve::Cv25519)),
-                sym: sym.into().unwrap_or_else(
-                    || ecdh::default_ecdh_kek_cipher(&Curve::Cv25519)),
-                q: MPI::new_compressed_point(&*public_key.as_bytes()),
-            },
-            mpi::SecretKeyMaterial::ECDH {
-                scalar: private_key.into(),
-            }.into())
+        let secret = StaticSecret::from(<[u8; 32]>::try_from(&private_key[..])?);
+        Ok(*PublicKey::from(&secret).as_bytes())
     }
 
     /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.

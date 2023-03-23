@@ -91,7 +91,7 @@ use quickcheck::{Arbitrary, Gen};
 
 use crate::Error;
 use crate::cert::prelude::*;
-use crate::crypto::{self, mem, mpi, hash::{Hash, Digest}};
+use crate::crypto::{self, mem::{self, Protected}, mpi, hash::{Hash, Digest}};
 use crate::packet;
 use crate::packet::prelude::*;
 use crate::PublicKeyAlgorithm;
@@ -1052,6 +1052,41 @@ impl<R> Key4<SecretParts, R>
             p: std::marker::PhantomData,
             r: std::marker::PhantomData,
         })
+    }
+
+    /// Creates a new OpenPGP secret key packet for an existing X25519 key.
+    ///
+    /// The ECDH key will use hash algorithm `hash` and symmetric
+    /// algorithm `sym`.  If one or both are `None` secure defaults
+    /// will be used.  The key will have it's creation date set to
+    /// `ctime` or the current time if `None` is given.
+    pub fn import_secret_cv25519<H, S, T>(private_key: &[u8],
+                                          hash: H, sym: S, ctime: T)
+        -> Result<Self> where H: Into<Option<HashAlgorithm>>,
+                              S: Into<Option<SymmetricAlgorithm>>,
+                              T: Into<Option<std::time::SystemTime>>
+    {
+        let mut private_key = Protected::from(private_key);
+
+        let public_key = Self::derive_cv25519_public_key(&private_key)?;
+
+        private_key.reverse();
+
+        use crate::crypto::ecdh;
+        Self::with_secret(
+            ctime.into().unwrap_or_else(crate::now),
+            PublicKeyAlgorithm::ECDH,
+            mpi::PublicKey::ECDH {
+                curve: Curve::Cv25519,
+                hash: hash.into().unwrap_or_else(
+                    || ecdh::default_ecdh_kdf_hash(&Curve::Cv25519)),
+                sym: sym.into().unwrap_or_else(
+                    || ecdh::default_ecdh_kek_cipher(&Curve::Cv25519)),
+                q: mpi::MPI::new_compressed_point(&public_key),
+            },
+            mpi::SecretKeyMaterial::ECDH {
+                scalar: private_key.into(),
+            }.into())
     }
 }
 

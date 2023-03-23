@@ -7,7 +7,6 @@ use crate::crypto::mem::Protected;
 use crate::crypto::SessionKey;
 use crate::packet::key::{Key4, SecretParts};
 use crate::packet::{key, Key};
-use crate::types::SymmetricAlgorithm;
 use crate::types::{Curve, HashAlgorithm, PublicKeyAlgorithm};
 use std::convert::{TryFrom, TryInto};
 use std::time::SystemTime;
@@ -391,48 +390,11 @@ impl<R> Key4<SecretParts, R>
 where
     R: key::KeyRole,
 {
-    /// Creates a new OpenPGP secret key packet for an existing X25519 key.
-    ///
-    /// The ECDH key will use hash algorithm `hash` and symmetric
-    /// algorithm `sym`.  If one or both are `None` secure defaults
-    /// will be used.  The key will have it's creation date set to
-    /// `ctime` or the current time if `None` is given.
-    pub fn import_secret_cv25519<H, S, T>(
-        private_key: &[u8],
-        hash: H,
-        sym: S,
-        ctime: T,
-    ) -> Result<Self>
-    where
-        H: Into<Option<HashAlgorithm>>,
-        S: Into<Option<SymmetricAlgorithm>>,
-        T: Into<Option<SystemTime>>,
+    pub(crate) fn derive_cv25519_public_key(private_key: &Protected) -> Result<[u8; 32]>
     {
         let key = PKey::private_key_from_raw_bytes(private_key, openssl::pkey::Id::X25519)?;
-        let public_key = key.raw_public_key()?;
-
-        let mut private_key: Protected = key.raw_private_key().map(|key| key.into())?;
-        private_key.reverse();
-
-        use crate::crypto::ecdh;
-        Self::with_secret(
-            ctime.into().unwrap_or_else(crate::now),
-            PublicKeyAlgorithm::ECDH,
-            mpi::PublicKey::ECDH {
-                curve: Curve::Cv25519,
-                hash: hash
-                    .into()
-                    .unwrap_or_else(|| ecdh::default_ecdh_kdf_hash(&Curve::Cv25519)),
-                sym: sym
-                    .into()
-                    .unwrap_or_else(|| ecdh::default_ecdh_kek_cipher(&Curve::Cv25519)),
-                q: MPI::new_compressed_point(&public_key),
-            },
-            mpi::SecretKeyMaterial::ECDH {
-                scalar: private_key.into(),
-            }
-            .into(),
-        )
+        let public = key.raw_public_key()?;
+        Ok(<[u8; 32]>::try_from(&public[..])?)
     }
 
     /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.
