@@ -185,6 +185,12 @@ use std::result::Result as StdResult;
 
 use xxhash_rust::xxh3::Xxh3;
 
+// Re-export buffered_reader.
+//
+// We use this in our API, and re-exporting it here makes it easy to
+// use the correct version of the crate in downstream code without
+// having to explicitly depend on it.
+pub use buffered_reader;
 use ::buffered_reader::*;
 
 use crate::{

@@ -11,6 +11,7 @@
    - crypto::mpi::SecretKeyMaterial::from_bytes
    - crypto::mpi::SecretKeyMaterial::from_bytes_with_checksum
    - fmt::hex::Dumper::with_offset
+   - parse::buffered_reader re-export
    - policy::AsymmetricAlgorithm::BrainpoolP384
 ** Deprecated functionality
    - crypto::mpi::SecretKeyMaterial::parse
