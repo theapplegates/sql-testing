@@ -759,13 +759,14 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
             assert!(t[0] <= t[1]);
         }
 
+        let buf_size = default_buf_size();
         let mut total = 0;
         let position = 'outer: loop {
             let len = {
                 // Try self.buffer.  Only if it is empty, use
                 // self.data.
                 let buffer = if self.buffer().is_empty() {
-                    self.data(default_buf_size())?
+                    self.data(buf_size)?
                 } else {
                     self.buffer()
                 };
@@ -848,12 +849,13 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     /// discards it.  A consequence of this is that an error may occur
     /// after we have consumed some of the data.
     fn drop_eof(&mut self) -> Result<bool, std::io::Error> {
+        let buf_size = default_buf_size();
         let mut at_least_one_byte = false;
         loop {
-            let n = self.data(default_buf_size())?.len();
+            let n = self.data(buf_size)?.len();
             at_least_one_byte |= n > 0;
             self.consume(n);
-            if n < default_buf_size() {
+            if n < buf_size {
                 // EOF.
                 break;
             }
