@@ -13,6 +13,7 @@
    - fmt::hex::Dumper::with_offset
    - parse::buffered_reader re-export
    - policy::AsymmetricAlgorithm::BrainpoolP384
+   - RawCert implements Parse
 ** Deprecated functionality
    - crypto::mpi::SecretKeyMaterial::parse
    - crypto::mpi::SecretKeyMaterial::parse_with_checksum

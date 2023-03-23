@@ -116,7 +116,7 @@ pub use iter::KeyIter;
 /// use sequoia_openpgp as openpgp;
 /// # use openpgp::Result;
 /// # use openpgp::cert::prelude::*;
-/// use openpgp::cert::raw::RawCertParser;
+/// # use openpgp::cert::raw::RawCert;
 /// use openpgp::packet::Packet;
 /// use openpgp::packet::Tag;
 /// # use openpgp::parse::Parse;
@@ -135,9 +135,7 @@ pub use iter::KeyIter;
 /// #      cert.as_tsk().serialize(&mut bytes);
 /// # let mut count = 0;
 /// #
-/// # let rawcert = RawCertParser::from_bytes(&bytes)?
-/// #     .next().expect("got a cert")
-/// #     .expect("valid cert");
+/// # let rawcert = RawCert::from_bytes(&bytes)?;
 /// for p in rawcert.packets() {
 ///     if p.tag() == Tag::SecretSubkey {
 ///         if let Ok(packet) = Packet::try_from(p) {
@@ -454,6 +452,26 @@ impl<'a> TryFrom<RawCert<'a>> for Cert {
 
     fn try_from(c: RawCert) -> Result<Self> {
         Cert::try_from(&c)
+    }
+}
+
+impl<'a> Parse<'a, RawCert<'a>> for RawCert<'a> {
+    /// Returns the first RawCert encountered in the reader.
+    ///
+    /// Returns an error if there are multiple certificates.
+    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
+        let mut parser = RawCertParser::from_reader(reader)?;
+        if let Some(cert_result) = parser.next() {
+            if parser.next().is_some() {
+                Err(Error::MalformedCert(
+                    "Additional packets found, is this a keyring?".into()
+                ).into())
+            } else {
+                cert_result
+            }
+        } else {
+            Err(Error::MalformedCert("No data".into()).into())
+        }
     }
 }
 
@@ -1530,5 +1548,70 @@ mod test {
                 })
                 .collect::<Vec<_>>(),
             vec![ "Testy McTestface <testy@example.org>" ]);
+    }
+
+    // Test the raw cert parser implementation.
+    #[test]
+    fn raw_cert_parser_impl() {
+        // Read one certificate.
+        let testy = crate::tests::key("testy.pgp");
+
+        let raw = RawCert::from_bytes(testy).expect("valid");
+        let cert = Cert::from_bytes(testy).expect("valid");
+
+        assert_eq!(
+            raw.keys().map(|k| k.fingerprint()).collect::<Vec<_>>(),
+            cert.keys().map(|k| k.fingerprint()).collect::<Vec<_>>());
+
+        assert_eq!(
+            raw.userids().collect::<Vec<_>>(),
+            cert.userids().map(|ua| ua.userid().clone()).collect::<Vec<_>>());
+
+        // Parse zero certificates.
+        eprintln!("Parsing 0 bytes");
+        let raw = RawCert::from_bytes(b"");
+        match &raw {
+            Ok(_) => eprintln!("raw: Ok"),
+            Err(err) => eprintln!("raw: {}", err),
+        }
+        let cert = Cert::from_bytes(b"");
+        match &cert {
+            Ok(_) => eprintln!("cert: Ok"),
+            Err(err) => eprintln!("cert: {}", err),
+        }
+
+        assert!(
+            matches!(cert.map_err(|e| e.downcast::<Error>()),
+                     Err(Ok(Error::MalformedCert(_)))));
+        assert!(
+            matches!(raw.map_err(|e| e.downcast::<Error>()),
+                     Err(Ok(Error::MalformedCert(_)))));
+
+        // Parse two certificates.
+        let mut bytes = Vec::new();
+        bytes.extend(testy);
+        bytes.extend(testy);
+
+        let parser = CertParser::from_bytes(&bytes).expect("valid");
+        assert_eq!(parser.count(), 2);
+
+        eprintln!("Parsing two certificates");
+        let raw = RawCert::from_bytes(&bytes);
+        match &raw {
+            Ok(_) => eprintln!("raw: Ok"),
+            Err(err) => eprintln!("raw: {}", err),
+        }
+        let cert = Cert::from_bytes(&bytes);
+        match &cert {
+            Ok(_) => eprintln!("cert: Ok"),
+            Err(err) => eprintln!("cert: {}", err),
+        }
+
+        assert!(
+            matches!(cert.map_err(|e| e.downcast::<Error>()),
+                     Err(Ok(Error::MalformedCert(_)))));
+        assert!(
+            matches!(raw.map_err(|e| e.downcast::<Error>()),
+                     Err(Ok(Error::MalformedCert(_)))));
     }
 }
