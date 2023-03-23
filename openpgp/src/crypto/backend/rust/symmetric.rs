@@ -79,23 +79,7 @@ where
 
 impl SymmetricAlgorithm {
     /// Returns whether this algorithm is supported by the crypto backend.
-    ///
-    /// All backends support all the AES variants.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use sequoia_openpgp as openpgp;
-    /// use openpgp::types::SymmetricAlgorithm;
-    ///
-    /// assert!(SymmetricAlgorithm::AES256.is_supported());
-    /// assert!(SymmetricAlgorithm::TripleDES.is_supported());
-    /// assert!(SymmetricAlgorithm::IDEA.is_supported());
-    ///
-    /// assert!(!SymmetricAlgorithm::Unencrypted.is_supported());
-    /// assert!(!SymmetricAlgorithm::Private(101).is_supported());
-    /// ```
-    pub fn is_supported(&self) -> bool {
+    pub(crate) fn is_supported_by_backend(&self) -> bool {
         use SymmetricAlgorithm::*;
         match self {
             IDEA => true,

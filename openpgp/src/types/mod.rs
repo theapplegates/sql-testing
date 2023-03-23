@@ -863,6 +863,26 @@ impl SymmetricAlgorithm {
         SYMMETRIC_ALGORITHM_VARIANTS.iter().cloned()
     }
 
+    /// Returns whether this algorithm is supported by the crypto backend.
+    ///
+    /// All backends support all the AES variants.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::types::SymmetricAlgorithm;
+    ///
+    /// assert!(SymmetricAlgorithm::AES256.is_supported());
+    /// assert!(SymmetricAlgorithm::TripleDES.is_supported());
+    ///
+    /// assert!(!SymmetricAlgorithm::Unencrypted.is_supported());
+    /// assert!(!SymmetricAlgorithm::Private(101).is_supported());
+    /// ```
+    pub fn is_supported(&self) -> bool {
+        self.is_supported_by_backend()
+    }
+
     /// Length of a key for this algorithm in bytes.
     ///
     /// Fails if the algorithm isn't known to Sequoia.
