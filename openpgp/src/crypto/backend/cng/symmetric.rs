@@ -134,32 +134,6 @@ impl SymmetricAlgorithm {
         }
     }
 
-    /// Length of a key for this algorithm in bytes.
-    ///
-    /// Fails if the crypto backend does not support this algorithm.
-    pub fn key_size(self) -> Result<usize> {
-        Ok(match self {
-            SymmetricAlgorithm::TripleDES => 24,
-            SymmetricAlgorithm::AES128 => 16,
-            SymmetricAlgorithm::AES192 => 24,
-            SymmetricAlgorithm::AES256 => 32,
-            _ => Err(UnsupportedAlgorithm(self))?,
-        })
-    }
-
-    /// Length of a block for this algorithm in bytes.
-    ///
-    /// Fails if the crypto backend does not support this algorithm.
-    pub fn block_size(self) -> Result<usize> {
-        Ok(match self {
-            SymmetricAlgorithm::TripleDES => 8,
-            SymmetricAlgorithm::AES128 => 16,
-            SymmetricAlgorithm::AES192 => 16,
-            SymmetricAlgorithm::AES256 => 16,
-            _ => Err(UnsupportedAlgorithm(self))?,
-        })
-    }
-
     /// Creates a symmetric cipher context for encrypting in CFB mode.
     pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
         let (algo, _) = TryFrom::try_from(self)?;

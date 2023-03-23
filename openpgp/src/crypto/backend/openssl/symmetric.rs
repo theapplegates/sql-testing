@@ -91,20 +91,6 @@ impl SymmetricAlgorithm {
         ctx.encrypt_init(Some(cipher), None, None).is_ok()
     }
 
-    /// Length of a key for this algorithm in bytes.
-    ///
-    /// Fails if Sequoia does not support this algorithm.
-    pub fn key_size(self) -> Result<usize> {
-        Ok(self.make_cfb_cipher()?.key_length())
-    }
-
-    /// Length of a block for this algorithm in bytes.
-    ///
-    /// Fails if Sequoia does not support this algorithm.
-    pub fn block_size(self) -> Result<usize> {
-        Ok(self.make_ecb_cipher()?.block_size())
-    }
-
     /// Creates a OpenSSL context for encrypting in CFB mode.
     pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
         let cipher = self.make_cfb_cipher()?;
@@ -191,5 +177,34 @@ impl SymmetricAlgorithm {
             SymmetricAlgorithm::CAST5 => Cipher::cast5_ecb(),
             _ => Err(Error::UnsupportedSymmetricAlgorithm(self))?,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Anchors the constants used in Sequoia with the ones from
+    /// OpenSSL.
+    #[test]
+    fn key_size() -> Result<()> {
+        for a in SymmetricAlgorithm::variants() {
+            if let Ok(cipher) = a.make_cfb_cipher() {
+                assert_eq!(a.key_size()?, cipher.key_length());
+            }
+        }
+        Ok(())
+    }
+
+    /// Anchors the constants used in Sequoia with the ones from
+    /// OpenSSL.
+    #[test]
+    fn block_size() -> Result<()> {
+        for a in SymmetricAlgorithm::variants() {
+            if let Ok(cipher) = a.make_ecb_cipher() {
+                assert_eq!(a.block_size()?, cipher.block_size());
+            }
+        }
+        Ok(())
     }
 }

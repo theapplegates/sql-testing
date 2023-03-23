@@ -115,44 +115,6 @@ impl SymmetricAlgorithm {
         }
     }
 
-    /// Length of a key for this algorithm in bytes.
-    ///
-    /// Fails if Sequoia does not support this algorithm.
-    pub fn key_size(self) -> Result<usize> {
-        use SymmetricAlgorithm::*;
-        match self {
-            IDEA => Ok(<idea::Idea as NewBlockCipher>::KeySize::to_usize()),
-            TripleDES => Ok(<des::TdesEde3 as NewBlockCipher>::KeySize::to_usize()),
-            CAST5 => Ok(<cast5::Cast5 as NewBlockCipher>::KeySize::to_usize()),
-            Blowfish => Ok(<blowfish::Blowfish as NewBlockCipher>::KeySize::to_usize()),
-            AES128 => Ok(<aes::Aes128 as NewBlockCipher>::KeySize::to_usize()),
-            AES192 => Ok(<aes::Aes192 as NewBlockCipher>::KeySize::to_usize()),
-            AES256 => Ok(<aes::Aes256 as NewBlockCipher>::KeySize::to_usize()),
-            Twofish => Ok(<twofish::Twofish as NewBlockCipher>::KeySize::to_usize()),
-            Camellia128 | Camellia192 | Camellia256 | Private(_) | Unknown(_) | Unencrypted =>
-                Err(Error::UnsupportedSymmetricAlgorithm(self).into()),
-        }
-    }
-
-    /// Length of a block for this algorithm in bytes.
-    ///
-    /// Fails if Sequoia does not support this algorithm.
-    pub fn block_size(self) -> Result<usize> {
-        use SymmetricAlgorithm::*;
-        match self {
-            IDEA => Ok(<idea::Idea as BlockCipher>::BlockSize::to_usize()),
-            TripleDES => Ok(<des::TdesEde3 as BlockCipher>::BlockSize::to_usize()),
-            CAST5 => Ok(<cast5::Cast5 as BlockCipher>::BlockSize::to_usize()),
-            Blowfish => Ok(<blowfish::Blowfish as BlockCipher>::BlockSize::to_usize()),
-            AES128 => Ok(<aes::Aes128 as BlockCipher>::BlockSize::to_usize()),
-            AES192 => Ok(<aes::Aes192 as BlockCipher>::BlockSize::to_usize()),
-            AES256 => Ok(<aes::Aes256 as BlockCipher>::BlockSize::to_usize()),
-            Twofish => Ok(<twofish::Twofish as BlockCipher>::BlockSize::to_usize()),
-            Camellia128 | Camellia192 | Camellia256 | Private(_) | Unknown(_) | Unencrypted =>
-                Err(Error::UnsupportedSymmetricAlgorithm(self).into()),
-        }
-    }
-
     /// Creates a context for encrypting in CFB mode.
     pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
         use SymmetricAlgorithm::*;
@@ -195,5 +157,56 @@ impl SymmetricAlgorithm {
     /// Creates a context for decrypting in ECB mode.
     pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
         self.make_encrypt_ecb(key)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Anchors the constants used in Sequoia with the ones from
+    /// RustCrypto.
+    #[test]
+    fn key_size() -> Result<()> {
+        assert_eq!(SymmetricAlgorithm::IDEA.key_size()?,
+                   <idea::Idea as NewBlockCipher>::KeySize::to_usize());
+        assert_eq!(SymmetricAlgorithm::TripleDES.key_size()?,
+                   <des::TdesEde3 as NewBlockCipher>::KeySize::to_usize());
+        assert_eq!(SymmetricAlgorithm::CAST5.key_size()?,
+                   <cast5::Cast5 as NewBlockCipher>::KeySize::to_usize());
+        // RFC4880, Section 9.2: Blowfish (128 bit key, 16 rounds)
+        assert_eq!(SymmetricAlgorithm::Blowfish.key_size()?, 16);
+        assert_eq!(SymmetricAlgorithm::AES128.key_size()?,
+                   <aes::Aes128 as NewBlockCipher>::KeySize::to_usize());
+        assert_eq!(SymmetricAlgorithm::AES192.key_size()?,
+                   <aes::Aes192 as NewBlockCipher>::KeySize::to_usize());
+        assert_eq!(SymmetricAlgorithm::AES256.key_size()?,
+                   <aes::Aes256 as NewBlockCipher>::KeySize::to_usize());
+        assert_eq!(SymmetricAlgorithm::Twofish.key_size()?,
+                   <twofish::Twofish as NewBlockCipher>::KeySize::to_usize());
+        Ok(())
+    }
+
+    /// Anchors the constants used in Sequoia with the ones from
+    /// RustCrypto.
+    #[test]
+    fn block_size() -> Result<()> {
+        assert_eq!(SymmetricAlgorithm::IDEA.block_size()?,
+                   <idea::Idea as BlockCipher>::BlockSize::to_usize());
+        assert_eq!(SymmetricAlgorithm::TripleDES.block_size()?,
+                   <des::TdesEde3 as BlockCipher>::BlockSize::to_usize());
+        assert_eq!(SymmetricAlgorithm::CAST5.block_size()?,
+                   <cast5::Cast5 as BlockCipher>::BlockSize::to_usize());
+        assert_eq!(SymmetricAlgorithm::Blowfish.block_size()?,
+                   <blowfish::Blowfish as BlockCipher>::BlockSize::to_usize());
+        assert_eq!(SymmetricAlgorithm::AES128.block_size()?,
+                   <aes::Aes128 as BlockCipher>::BlockSize::to_usize());
+        assert_eq!(SymmetricAlgorithm::AES192.block_size()?,
+                   <aes::Aes192 as BlockCipher>::BlockSize::to_usize());
+        assert_eq!(SymmetricAlgorithm::AES256.block_size()?,
+                   <aes::Aes256 as BlockCipher>::BlockSize::to_usize());
+        assert_eq!(SymmetricAlgorithm::Twofish.block_size()?,
+                   <twofish::Twofish as BlockCipher>::BlockSize::to_usize());
+        Ok(())
     }
 }

@@ -862,6 +862,47 @@ impl SymmetricAlgorithm {
     pub fn variants() -> impl Iterator<Item=Self> {
         SYMMETRIC_ALGORITHM_VARIANTS.iter().cloned()
     }
+
+    /// Length of a key for this algorithm in bytes.
+    ///
+    /// Fails if the algorithm isn't known to Sequoia.
+    pub fn key_size(self) -> Result<usize> {
+        match self {
+            SymmetricAlgorithm::IDEA => Ok(16),
+            SymmetricAlgorithm::TripleDES => Ok(24),
+            SymmetricAlgorithm::CAST5 => Ok(16),
+            // RFC4880, Section 9.2: Blowfish (128 bit key, 16 rounds)
+            SymmetricAlgorithm::Blowfish => Ok(16),
+            SymmetricAlgorithm::AES128 => Ok(16),
+            SymmetricAlgorithm::AES192 => Ok(24),
+            SymmetricAlgorithm::AES256 => Ok(32),
+            SymmetricAlgorithm::Twofish => Ok(32),
+            SymmetricAlgorithm::Camellia128 => Ok(16),
+            SymmetricAlgorithm::Camellia192 => Ok(24),
+            SymmetricAlgorithm::Camellia256 => Ok(32),
+            _ => Err(Error::UnsupportedSymmetricAlgorithm(self).into()),
+        }
+    }
+
+    /// Length of a block for this algorithm in bytes.
+    ///
+    /// Fails if the algorithm isn't known to Sequoia.
+    pub fn block_size(self) -> Result<usize> {
+        match self {
+            SymmetricAlgorithm::IDEA => Ok(8),
+            SymmetricAlgorithm::TripleDES => Ok(8),
+            SymmetricAlgorithm::CAST5 => Ok(8),
+            SymmetricAlgorithm::Blowfish => Ok(8),
+            SymmetricAlgorithm::AES128 => Ok(16),
+            SymmetricAlgorithm::AES192 => Ok(16),
+            SymmetricAlgorithm::AES256 => Ok(16),
+            SymmetricAlgorithm::Twofish => Ok(16),
+            SymmetricAlgorithm::Camellia128 => Ok(16),
+            SymmetricAlgorithm::Camellia192 => Ok(16),
+            SymmetricAlgorithm::Camellia256 => Ok(16),
+            _ => Err(Error::UnsupportedSymmetricAlgorithm(self).into()),
+        }
+    }
 }
 
 /// The AEAD algorithms as defined in [Section 9.6 of RFC 4880bis].
