@@ -886,10 +886,28 @@ impl<'a> StandardPolicy<'a> {
     /// A hash algorithm should only be unconditionally accepted if it
     /// has all three of these properties.  See the documentation for
     /// [`HashAlgoSecurity`] for more details.
-    ///
     pub fn accept_hash(&mut self, h: HashAlgorithm) {
-        self.collision_resistant_hash_algos.set(h, ACCEPT);
-        self.second_pre_image_resistant_hash_algos.set(h, ACCEPT);
+        self.accept_hash_property(h, HashAlgoSecurity::CollisionResistance);
+        self.accept_hash_property(h, HashAlgoSecurity::SecondPreImageResistance);
+    }
+
+    /// Considers hash algorithm `h` to be secure for the specified
+    /// security property `sec`.
+    ///
+    /// For instance, an application may choose to allow an algorithm
+    /// like SHA-1 in contexts like User ID binding signatures where
+    /// only [second preimage
+    /// resistance][`HashAlgoSecurity::SecondPreImageResistance`] is
+    /// required but not in contexts like signatures over data where
+    /// [collision
+    /// resistance][`HashAlgoSecurity::CollisionResistance`] is also
+    /// required. Whereas SHA-1's collision resistance is
+    /// [definitively broken](https://shattered.io/), depending on the
+    /// application's threat model, it may be acceptable to continue
+    /// to accept SHA-1 in these specific contexts.
+    pub fn accept_hash_property(&mut self, h: HashAlgorithm, sec: HashAlgoSecurity)
+    {
+        self.reject_hash_property_at(h, sec, None);
     }
 
     /// Considers `h` to be insecure in all security contexts.
