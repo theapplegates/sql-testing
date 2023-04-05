@@ -704,7 +704,7 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
                     // size.  The vector has capacity chunk size plus
                     // digest size.
                     debug_assert!(self.buffer.len() < self.chunk_size);
-                    self.scratch.set_len(self.buffer.len() + aead.digest_size())
+                    self.scratch.set_len(self.buffer.len() + self.digest_size)
                 }
                 aead.encrypt_seal(&mut self.scratch, &self.buffer)?;
                 self.bytes_encrypted += self.buffer.len() as u64;
@@ -721,6 +721,7 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
                     self.aead.context(self.sym_algo, &self.key, ad, iv,
                                       CipherOp::Encrypt)
                 })?;
+            debug_assert!(self.digest_size <= self.scratch.len());
             aead.encrypt_seal(&mut self.scratch[..self.digest_size], b"")?;
             inner.write_all(&self.scratch[..self.digest_size])?;
 
