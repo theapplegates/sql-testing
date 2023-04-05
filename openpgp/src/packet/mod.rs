@@ -192,6 +192,7 @@ mod unknown;
 pub use self::unknown::Unknown;
 pub mod signature;
 pub mod one_pass_sig;
+pub use one_pass_sig::OnePassSig;
 pub mod key;
 use key::{
     Key4,
@@ -457,7 +458,8 @@ impl Packet {
         match self {
             Packet::Unknown(ref packet) => &packet.common,
             Packet::Signature(ref packet) => &packet.common,
-            Packet::OnePassSig(ref packet) => &packet.common,
+            Packet::OnePassSig(OnePassSig::V3(packet)) => &packet.common,
+            Packet::OnePassSig(OnePassSig::V6(packet)) => &packet.common.common,
             Packet::PublicKey(Key::V4(packet)) => &packet.common,
             Packet::PublicKey(Key::V6(packet)) => &packet.common.common,
             Packet::PublicSubkey(Key::V4(packet)) => &packet.common,
@@ -1049,76 +1051,6 @@ impl DerefMut for Signature {
             Signature::V3(ref mut sig) => &mut sig.intern,
             Signature::V4(ref mut sig) => sig,
             Signature::V6(ref mut sig) => &mut sig.common,
-        }
-    }
-}
-
-/// Holds a one-pass signature packet.
-///
-/// See [Section 5.4 of RFC 4880] for details.
-///
-/// A `OnePassSig` packet is not normally instantiated directly.  In
-/// most cases, you'll create one as a side-effect of signing a
-/// message using the [streaming serializer], or parsing a signed
-/// message using the [`PacketParser`].
-///
-/// Note: This enum cannot be exhaustively matched to allow future
-/// extensions.
-///
-/// [Section 5.4 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.4
-/// [`PacketParser`]: crate::parse::PacketParser
-/// [streaming serializer]: crate::serialize::stream
-#[non_exhaustive]
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub enum OnePassSig {
-    /// OnePassSig packet version 3.
-    V3(self::one_pass_sig::OnePassSig3),
-}
-assert_send_and_sync!(OnePassSig);
-
-impl OnePassSig {
-    /// Gets the version.
-    pub fn version(&self) -> u8 {
-        match self {
-            OnePassSig::V3(_) => 3,
-        }
-    }
-}
-
-impl From<OnePassSig> for Packet {
-    fn from(s: OnePassSig) -> Self {
-        Packet::OnePassSig(s)
-    }
-}
-
-impl<'a> std::convert::TryFrom<&'a Signature> for OnePassSig {
-    type Error = anyhow::Error;
-
-    fn try_from(s: &'a Signature) -> Result<Self> {
-        match s.version() {
-            4 => one_pass_sig::OnePassSig3::try_from(s).map(Into::into),
-            n => Err(Error::InvalidOperation(
-                format!("Unsupported signature version {}", n)).into()),
-         }
-     }
-}
-
-// Trivial forwarder for singleton enum.
-impl Deref for OnePassSig {
-    type Target = one_pass_sig::OnePassSig3;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            OnePassSig::V3(ops) => ops,
-        }
-    }
-}
-
-// Trivial forwarder for singleton enum.
-impl DerefMut for OnePassSig {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            OnePassSig::V3(ref mut ops) => ops,
         }
     }
 }

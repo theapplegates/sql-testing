@@ -73,6 +73,8 @@
    - SignatureBuilder::prefix_salt
    - SignatureBuilder::set_prefix_salt
    - HashAlgorithm::salt_size
+   - OnePassSig::V6
+   - OnePassSig6
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms
