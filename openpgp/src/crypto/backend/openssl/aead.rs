@@ -10,6 +10,7 @@ use openssl::cipher_ctx::CipherCtx;
 
 struct OpenSslContext {
     ctx: CipherCtx,
+    digest_size: usize,
 }
 
 impl Aead for OpenSslContext {
@@ -46,7 +47,7 @@ impl Aead for OpenSslContext {
     }
 
     fn digest_size(&self) -> usize {
-        self.ctx.block_size()
+        self.digest_size
     }
 }
 
@@ -91,6 +92,7 @@ impl AEADAlgorithm {
                 ctx.cipher_update(aad, None)?;
                 Ok(Box::new(OpenSslContext {
                     ctx,
+                    digest_size: self.digest_size()?,
                 }))
             }
             _ => Err(Error::UnsupportedAEADAlgorithm(*self).into()),
