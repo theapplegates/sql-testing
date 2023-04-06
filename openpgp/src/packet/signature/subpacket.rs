@@ -53,12 +53,9 @@
 //! # }
 //! ```
 
-use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::convert::{TryInto, TryFrom};
 use std::hash::{Hash, Hasher};
-use std::sync::{Mutex, MutexGuard};
 use std::ops::{Deref, DerefMut};
 use std::fmt;
 use std::cmp;
@@ -577,17 +574,30 @@ pub struct SubpacketArea {
     /// The subpackets.
     packets: Vec<Subpacket>,
 
-    // The subpacket area, but parsed so that the map is indexed by
-    // the subpacket tag, and the value corresponds to the *last*
+    // The subpacket area, but parsed so that the vector is indexed by
+    // the subpacket tag, and the value is the index of the *last*
     // occurrence of that subpacket in the subpacket area.
     //
     // Since self-referential structs are a no-no, we use an index
     // to reference the content in the area.
     //
-    // This is an option, because we parse the subpacket area lazily.
-    parsed: Mutex<RefCell<Option<HashMap<SubpacketTag, usize>>>>,
+    // Note: A subpacket area is at most 2**16-1 bytes large.  A
+    // subpacket is at least two bytes long (one for the length, and
+    // one for the subpacket type).  Thus, a subpacket area can't have
+    // more than 2**15 subpackets. This means that we need at most 15
+    // bits.  Thus, instead of using an `Option<u16>`, which requires
+    // 32 bits, we use an unused value to mean not present.
+    parsed: once_cell::sync::OnceCell<Vec<u16>>,
 }
 assert_send_and_sync!(SubpacketArea);
+
+// The value for an entry of `SubpacketArea::parsed` when the
+// subpacket is not present.
+//
+// We don't use an `Option<u16>`, as that would require 32 bits, and
+// this value is not used.  See the comment for
+// `SubpacketArea::parsed`.
+const SUBPACKET_NOT_PRESENT: u16 = u16::MAX;
 
 #[cfg(test)]
 impl ArbitraryBounded for SubpacketArea {
@@ -671,7 +681,7 @@ impl SubpacketArea {
     pub fn new(packets: Vec<Subpacket>) -> Result<SubpacketArea> {
         let area = SubpacketArea {
             packets,
-            parsed: Mutex::new(RefCell::new(None)),
+            parsed: once_cell::sync::OnceCell::new(),
         };
         Ok(area)
     }
@@ -682,24 +692,30 @@ impl SubpacketArea {
     /// If the cache is already initialized, this is a NOP.
     ///
     /// Returns the locked cache.
-    fn cache_init(&self)
-        -> MutexGuard<'_, RefCell<Option<HashMap<SubpacketTag, usize>>>>
+    fn cache_init(&self) -> &Vec<u16>
     {
-        let cache = self.parsed.lock().unwrap();
-        if cache.borrow().is_none() {
-            let mut hash = HashMap::with_capacity(self.packets.len());
-            for (i, sp) in self.packets.iter().enumerate() {
-                hash.insert(sp.tag(), i);
-            }
+        self.parsed.get_or_init(|| {
+            // The largest defined subpacket in the crypto refresh is
+            // 39.
+            if let Some(max)
+                = self.packets.iter().map(|sp| u8::from(sp.tag())).max()
+            {
+                let max = max as usize;
 
-            *cache.borrow_mut() = Some(hash);
-        }
-        cache
+                let mut index = vec![ SUBPACKET_NOT_PRESENT; max + 1 ];
+                for (i, sp) in self.packets.iter().enumerate() {
+                    index[u8::from(sp.tag()) as usize] = i as u16;
+                }
+                index
+            } else {
+                Vec::new()
+            }
+        })
     }
 
     /// Invalidates the cache.
-    fn cache_invalidate(&self) {
-        *self.parsed.lock().unwrap().borrow_mut() = None;
+    fn cache_invalidate(&mut self) {
+        self.parsed = once_cell::sync::OnceCell::new();
     }
 
     /// Iterates over the subpackets.
@@ -801,9 +817,10 @@ impl SubpacketArea {
     /// # }
     /// ```
     pub fn subpacket(&self, tag: SubpacketTag) -> Option<&Subpacket> {
-        match self.cache_init().borrow().as_ref().unwrap().get(&tag) {
-            Some(&n) => Some(&self.packets[n]),
-            None => None,
+        match self.cache_init().get(u8::from(tag) as usize) {
+            Some(&SUBPACKET_NOT_PRESENT) => None,
+            Some(&n) => Some(&self.packets[n as usize]),
+            _ => None,
         }
     }
 
@@ -860,11 +877,10 @@ impl SubpacketArea {
     /// ```
     pub fn subpacket_mut(&mut self, tag: SubpacketTag)
                          -> Option<&mut Subpacket> {
-        let n = self.cache_init().borrow().as_ref().unwrap().get(&tag).cloned();
-        // Cache is dropped here so that we can mutably borrow self.packets.
-        match n {
-            Some(n) => Some(&mut self.packets[n]),
-            None => None,
+        match self.cache_init().get(u8::from(tag) as usize) {
+            Some(&SUBPACKET_NOT_PRESENT) => None,
+            Some(&n) => Some(&mut self.packets[n as usize]),
+            _ => None,
         }
     }
 
