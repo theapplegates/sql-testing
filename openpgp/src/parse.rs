@@ -1902,10 +1902,22 @@ quickcheck! {
 }
 
 impl OnePassSig {
-    fn parse(php: PacketHeaderParser)
-             -> Result<PacketParser>
-    {
-        OnePassSig3::parse(php)
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        let indent = php.recursion_depth();
+        tracer!(TRACE, "OnePassSig", indent);
+
+        make_php_try!(php);
+
+        let version = php_try!(php.parse_u8("version"));
+        match version {
+            3 => OnePassSig3::parse(php),
+            _ => {
+                t!("Ignoring version {} packet", version);
+
+                // Unknown version.  Return an unknown packet.
+                php.fail("unknown version")
+            },
+        }
     }
 }
 
@@ -1913,21 +1925,11 @@ impl_parse_with_buffered_reader!(OnePassSig);
 
 impl OnePassSig3 {
     #[allow(clippy::blocks_in_if_conditions)]
-    fn parse(mut php: PacketHeaderParser)
-             -> Result<PacketParser>
-    {
+    fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         let indent = php.recursion_depth();
-        tracer!(TRACE, "OnePassSig", indent);
+        tracer!(TRACE, "OnePassSig3", indent);
 
         make_php_try!(php);
-
-        let version = php_try!(php.parse_u8("version"));
-        if version != 3 {
-            t!("Ignoring version {} packet", version);
-
-            // Unknown version.  Return an unknown packet.
-            return php.fail("unknown version");
-        }
 
         let typ = php_try!(php.parse_u8("type"));
         let hash_algo = php_try!(php.parse_u8("hash_algo"));
