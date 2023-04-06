@@ -2043,7 +2043,7 @@ impl OnePassSig3 {
         assert!(! fake_eof);
 
         let mut reader = HashedReader::new(
-            reader, want_hashes_for, algos);
+            reader, want_hashes_for, algos)?;
         reader.cookie_mut().level = Some(recursion_depth - 1);
         // Account for this OPS packet.
         reader.cookie_mut().sig_group_mut().ops_count += 1;
@@ -5390,7 +5390,7 @@ impl<'a> PacketParser<'a> {
                 // And the hasher.
                 let mut reader = HashedReader::new(
                     reader, HashesFor::MDC,
-                    vec![HashingMode::Binary(HashAlgorithm::SHA1)]);
+                    vec![HashingMode::Binary(HashAlgorithm::SHA1)])?;
                 reader.cookie_mut().level = Some(self.recursion_depth());
 
                 t!("Pushing HashedReader, level {:?}.",

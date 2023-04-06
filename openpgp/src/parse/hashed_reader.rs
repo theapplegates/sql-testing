@@ -72,6 +72,16 @@ impl<T> HashingMode<T> {
         }
     }
 
+    pub(crate) fn mapf<U, F: Fn(T) -> Result<U>>(self, f: F)
+                                                 -> Result<HashingMode<U>> {
+        use self::HashingMode::*;
+        match self {
+            Binary(t) => Ok(Binary(f(t)?)),
+            Text(t) => Ok(Text(f(t)?)),
+            TextLastWasCr(t) => Ok(TextLastWasCr(f(t)?)),
+        }
+    }
+
     pub(crate) fn as_ref(&self) -> &T {
         use self::HashingMode::*;
         match self {
@@ -208,18 +218,24 @@ impl<R: BufferedReader<Cookie>> HashedReader<R> {
     /// compute the hash.
     pub fn new(reader: R, hashes_for: HashesFor,
                algos: Vec<HashingMode<HashAlgorithm>>)
-            -> Self {
+            -> Result<Self> {
         let mut cookie = Cookie::default();
-        for mode in &algos {
-            cookie.sig_group_mut().hashes
-                .push(mode.map(|algo| algo.context().unwrap())); // XXX: Don't unwrap.
+
+        for mode in algos {
+            let mode = mode.mapf(|algo| {
+                let ctx = algo.context()?;
+                Ok(ctx)
+            })?;
+
+            cookie.sig_group_mut().hashes.push(mode);
         }
+
         cookie.hashes_for = hashes_for;
 
-        HashedReader {
+        Ok(HashedReader {
             reader,
             cookie,
-        }
+        })
     }
 }
 
@@ -489,7 +505,7 @@ pub(crate) fn hash_buffered_reader<R>(reader: R,
     where R: BufferedReader<crate::parse::Cookie>,
 {
     let mut reader
-        = HashedReader::new(reader, HashesFor::Signature, algos.to_vec());
+        = HashedReader::new(reader, HashesFor::Signature, algos.to_vec())?;
 
     // Hash all of the data.
     reader.drop_eof()?;
@@ -546,7 +562,7 @@ mod test {
                 = HashedReader::new(reader, HashesFor::MDC,
                                     test.expected.keys().cloned()
                                     .map(HashingMode::Binary)
-                                    .collect());
+                                    .collect()).unwrap();
 
             assert_eq!(reader.steal_eof().unwrap(), test.data);
 
