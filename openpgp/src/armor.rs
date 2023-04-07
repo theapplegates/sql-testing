@@ -2293,7 +2293,8 @@ mod test {
             types::HashAlgorithm,
         };
 
-        fn f<R>(clearsig: &[u8], reference: R) -> crate::Result<()>
+        fn f<R>(clearsig: &[u8], reference: R, hash: HashAlgorithm)
+                -> crate::Result<()>
         where R: AsRef<[u8]>
         {
             let mut reader = Reader::from_buffered_reader_csft(
@@ -2309,7 +2310,7 @@ mod test {
 
             // First, an one-pass-signature packet.
             if let Some(Packet::OnePassSig(ops)) = message.path_ref(&[0]) {
-                assert_eq!(ops.hash_algo(), HashAlgorithm::SHA256);
+                assert_eq!(ops.hash_algo(), hash);
             } else {
                 panic!("expected an OPS packet");
             }
@@ -2319,7 +2320,7 @@ mod test {
 
             // And, the signature.
             if let Some(Packet::Signature(sig)) = message.path_ref(&[2]) {
-                assert_eq!(sig.hash_algo(), HashAlgorithm::SHA256);
+                assert_eq!(sig.hash_algo(), hash);
             } else {
                 panic!("expected an signature packet");
             }
@@ -2339,7 +2340,7 @@ mod test {
 
             // The signature.
             if let Some(Packet::Signature(sig)) = pp.path_ref(&[0]) {
-                assert_eq!(sig.hash_algo(), HashAlgorithm::SHA256);
+                assert_eq!(sig.hash_algo(), hash);
             } else {
                 panic!("expected an signature packet");
             }
@@ -2347,7 +2348,7 @@ mod test {
         }
 
         f(crate::tests::message("a-problematic-poem.txt.cleartext.sig"),
-          crate::tests::message("a-problematic-poem.txt"))?;
+          crate::tests::message("a-problematic-poem.txt"), HashAlgorithm::SHA256)?;
         f(crate::tests::message("a-cypherpunks-manifesto.txt.cleartext.sig"),
           {
               // The transformation process trims trailing whitespace,
@@ -2358,7 +2359,7 @@ mod test {
               let ws = manifesto.remove(ws_at);
               assert_eq!(ws, b' ');
               manifesto
-          })?;
+          }, HashAlgorithm::SHA256)?;
         Ok(())
     }
 }
