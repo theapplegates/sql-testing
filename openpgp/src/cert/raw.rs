@@ -73,8 +73,7 @@ use std::fmt;
 use std::io::Read;
 use std::path::Path;
 
-use buffered_reader;
-use buffered_reader::BufferedReader;
+use buffered_reader::{BufferedReader, Dup, EOF, File, Generic, Memory};
 
 use crate::Error;
 use crate::Fingerprint;
@@ -90,6 +89,7 @@ use crate::packet::UserID;
 use crate::packet::header::BodyLength;
 use crate::packet::header::CTB;
 use crate::packet::key;
+use crate::parse::Cookie;
 use crate::parse::PacketParser;
 use crate::parse::Parse;
 use crate::parse::RECOVERY_THRESHOLD;
@@ -566,7 +566,7 @@ pub struct RawCertParser<'a>
     // slice, this is a `buffered_reader::Memory`.  Note: the slice
     // field will not be set, if the input needs to be transferred
     // (i.e., dearmored).
-    reader: Box<dyn BufferedReader<()> + 'a>,
+    reader: Box<dyn BufferedReader<Cookie> + 'a>,
 
     // Whether we are dearmoring the input.
     dearmor: bool,
@@ -584,14 +584,14 @@ assert_send_and_sync!(RawCertParser<'_>);
 
 impl<'a> RawCertParser<'a> {
     fn new<R>(reader: R) -> Result<Self>
-    where R: 'a + BufferedReader<()>
+    where R: 'a + BufferedReader<Cookie>
     {
         // Check that we can read the first header and that it is
         // reasonable.  Note: an empty keyring is not an error; we're
         // just checking for bad data here.  If not, try again after
         // dearmoring the input.
         let mut dearmor = false;
-        let mut dup = buffered_reader::Dup::new(reader);
+        let mut dup = Dup::with_cookie(reader, Default::default());
         if ! dup.eof() {
             match Header::parse(&mut dup) {
                 Ok(header) => {
@@ -617,20 +617,11 @@ impl<'a> RawCertParser<'a> {
         let mut reader = dup.as_boxed().into_inner().expect("inner");
 
         if dearmor {
-            // Unfortunately, armor::Reader is not generic over the
-            // Cookie type.  Use a few adapters to get it to work
-            // anyway.
-            reader
-                = buffered_reader::Adapter::new(
-                    armor::Reader::from_buffered_reader(
-                        buffered_reader::Adapter::with_cookie(
-                            reader, Default::default()).as_boxed(),
-                        armor::ReaderMode::Tolerant(None),
-                        Default::default())
-                        .as_boxed())
-                .as_boxed();
+            reader = armor::Reader::from_buffered_reader(
+                reader, armor::ReaderMode::Tolerant(None),
+                Default::default()).as_boxed();
 
-            let mut dup = buffered_reader::Dup::new(reader);
+            let mut dup = Dup::with_cookie(reader, Default::default());
             match Header::parse(&mut dup) {
                 Ok(header) => {
                     let tag = header.ctb().tag();
@@ -666,18 +657,18 @@ impl<'a> Parse<'a, RawCertParser<'a>> for RawCertParser<'a>
 {
     /// Initializes a `RawCertParser` from a `Read`er.
     fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
-        RawCertParser::new(buffered_reader::Generic::new(reader, None))
+        RawCertParser::new(Generic::with_cookie(reader, None, Default::default()))
     }
 
     /// Initializes a `RawCertParser` from a `File`.
     fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        RawCertParser::new(buffered_reader::File::open(path)?)
+        RawCertParser::new(File::with_cookie(path, Default::default())?)
     }
 
     /// Initializes a `RawCertParser` from a byte string.
     fn from_bytes<D: AsRef<[u8]> + ?Sized + Send + Sync>(data: &'a D) -> Result<Self> {
         let data = data.as_ref();
-        let mut p = RawCertParser::new(buffered_reader::Memory::new(data))?;
+        let mut p = RawCertParser::new(Memory::with_cookie(data, Default::default()))?;
 
         // If we are dearmoring the input, then the slice doesn't
         // reflect the raw packets.
@@ -709,9 +700,10 @@ impl<'a> Iterator for RawCertParser<'a>
             return None;
         }
 
-        let mut reader = buffered_reader::Dup::new(
+        let mut reader = Dup::with_cookie(
             std::mem::replace(&mut self.reader,
-                              Box::new(buffered_reader::EOF::new())));
+                              Box::new(EOF::with_cookie(Default::default()))),
+                Default::default());
 
         // The absolute start of this certificate in the stream.
         let cert_start_absolute = self.bytes_read;
