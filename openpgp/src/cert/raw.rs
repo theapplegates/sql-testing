@@ -696,6 +696,24 @@ impl<'a> Iterator for RawCertParser<'a>
             return None;
         }
 
+        if self.reader.eof() && self.dearmor {
+            // We are dearmoring and hit EOF.  Maybe there is a second
+            // armor block next to this one!
+
+            // Get the reader,
+            let reader = std::mem::replace(
+                &mut self.reader,
+                EOF::with_cookie(Default::default()).as_boxed());
+
+            // peel off the armor reader,
+            let reader = reader.into_inner().expect("the armor reader");
+
+            // and install a new one!
+            self.reader = armor::Reader::from_buffered_reader(
+                reader, armor::ReaderMode::Tolerant(None),
+                Default::default()).as_boxed();
+        }
+
         if self.reader.eof() {
             return None;
         }
@@ -1605,5 +1623,20 @@ mod test {
         assert!(
             matches!(raw.map_err(|e| e.downcast::<Error>()),
                      Err(Ok(Error::MalformedCert(_)))));
+    }
+
+    #[test]
+    fn concatenated_armored_certs() -> Result<()> {
+        let mut keyring = Vec::new();
+        keyring.extend_from_slice(b"some\ntext\n");
+        keyring.extend_from_slice(crate::tests::key("testy.asc"));
+        keyring.extend_from_slice(crate::tests::key("testy.asc"));
+        keyring.extend_from_slice(b"some\ntext\n");
+        keyring.extend_from_slice(crate::tests::key("testy.asc"));
+        keyring.extend_from_slice(b"some\ntext\n");
+        let certs = RawCertParser::from_bytes(&keyring)?.collect::<Vec<_>>();
+        assert_eq!(certs.len(), 3);
+        assert!(certs.iter().all(|c| c.is_ok()));
+        Ok(())
     }
 }
