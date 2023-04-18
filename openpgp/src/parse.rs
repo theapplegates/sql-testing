@@ -2952,7 +2952,7 @@ impl MPI {
     fn parse(name_len: &'static str,
              name: &'static str,
              php: &mut PacketHeaderParser<'_>) -> Result<Self> {
-        Ok(MPI::parse_common(name_len, name, php)?.into())
+        Ok(MPI::parse_common(name_len, name, false, php)?.into())
     }
 
     /// Parses an OpenPGP MPI.
@@ -2963,8 +2963,29 @@ impl MPI {
     fn parse_common(
         name_len: &'static str,
         name: &'static str,
+        parsing_secrets: bool,
         php: &mut PacketHeaderParser<'_>)
                  -> Result<Vec<u8>> {
+        // When we are parsing secrets, we don't want to leak it
+        // accidentally by revealing it in error messages, or indeed
+        // by the kind of error.
+        //
+        // All errors returned by this function that are depend on
+        // secret data must be uniform and return the following error.
+        // We make an exception for i/o errors, which may reveal
+        // truncation, because swallowing i/o errors may be very
+        // confusing when diagnosing errors, and we don't consider the
+        // length of the value to be confidential as it can also be
+        // inferred from the size of the ciphertext.
+        let uniform_error_for_secrets = |e: Error| {
+            if parsing_secrets {
+                Err(Error::MalformedMPI("Details omitted, \
+                                         parsing secret".into()).into())
+            } else {
+                Err(e.into())
+            }
+        };
+
         // This function is used to parse MPIs from unknown
         // algorithms, which may use an encoding unknown to us.
         // Therefore, we need to be extra careful only to consume the
@@ -2994,18 +3015,22 @@ impl MPI {
             let unused_value = value[0] & mask;
 
             if unused_value != 0 {
-                return Err(Error::MalformedMPI(
+                return uniform_error_for_secrets(
+                    Error::MalformedMPI(
                         format!("{} unused bits not zeroed: ({:x})",
-                        unused_bits, unused_value)).into());
+                                unused_bits, unused_value)
+                    ));
             }
         }
 
         let first_used_bit = 8 - unused_bits;
         if value[0] & (1 << (first_used_bit - 1)) == 0 {
-            return Err(Error::MalformedMPI(
+            return uniform_error_for_secrets(
+                Error::MalformedMPI(
                     format!("leading bit is not set: \
                              expected bit {} to be set in {:8b} ({:x})",
-                             first_used_bit, value[0], value[0])).into());
+                            first_used_bit, value[0], value[0])
+                ));
         }
 
         // Now consume the data.  Note: we avoid using parse_bytes
@@ -3040,7 +3065,7 @@ impl ProtectedMPI {
     fn parse(name_len: &'static str,
              name: &'static str,
              php: &mut PacketHeaderParser<'_>) -> Result<Self> {
-        Ok(MPI::parse_common(name_len, name, php)?.into())
+        Ok(MPI::parse_common(name_len, name, true, php)?.into())
     }
 }
 impl PKESK {
