@@ -1461,6 +1461,16 @@ impl Cert {
 
     /// Sorts and deduplicates all components and all signatures of
     /// all components.
+    ///
+    /// Signatures are compared using [`Signature::normalized_eq`]
+    /// (i.e., the unhashed subpacket area is ignored).  If two
+    /// signatures are considered equal, the one that comes first is
+    /// kept.
+    ///
+    /// Keys are compares using [`Key::public_cmp`].  If two keys are
+    /// considered equivalent, then the one with secret key material
+    /// is kept.  If they both have secret key material, then the one
+    /// that comes first is kept.
     fn sort_and_dedup(&mut self) {
         self.primary.sort_and_dedup();
 
@@ -2160,21 +2170,49 @@ impl Cert {
     /// If `other` is a different certificate, then an error is
     /// returned.
     ///
-    /// This routine merges duplicate packets.  This is different from
-    /// [`Cert::insert_packets`], which prefers keys in the packets that
-    /// are being merged into the certificate.
+    /// Merging two versions of a certificate is complicated, because
+    /// there may be multiple variants of the same key or signature
+    /// packet.  It is possible to have multiple variants of a key
+    /// packet if one contains secret key material, and the other
+    /// does not, or if both contain secret key material that is
+    /// protected in different ways, e.g., a different algorithm, or a
+    /// different password.  Multiple variants of a signature packet
+    /// are possible when the unhashed subpacket areas differ.
     ///
-    /// [`Cert::insert_packets`]: Cert::insert_packets()
+    /// This routine is different from [`Cert::insert_packets`] in the
+    /// following ways:
+    ///
+    ///   - `Cert::merge_public` strictly prefers keys in `self` to
+    ///     those in `other`.  That is, if a primary key or subkey
+    ///     appears in both `self` and `other`, the version in `self`
+    ///     is kept.  In contrast, [`Cert::insert_packets`] prefers
+    ///     the new variant.
+    ///
+    ///   - If `other` contains a new subkey, `Cert::merge_public`
+    ///     merges it into the certificate, but strips any secret key
+    ///     material.  In contrast, [`Cert::insert_packets`] preserves
+    ///     the secret key material.
+    ///
+    ///   - If both `self` and `other` contain two variants of a
+    ///     signature (that is, a signature packet that is identical
+    ///     expect for the contents of the unhashed subpacket area),
+    ///     `Cert::merge_public` merges the two variants using
+    ///     [`Signature::merge`], which combines the unhashed
+    ///     subpacket areas.  [`Cert::insert_packets`] just takes the
+    ///     new signature packet.
     ///
     /// This function is appropriate to merge certificate material
-    /// from untrusted sources like keyservers.  If `other` contains
-    /// secret key material, it is ignored.  See
-    /// [`Cert::merge_public_and_secret`] on how to merge certificates
-    /// containing secret key material from trusted sources.
+    /// from untrusted sources like keyservers, because it only adds
+    /// data to the existing certificate, it never overwrites existing
+    /// data, and it doesn't import secret key material, which may
+    /// have been manipulated by an attacker.
     ///
-    /// [`Cert::merge_public_and_secret`]: Cert::merge_public_and_secret()
+    /// [`Cert::merge_public_and_secret`] is similar to this function,
+    /// but merges in secret key material from `other`.
     ///
     /// # Examples
+    ///
+    /// Merge a certificate from an untrusted source:
     ///
     /// ```
     /// # use sequoia_openpgp as openpgp;
@@ -2190,6 +2228,157 @@ impl Cert {
     /// # let _ = cert;
     /// # Ok(()) }
     /// ```
+    ///
+    /// Secret key material in `other` is stripped, even if the
+    /// variant of the packet in `self` doesn't have secret key
+    /// material:
+    ///
+    /// ```
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::cert::CertBuilder;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// // Create a new key.
+    /// let (cert, rev) =
+    ///       CertBuilder::general_purpose(None, Some("alice@example.org"))
+    ///       .generate()?;
+    /// assert!(cert.is_tsk());
+    ///
+    /// let stripped = cert.clone().strip_secret_key_material();
+    /// assert!(! stripped.is_tsk());
+    ///
+    /// // Merge `cert` into `stripped`.
+    /// let merged = stripped.merge_public(cert).expect("same certificate");
+    /// assert!(! merged.is_tsk());
+    ///
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// Secret key material from `self` is preferred to secret key
+    /// material from `other`:
+    ///
+    /// ```
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::crypto::Password;
+    /// use openpgp::cert::prelude::*;
+    /// use openpgp::Packet;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p0 = Password::from("old password");
+    /// let p1 = Password::from("new password");
+    ///
+    /// // Create a new key.
+    /// let (cert, rev) =
+    ///       CertBuilder::general_purpose(None, Some("alice@example.org"))
+    ///       .set_password(Some(p0.clone()))
+    ///       .generate()?;
+    /// assert!(cert.is_tsk());
+    ///
+    /// // Change the password for the primary key.
+    /// let pk = cert.primary_key().key().clone().parts_into_secret()?
+    ///     .decrypt_secret(&p0)?
+    ///     .encrypt_secret(&p1)?;
+    /// let other = Cert::try_from(vec![ Packet::from(pk) ])
+    ///     .expect("a primary key is a certificate");
+    ///
+    /// // Merge `other` into `cert`.
+    /// let merged = cert.merge_public(other).expect("same certificate");
+    ///
+    /// // `merged` has the secret key material from `cert`, which is
+    /// // password protected with `p0`, not `other`, which is password
+    /// // protected with `p1`.
+    /// assert!(merged.primary_key().key().clone().parts_into_secret()?
+    ///         .decrypt_secret(&p0).is_ok());
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// The unhashed subpacket areas of two variants of a signature
+    /// are merged:
+    ///
+    /// ```
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::Packet;
+    /// use openpgp::cert::prelude::*;
+    /// use openpgp::packet::signature::subpacket::Subpacket;
+    /// use openpgp::packet::signature::subpacket::SubpacketTag;
+    /// use openpgp::packet::signature::subpacket::SubpacketValue;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// // Create a new key.
+    /// let (cert, rev) =
+    ///       CertBuilder::general_purpose(None, Some("alice@example.org"))
+    ///       .generate()?;
+    /// assert!(cert.is_tsk());
+    ///
+    /// // Add a subpacket to the unhashed subpacket area.
+    /// let subpacket_a = Subpacket::new(
+    ///     SubpacketValue::Unknown {
+    ///         tag: SubpacketTag::Private(100),
+    ///         body: Vec::new(),
+    ///     },
+    ///     false).expect("valid");
+    /// let subpacket_b = Subpacket::new(
+    ///     SubpacketValue::Unknown {
+    ///         tag: SubpacketTag::Private(101),
+    ///         body: Vec::new(),
+    ///     },
+    ///     false).expect("valid");
+    ///
+    /// let mut cert_a = cert.clone().into_packets().collect::<Vec<Packet>>();
+    /// match cert_a[1] {
+    ///     Packet::Signature(ref mut sig) => {
+    ///         let unhashed_area = sig.unhashed_area_mut();
+    ///         assert!(unhashed_area.subpacket(subpacket_a.tag()).is_none());
+    ///         assert!(unhashed_area.subpacket(subpacket_b.tag()).is_none());
+    ///         unhashed_area.add(subpacket_a.clone());
+    ///     }
+    ///     _ => panic!("Second packet is the direct signature packet."),
+    /// };
+    /// let cert_a = Cert::try_from(cert_a).expect("valid");
+    ///
+    /// let mut cert_b = cert.clone().into_packets().collect::<Vec<Packet>>();
+    /// match cert_b[1] {
+    ///     Packet::Signature(ref mut sig) => {
+    ///         let unhashed_area = sig.unhashed_area_mut();
+    ///         assert!(unhashed_area.subpacket(subpacket_a.tag()).is_none());
+    ///         assert!(unhashed_area.subpacket(subpacket_b.tag()).is_none());
+    ///         unhashed_area.add(subpacket_b.clone());
+    ///     }
+    ///     _ => panic!("Second packet is the direct signature packet."),
+    /// };
+    /// let cert_b = Cert::try_from(cert_b).expect("valid");
+    ///
+    /// // When we merge `cert_b` into `cert_a`, the signature packets
+    /// // are merged:
+    /// let merged = cert_a.clone().merge_public(cert_b.clone())
+    ///     .expect("same certificate")
+    ///     .into_packets()
+    ///     .collect::<Vec<Packet>>();
+    /// match merged[1] {
+    ///     Packet::Signature(ref sig) => {
+    ///         let unhashed_area = sig.unhashed_area();
+    ///         assert!(unhashed_area.subpacket(subpacket_a.tag()).is_some());
+    ///         assert!(unhashed_area.subpacket(subpacket_b.tag()).is_some());
+    ///     }
+    ///     _ => panic!("Second packet is the direct signature packet."),
+    /// };
+    ///
+    /// // Likewise, when we merge `cert_a` into `cert_b`, the signature
+    /// // packets are merged:
+    /// let merged = cert_b.clone().merge_public(cert_a.clone())
+    ///     .expect("same certificate")
+    ///     .into_packets()
+    ///     .collect::<Vec<Packet>>();
+    /// match merged[1] {
+    ///     Packet::Signature(ref sig) => {
+    ///         let unhashed_area = sig.unhashed_area();
+    ///         assert!(unhashed_area.subpacket(subpacket_a.tag()).is_some());
+    ///         assert!(unhashed_area.subpacket(subpacket_b.tag()).is_some());
+    ///     }
+    ///     _ => panic!("Second packet is the direct signature packet."),
+    /// };
+    /// # Ok(()) }
+    /// ```
     pub fn merge_public(self, other: Cert) -> Result<Self> {
         // Strip all secrets from `other`.
         let other_public = other.strip_secret_key_material();
@@ -2202,14 +2391,13 @@ impl Cert {
     /// If `other` is a different certificate, then an error is
     /// returned.
     ///
-    /// This routine merges duplicate packets.  If the same (sub)key
-    /// is present in both `self` and `other`, then
+    /// This function is like [`Cert::merge_public`] except:
     ///
-    ///   - if both keys have secret key material, then the version in
-    ///     `other` is preferred,
+    ///   - if two variants of the same key have secret key material,
+    ///     then the version in `other` is preferred,
     ///
-    ///   - if only one key has secret key material, then this copy is
-    ///     preferred.
+    ///   - if there are two variants of the same key, and one has
+    ///     secret key material, that variant is preferred.
     ///
     /// This is different from [`Cert::insert_packets`], which
     /// unconditionally prefers keys in the packets that are being
@@ -2226,6 +2414,8 @@ impl Cert {
     ///
     /// # Examples
     ///
+    /// Merge a certificate from a trusted source:
+    ///
     /// ```
     /// # use sequoia_openpgp as openpgp;
     /// # use openpgp::cert::prelude::*;
@@ -2238,6 +2428,161 @@ impl Cert {
     /// // Merge the local version with the version from your other device.
     /// let cert = local.merge_public_and_secret(other_device)?;
     /// # let _ = cert;
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// Secret key material is preferred to no secret key material:
+    ///
+    /// ```
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::cert::CertBuilder;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// // Create a new key.
+    /// let (cert, rev) =
+    ///       CertBuilder::general_purpose(None, Some("alice@example.org"))
+    ///       .generate()?;
+    /// assert!(cert.is_tsk());
+    ///
+    /// let stripped = cert.clone().strip_secret_key_material();
+    /// assert!(! stripped.is_tsk());
+    ///
+    /// // If we merge `cert` into `stripped`, the secret key material is
+    /// // preserved:
+    /// let merged = stripped.clone().merge_public_and_secret(cert.clone())
+    ///     .expect("same certificate");
+    /// assert!(merged.is_tsk());
+    ///
+    /// // Likewise if we merge `stripped` into `cert`:
+    /// let merged = cert.merge_public_and_secret(stripped)
+    ///     .expect("same certificate");
+    /// assert!(merged.is_tsk());
+    ///
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// Secret key material in `other` is preferred:
+    ///
+    /// ```
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::crypto::Password;
+    /// use openpgp::cert::prelude::*;
+    /// use openpgp::Packet;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p0 = Password::from("old password");
+    /// let p1 = Password::from("new password");
+    ///
+    /// // Create a new key.
+    /// let (cert, rev) =
+    ///       CertBuilder::general_purpose(None, Some("alice@example.org"))
+    ///       .set_password(Some(p0.clone()))
+    ///       .generate()?;
+    /// assert!(cert.is_tsk());
+    ///
+    /// // Change the password for the primary key.
+    /// let pk = cert.primary_key().key().clone().parts_into_secret()?
+    ///     .decrypt_secret(&p0)?
+    ///     .encrypt_secret(&p1)?;
+    /// let other = Cert::try_from(vec![ Packet::from(pk) ])
+    ///     .expect("a primary key is a certificate");
+    ///
+    /// // Merge `other` into `cert`.
+    /// let merged = cert.merge_public_and_secret(other).expect("same certificate");
+    ///
+    /// // `merged` has the secret key material from `other`, which is
+    /// // password protected with `p1`, not `self`, which is password
+    /// // protected with `p0`.
+    /// assert!(merged.primary_key().key().clone().parts_into_secret()?
+    ///         .decrypt_secret(&p1).is_ok());
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// The unhashed subpacket areas of two variants of a signature
+    /// are merged:
+    ///
+    /// ```
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::Packet;
+    /// use openpgp::cert::prelude::*;
+    /// use openpgp::packet::signature::subpacket::Subpacket;
+    /// use openpgp::packet::signature::subpacket::SubpacketTag;
+    /// use openpgp::packet::signature::subpacket::SubpacketValue;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// // Create a new key.
+    /// let (cert, rev) =
+    ///       CertBuilder::general_purpose(None, Some("alice@example.org"))
+    ///       .generate()?;
+    /// assert!(cert.is_tsk());
+    ///
+    /// // Add a subpacket to the unhashed subpacket area.
+    /// let subpacket_a = Subpacket::new(
+    ///     SubpacketValue::Unknown {
+    ///         tag: SubpacketTag::Private(100),
+    ///         body: Vec::new(),
+    ///     },
+    ///     false).expect("valid");
+    /// let subpacket_b = Subpacket::new(
+    ///     SubpacketValue::Unknown {
+    ///         tag: SubpacketTag::Private(101),
+    ///         body: Vec::new(),
+    ///     },
+    ///     false).expect("valid");
+    ///
+    /// let mut cert_a = cert.clone().into_packets().collect::<Vec<Packet>>();
+    /// match cert_a[1] {
+    ///     Packet::Signature(ref mut sig) => {
+    ///         let unhashed_area = sig.unhashed_area_mut();
+    ///         assert!(unhashed_area.subpacket(subpacket_a.tag()).is_none());
+    ///         assert!(unhashed_area.subpacket(subpacket_b.tag()).is_none());
+    ///         unhashed_area.add(subpacket_a.clone());
+    ///     }
+    ///     _ => panic!("Second packet is the direct signature packet."),
+    /// };
+    /// let cert_a = Cert::try_from(cert_a).expect("valid");
+    ///
+    /// let mut cert_b = cert.clone().into_packets().collect::<Vec<Packet>>();
+    /// match cert_b[1] {
+    ///     Packet::Signature(ref mut sig) => {
+    ///         let unhashed_area = sig.unhashed_area_mut();
+    ///         assert!(unhashed_area.subpacket(subpacket_a.tag()).is_none());
+    ///         assert!(unhashed_area.subpacket(subpacket_b.tag()).is_none());
+    ///         unhashed_area.add(subpacket_b.clone());
+    ///     }
+    ///     _ => panic!("Second packet is the direct signature packet."),
+    /// };
+    /// let cert_b = Cert::try_from(cert_b).expect("valid");
+    ///
+    /// // When we merge `cert_b` into `cert_a`, the signature packets
+    /// // are merged:
+    /// let merged = cert_a.clone().merge_public_and_secret(cert_b.clone())
+    ///     .expect("same certificate")
+    ///     .into_packets()
+    ///     .collect::<Vec<Packet>>();
+    /// match merged[1] {
+    ///     Packet::Signature(ref sig) => {
+    ///         let unhashed_area = sig.unhashed_area();
+    ///         assert!(unhashed_area.subpacket(subpacket_a.tag()).is_some());
+    ///         assert!(unhashed_area.subpacket(subpacket_b.tag()).is_some());
+    ///     }
+    ///     _ => panic!("Second packet is the direct signature packet."),
+    /// };
+    ///
+    /// // Likewise, when we merge `cert_a` into `cert_b`, the signature
+    /// // packets are merged:
+    /// let merged = cert_b.clone().merge_public_and_secret(cert_a.clone())
+    ///     .expect("same certificate")
+    ///     .into_packets()
+    ///     .collect::<Vec<Packet>>();
+    /// match merged[1] {
+    ///     Packet::Signature(ref sig) => {
+    ///         let unhashed_area = sig.unhashed_area();
+    ///         assert!(unhashed_area.subpacket(subpacket_a.tag()).is_some());
+    ///         assert!(unhashed_area.subpacket(subpacket_b.tag()).is_some());
+    ///     }
+    ///     _ => panic!("Second packet is the direct signature packet."),
+    /// };
     /// # Ok(()) }
     /// ```
     pub fn merge_public_and_secret(mut self, mut other: Cert) -> Result<Self> {
@@ -2516,7 +2861,7 @@ impl Cert {
     /// merge function returns either the old packet, the new packet,
     /// or a combination of both packets.  If the merge function
     /// returns a different packet, this function returns
-    /// `Error::InvalidOperation`.
+    /// [`Error::InvalidOperation`].
     ///
     /// If the merge function returns the existing packet, this
     /// function will still consider this as a change to the
@@ -2588,7 +2933,7 @@ impl Cert {
     ///     .decrypt_secret(&p0)?
     ///     .encrypt_secret(&p1)?;
     ///
-    /// // Merge it back in, with a policy preferring to the old packet.
+    /// // Merge it back in, with a policy preferring the old packet.
     /// let (cert, changed) =
     ///     cert.insert_packets_merge(pk, |old, new| Ok(old.unwrap_or(new)))?;
     /// assert!(changed); // Overestimates changes.
