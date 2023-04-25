@@ -2123,8 +2123,7 @@ pub trait DecryptionHelper {
     ///
     /// ```
     /// use sequoia_openpgp as openpgp;
-    /// use openpgp::{Fingerprint, Cert, Result};
-    /// # use openpgp::KeyID;
+    /// use openpgp::{Cert, Fingerprint, KeyHandle, KeyID, Result};
     /// use openpgp::crypto::SessionKey;
     /// use openpgp::types::SymmetricAlgorithm;
     /// use openpgp::packet::{PKESK, SKESK};
@@ -2134,7 +2133,7 @@ pub trait DecryptionHelper {
     /// #                 -> Option<(Option<Fingerprint>, Option<SymmetricAlgorithm>, SessionKey)> {
     /// #     unimplemented!()
     /// # }
-    /// # fn lookup_key(_: &KeyID)
+    /// # fn lookup_key(_: Option<KeyHandle>)
     /// #               -> Option<(Fingerprint, Key<SecretParts, UnspecifiedRole>)> {
     /// #     unimplemented!()
     /// # }
@@ -2166,7 +2165,7 @@ pub trait DecryptionHelper {
     ///                 if ! key.secret().is_encrypted() {
     ///                     let mut keypair = key.clone().into_keypair()?;
     ///                     if pkesk.decrypt(&mut keypair, sym_algo)
-    ///                         .map(|(algo, sk)| decrypt(Some(algo), &sk))
+    ///                         .map(|(algo, sk)| decrypt(algo, &sk))
     ///                         .unwrap_or(false)
     ///                     {
     ///                         return Ok(Some(fp));
@@ -2178,12 +2177,14 @@ pub trait DecryptionHelper {
     ///         // Third, we try to decrypt PKESK packets with
     ///         // wildcard recipients using those keys that we can
     ///         // use without prompting for a password.
-    ///         for pkesk in pkesks.iter() {
+    ///         for pkesk in pkesks.iter().filter(
+    ///             |p| p.recipient().is_none())
+    ///         {
     ///             for (fp, key) in all_keys() {
     ///                 if ! key.secret().is_encrypted() {
     ///                     let mut keypair = key.clone().into_keypair()?;
     ///                     if pkesk.decrypt(&mut keypair, sym_algo)
-    ///                         .map(|(algo, sk)| decrypt(Some(algo), &sk))
+    ///                         .map(|(algo, sk)| decrypt(algo, &sk))
     ///                         .unwrap_or(false)
     ///                     {
     ///                         return Ok(Some(fp));
@@ -3193,17 +3194,17 @@ pub(crate) mod test {
             }
 
             t!("Trying PKESKS: {:?}", pkesks);
-            for pkesk in pkesks {
+            for pkesk in pkesks.iter().filter(|p| p.recipient().is_some()) {
                 for key in &self.keys {
                     for subkey in key.with_policy(&p, None)?.keys().secret()
-                        .key_handle(pkesk.recipient())
+                        .key_handles2(pkesk.recipient())
                     {
                         t!("Trying to decrypt {:?} with {:?}", pkesk, subkey);
                         if let Some((algo, sk)) =
                             subkey.key().clone().into_keypair().ok()
                             .and_then(|mut k| pkesk.decrypt(&mut k, sym_algo))
                         {
-                            if decrypt(Some(algo), &sk) {
+                            if decrypt(algo, &sk) {
                                 t!("successfully decrypted encryption container");
                                 return Ok(None);
                             }

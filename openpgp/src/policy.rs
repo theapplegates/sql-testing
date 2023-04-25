@@ -2902,7 +2902,7 @@ mod test {
                     .for_transport_encryption().secret().next().unwrap()
                     .key().clone().into_keypair()?;
                 pkesks[0].decrypt(&mut pair, algo)
-                    .map(|(algo, session_key)| decrypt(Some(algo), &session_key));
+                    .map(|(algo, session_key)| decrypt(algo, &session_key));
                 Ok(None)
             }
         }

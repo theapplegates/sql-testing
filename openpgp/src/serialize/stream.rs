@@ -2583,7 +2583,8 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
     /// for p in pkesks { // Emit the stashed PKESK packets.
     ///     Packet::from(p).serialize(&mut message)?;
     /// }
-    /// let message = Encryptor2::with_session_key(message, algo, sk)?.build()?;
+    /// let message = Encryptor2::with_session_key(
+    ///     message, algo.unwrap_or_default(), sk)?.build()?;
     /// let mut w = LiteralWriter::new(message).build()?;
     /// w.write_all(b"Encrypted reply")?;
     /// w.finalize()?;
@@ -2596,7 +2597,7 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
     /// /// Decrypts the message preserving algo, session key, and PKESKs.
     /// struct Helper {
     ///     key: Cert,
-    ///     recycling_bin: Option<(SymmetricAlgorithm, SessionKey, Vec<PKESK>)>,
+    ///     recycling_bin: Option<(Option<SymmetricAlgorithm>, SessionKey, Vec<PKESK>)>,
     /// }
     ///
     /// # impl Helper {
@@ -2617,13 +2618,13 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
     ///         for pkesk in pkesks { // Try each PKESK until we succeed.
     ///             for ka in self.key.keys().with_policy(p, None)
     ///                 .supported().unencrypted_secret()
-    ///                 .key_handle(pkesk.recipient())
+    ///                 .key_handles2(pkesk.recipient())
     ///                 .for_storage_encryption().for_transport_encryption()
     ///             {
     ///                 let mut pair = ka.key().clone().into_keypair().unwrap();
     ///                 if pkesk.decrypt(&mut pair, sym_algo)
     ///                     .map(|(algo, session_key)| {
-    ///                         let success = decrypt(Some(algo), &session_key);
+    ///                         let success = decrypt(algo, &session_key);
     ///                         if success {
     ///                             // Copy algor, session key, and PKESKs.
     ///                             encryption_context =
@@ -2990,10 +2991,17 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
 
         // Write the PKESK packet(s).
         for recipient in self.recipients.iter() {
-            let mut pkesk =
-                PKESK3::for_recipient(self.sym_algo, &sk, recipient.key)?;
-            pkesk.set_recipient(recipient.keyid.clone());
-            Packet::PKESK(pkesk.into()).serialize(&mut inner)?;
+            if aead.is_some() {
+                let pkesk =
+                    PKESK6::for_recipient(&sk, recipient.key)?;
+                // XXX: handle anonymous recipient/ different recipient fps
+                Packet::from(pkesk).serialize(&mut inner)?;
+            } else {
+                let mut pkesk =
+                    PKESK3::for_recipient(self.sym_algo, &sk, recipient.key)?;
+                pkesk.set_recipient(recipient.keyid.clone());
+                Packet::PKESK(pkesk.into()).serialize(&mut inner)?;
+            }
         }
 
         // Write the SKESK packet(s).
@@ -3733,7 +3741,7 @@ mod test {
                     .clone().parts_into_secret().unwrap()
                     .into_keypair().unwrap();
                 pkesks[0].decrypt(&mut keypair, sym_algo)
-                    .map(|(algo, session_key)| decrypt(Some(algo), &session_key));
+                    .map(|(algo, session_key)| decrypt(algo, &session_key));
                 Ok(None)
             }
         }
@@ -4254,6 +4262,9 @@ mod test {
             "brainpoolP256r1", "brainpoolP384r1", "brainpoolP512r1",
             "secp256k1",
         ].iter().map(|alg| format!("messages/encrypted/{}.sec.pgp", alg))
+            .chain(vec![
+                "crypto-refresh/v6-minimal-secret.key".into(),
+            ].into_iter())
         {
             eprintln!("Test vector {:?}...", path);
             let key = Cert::from_bytes(crate::tests::file(&path))?;

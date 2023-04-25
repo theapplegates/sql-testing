@@ -88,7 +88,7 @@ pub fn main() -> openpgp::Result<()> {
         .context("Decryption failed")?;
 
     let (algo, sk, pkesks) = decryptor.into_helper().recycling_bin.unwrap();
-    eprintln!("- Reusing ({}, {}) with {} PKESK packets",
+    eprintln!("- Reusing ({:?}, {}) with {} PKESK packets",
               algo, openpgp::fmt::hex::encode(&sk), pkesks.len());
 
     // Compose a writer stack corresponding to the output format and
@@ -105,7 +105,7 @@ pub fn main() -> openpgp::Result<()> {
     }
 
     // We want to encrypt a literal data packet.
-    let message = Encryptor2::with_session_key(message, algo, sk)?
+    let message = Encryptor2::with_session_key(message, algo.expect("XXX seipdv2"), sk)?
         .build().context("Failed to create encryptor")?;
 
     let mut message = LiteralWriter::new(message).build()
@@ -128,7 +128,7 @@ pub fn main() -> openpgp::Result<()> {
 /// verification policy.
 struct Helper {
     keys: HashMap<KeyID, (Fingerprint, KeyPair)>,
-    recycling_bin: Option<(SymmetricAlgorithm, SessionKey, Vec<PKESK>)>,
+    recycling_bin: Option<(Option<SymmetricAlgorithm>, SessionKey, Vec<PKESK>)>,
 }
 
 impl Helper {
@@ -167,10 +167,10 @@ impl DecryptionHelper for Helper {
         let mut recipient = None;
         let mut encryption_context = None;
         for pkesk in pkesks {
-            if let Some((fp, pair)) = self.keys.get_mut(pkesk.recipient()) {
+            if let Some((fp, pair)) = self.keys.get_mut(&KeyID::from(pkesk.recipient())) {
                 if pkesk.decrypt(pair, sym_algo)
                     .map(|(algo, session_key)| {
-                        let success = decrypt(Some(algo), &session_key);
+                        let success = decrypt(algo, &session_key);
                         if success {
                             // Keep a copy the algorithm, session key,
                             // and all PKESK packets for the reply.

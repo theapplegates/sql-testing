@@ -158,7 +158,8 @@ impl DecryptionHelper for CertHelper<'_> {
             .filter_map(|key| {
                 pkesks
                     .iter()
-                    .find(|pkesk| pkesk.recipient() == &key.keyid())
+                    .find(|pkesk| pkesk.recipient().map(
+                        |r| r.aliases(&key.key_handle())).unwrap_or(false))
                     .map(|pkesk| (pkesk, key))
             })
             .find(|(pkesk, key)| {

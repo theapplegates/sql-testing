@@ -26,6 +26,7 @@
    - DecryptionHelper::decrypt: The function `decrypt` now takes an
      optional symmetric algorithm.
    - SKESK::decrypt now returns an optional symmetric algorithm.
+   - PKESK::decrypt now returns an optional symmetric algorithm.
 
 ** New functionality
    - Fingerprint::V6
@@ -89,6 +90,9 @@
    - ValidKeyAmalgamationIter::key_handles2
    - SKESK::V6
    - SKESK6
+   - impl From<Option<KeyHandle>> for KeyID
+   - PKESK::V6
+   - PKESK6
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms

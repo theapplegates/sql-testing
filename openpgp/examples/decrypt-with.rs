@@ -96,9 +96,9 @@ impl DecryptionHelper for Helper {
         // Try each PKESK until we succeed.
         let mut recipient = None;
         for pkesk in pkesks {
-            if let Some((fp, pair)) = self.keys.get_mut(pkesk.recipient()) {
+            if let Some((fp, pair)) = self.keys.get_mut(&KeyID::from(pkesk.recipient())) {
                 if pkesk.decrypt(pair, sym_algo)
-                    .map(|(algo, session_key)| decrypt(Some(algo), &session_key))
+                    .map(|(algo, session_key)| decrypt(algo, &session_key))
                     .unwrap_or(false)
                 {
                     recipient = Some(fp.clone());

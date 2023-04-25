@@ -131,7 +131,7 @@ impl<'a> DecryptionHelper for Helper<'a> {
         let mut pair = key.into_keypair()?;
 
         pkesks[0].decrypt(&mut pair, sym_algo)
-            .map(|(algo, session_key)| decrypt(Some(algo), &session_key));
+            .map(|(algo, session_key)| decrypt(algo, &session_key));
 
         // XXX: In production code, return the Fingerprint of the
         // recipient's Cert here

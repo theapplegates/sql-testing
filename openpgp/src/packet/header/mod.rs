@@ -178,9 +178,12 @@ impl Header {
                             // optional encryption session key.
                             (3..10 * 1024).contains(&l),
                         Tag::PKESK =>
-                            // 10 bytes of fixed header, plus the
-                            // encrypted session key.
-                            10 < l && l < 10 * 1024,
+                            // For v3, 10 bytes of fixed header, plus
+                            // the encrypted session key.
+                            (10 < l && l < 10 * 1024)
+                            // For v6, 5 bytes of fixed header, plus
+                            // the encrypted session key.
+                            || (5 <= l && l < 10 * 1024),
                         Tag::OnePassSig if ! future_compatible =>
                             l == 13 // v3
                             || (6 + 32..6 + 32 + 256).contains(&l), // v6
