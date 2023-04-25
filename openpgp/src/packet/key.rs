@@ -1900,8 +1900,31 @@ mod tests {
         }
     }
 
+    quickcheck! {
+        fn roundtrip_public(p: Key<PublicParts, UnspecifiedRole>) -> bool {
+            use crate::parse::Parse;
+            use crate::serialize::MarshalInto;
+            let buf = p.to_vec().expect("Failed to serialize key");
+            let q = Key::from_bytes(&buf).expect("Failed to parse key").into();
+            assert_eq!(p, q);
+            true
+        }
+    }
+
+    quickcheck! {
+        fn roundtrip_secret(p: Key<SecretParts, UnspecifiedRole>) -> bool {
+            use crate::parse::Parse;
+            use crate::serialize::MarshalInto;
+            let buf = p.to_vec().expect("Failed to serialize key");
+            let q = Key::from_bytes(&buf).expect("Failed to parse key")
+                .parts_into_secret().expect("No secret material");
+            assert_eq!(p, q);
+            true
+        }
+    }
+
     #[test]
-    fn roundtrip() {
+    fn generate_roundtrip() {
         use crate::types::Curve::*;
 
         let keys = vec![NistP256, NistP384, NistP521].into_iter().flat_map(|cv|
