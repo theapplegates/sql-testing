@@ -1,4 +1,4 @@
-use crate::Result;
+use crate::{Error, Result};
 
 use crate::crypto::asymmetric::{Decryptor, KeyPair, Signer};
 use crate::crypto::mpi;
@@ -289,8 +289,17 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                 ))
                 .into()),
             },
+
             ECDH => crate::crypto::ecdh::encrypt(self.parts_as_public(), data),
-            algo => Err(crate::Error::UnsupportedPublicKeyAlgorithm(algo).into()),
+
+            RSASign | DSA | ECDSA | EdDSA =>
+                Err(Error::InvalidOperation(
+                    format!("{} is not an encryption algorithm", self.pk_algo())
+                ).into()),
+
+            ElGamalEncrypt | ElGamalEncryptSign |
+            Private(_) | Unknown(_) =>
+                Err(Error::UnsupportedPublicKeyAlgorithm(self.pk_algo()).into()),
         }
     }
 

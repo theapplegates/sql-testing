@@ -247,9 +247,11 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
         use crate::PublicKeyAlgorithm::*;
 
         #[allow(deprecated)]
-        match (self.pk_algo(), self.mpis()) {
-            (RSAEncryptSign, mpi::PublicKey::RSA { e, n }) |
-            (RSAEncrypt, mpi::PublicKey::RSA { e, n }) => {
+        match self.pk_algo() {
+            RSAEncryptSign |
+            RSAEncrypt => if let mpi::PublicKey::RSA { e, n } =
+                self.mpis()
+            {
                 // The ciphertext has the length of the modulus.
                 let ciphertext_len = n.value().len();
                 if data.len() + 11 > ciphertext_len {
@@ -264,10 +266,15 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                 Ok(mpi::Ciphertext::RSA {
                     c: MPI::new(&esk),
                 })
+            } else {
+                Err(Error::MalformedPacket(format!(
+                    "Expected RSA public key, got {:?}", self.mpis())).into())
             },
 
-            (ElGamalEncryptSign, mpi::PublicKey::ElGamal { p, g, y }) |
-            (ElGamalEncrypt, mpi::PublicKey::ElGamal { p, g, y }) => {
+            ElGamalEncryptSign |
+            ElGamalEncrypt => if let mpi::PublicKey::ElGamal { p, g, y } =
+                self.mpis()
+            {
                 // OpenPGP encodes E and C separately, but our
                 // cryptographic library concatenates them.
                 let size = p.value().len();
@@ -288,14 +295,20 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                     e: MPI::new(&esk[..size]),
                     c: MPI::new(&esk[size..]),
                 })
+            } else {
+                Err(Error::MalformedPacket(format!(
+                    "Expected ElGamal public key, got {:?}", self.mpis())).into())
             },
 
-            (ECDH, mpi::PublicKey::ECDH { .. }) =>
-                crate::crypto::ecdh::encrypt(self.parts_as_public(), data),
+            ECDH => crate::crypto::ecdh::encrypt(self.parts_as_public(), data),
 
-            _ => return Err(Error::MalformedPacket(format!(
-                "unsupported combination of key {} and mpis {:?}.",
-                self.pk_algo(), self.mpis())).into()),
+            RSASign | DSA | ECDSA | EdDSA =>
+                Err(Error::InvalidOperation(
+                    format!("{} is not an encryption algorithm", self.pk_algo())
+                ).into()),
+
+            Private(_) | Unknown(_) =>
+                Err(Error::UnsupportedPublicKeyAlgorithm(self.pk_algo()).into()),
         }
     }
 

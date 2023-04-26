@@ -222,9 +222,18 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                     },
                 }
             },
+
             ECDH => crate::crypto::ecdh::encrypt(self.parts_as_public(),
                                                  data),
-            algo => Err(Error::UnsupportedPublicKeyAlgorithm(algo).into()),
+
+            RSASign | DSA | ECDSA | EdDSA =>
+                Err(Error::InvalidOperation(
+                    format!("{} is not an encryption algorithm", self.pk_algo())
+                ).into()),
+
+            ElGamalEncrypt | ElGamalEncryptSign |
+            Private(_) | Unknown(_) =>
+                Err(Error::UnsupportedPublicKeyAlgorithm(self.pk_algo()).into()),
         }
     }
 
