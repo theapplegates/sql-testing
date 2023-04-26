@@ -3994,15 +3994,15 @@ mod test {
         };
 
         let p = StandardPolicy::new();
-        for alg in &[
+        for path in [
             "rsa", "elg", "cv25519", "cv25519.unclamped",
             "nistp256", "nistp384", "nistp521",
             "brainpoolP256r1", "brainpoolP384r1", "brainpoolP512r1",
             "secp256k1",
-        ] {
-            eprintln!("Test vector {:?}...", alg);
-            let key = Cert::from_bytes(crate::tests::message(
-                &format!("encrypted/{}.sec.pgp", alg)))?;
+        ].iter().map(|alg| format!("messages/encrypted/{}.sec.pgp", alg))
+        {
+            eprintln!("Test vector {:?}...", path);
+            let key = Cert::from_bytes(crate::tests::file(&path))?;
             if let Some(k) =
                 key.with_policy(&p, None)?.keys().subkeys().supported().next()
             {
@@ -4010,14 +4010,14 @@ mod test {
                 match k.mpis() {
                     PublicKey::ECDH { curve, .. } if ! curve.is_supported() => {
                         eprintln!("Skipping {} because we don't support \
-                                   the curve {}", alg, curve);
+                                   the curve {}", path, curve);
                         continue;
                     },
                     _ => (),
                 }
             } else {
                 eprintln!("Skipping {} because we don't support the algorithm",
-                          alg);
+                          path);
                 continue;
             }
 
