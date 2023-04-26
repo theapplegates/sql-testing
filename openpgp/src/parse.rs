@@ -1836,7 +1836,8 @@ impl Subpacket {
         let total_out = php.reader.total_out();
         if total_out_before + len != total_out {
             return Err(Error::MalformedPacket(
-                format!("body length is {} bytes, but read {}",
+                format!("Malformed subpacket: \
+                         body length is {} bytes, but read {}",
                         len, total_out - total_out_before)).into());
         }
 
