@@ -4028,7 +4028,6 @@ mod test {
             let message = Message::new(&mut sink);
             let message =
                 Encryptor::for_recipients(message, recipients)
-                .aead_algo(AEADAlgorithm::const_default())
                 .build()?;
             let mut message = LiteralWriter::new(message).build()?;
             message.write_all(b"Hello world.")?;
