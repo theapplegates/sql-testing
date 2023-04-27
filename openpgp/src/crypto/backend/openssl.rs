@@ -30,7 +30,9 @@ impl PublicKeyAlgorithm {
             RSAEncryptSign | RSAEncrypt | RSASign => true,
             DSA => true,
             ECDH | ECDSA | EdDSA => true,
-            _ => false,
+            ElGamalEncrypt | ElGamalEncryptSign |
+            Private(_) | Unknown(_)
+                => false,
         }
     }
 }
