@@ -381,4 +381,14 @@ mod arbitrary_helper {
     {
         s.iter_mut().for_each(|p| *p = Arbitrary::arbitrary(g));
     }
+
+    pub(crate) fn arbitrary_bounded_vec<T>(g: &mut Gen, limit: usize) -> Vec<T>
+    where
+        T: Arbitrary + Default,
+    {
+        let mut v = vec![Default::default();
+                         gen_arbitrary_from_range(0..limit, g)];
+        arbitrary_slice(g, &mut v[..]);
+        v
+    }
 }

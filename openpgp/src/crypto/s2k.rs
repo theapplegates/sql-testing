@@ -396,19 +396,19 @@ impl Arbitrary for S2K {
             },
             3 => S2K::Private {
                 tag: gen_arbitrary_from_range(100..111, g),
-                parameters: Option::<Vec<u8>>::arbitrary(g).map(|v| v.into()),
+                parameters: Some(arbitrary_bounded_vec(g, 200).into()),
             },
             4 => S2K::Unknown {
                 tag: 2,
-                parameters: Option::<Vec<u8>>::arbitrary(g).map(|v| v.into()),
+                parameters: Some(arbitrary_bounded_vec(g, 200).into()),
             },
             5 => S2K::Unknown {
                 tag: gen_arbitrary_from_range(4..100, g),
-                parameters: Option::<Vec<u8>>::arbitrary(g).map(|v| v.into()),
+                parameters: Some(arbitrary_bounded_vec(g, 200).into()),
             },
             6 => S2K::Unknown {
                 tag: gen_arbitrary_from_range(111..256, g) as u8,
-                parameters: Option::<Vec<u8>>::arbitrary(g).map(|v| v.into()),
+                parameters: Some(arbitrary_bounded_vec(g, 200).into()),
             },
             _ => unreachable!(),
         }
