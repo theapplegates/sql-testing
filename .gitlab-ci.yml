@@ -61,12 +61,18 @@ bookworm:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
 
-bookworm-crypto-rust:
+# XXX: Our MSRV is 1.63 except with rust-crypto, which requires
+# 1.65.  Switch back to bookworm, when rustc is >= 1.65.
+#
+# bookworm-crypto-rust:
+#   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
+rust-stable-crypto-rust:
   tags:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
+
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   dependencies:
     - codespell
   script:

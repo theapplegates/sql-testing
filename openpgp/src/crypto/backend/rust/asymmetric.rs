@@ -7,9 +7,10 @@
 use std::convert::TryFrom;
 use std::time::SystemTime;
 
+use x25519_dalek_ng as x25519_dalek;
 use num_bigint_dig::{traits::ModInverse, BigUint};
-use rand07::rngs::OsRng;
-use rsa::{PaddingScheme, RSAPublicKey, RSAPrivateKey, PublicKey, PublicKeyParts, Hash};
+use rsa::traits::{PrivateKeyParts, PublicKeyParts};
+use rsa::{Pkcs1v15Encrypt, RsaPublicKey, RsaPrivateKey, Pkcs1v15Sign};
 
 use crate::{Error, Result};
 use crate::crypto::asymmetric::{KeyPair, Decryptor, Signer};
@@ -21,41 +22,41 @@ use crate::packet::{key, Key};
 use crate::packet::key::{Key4, SecretParts};
 use crate::types::{Curve, HashAlgorithm, PublicKeyAlgorithm};
 
+use super::GenericArrayExt;
+
 const CURVE25519_SIZE: usize = 32;
 
-fn pkcs1_padding(hash_algo: HashAlgorithm) -> Result<PaddingScheme> {
+fn pkcs1_padding(hash_algo: HashAlgorithm) -> Result<Pkcs1v15Sign> {
     let hash = match hash_algo {
-        HashAlgorithm::MD5 => Hash::MD5,
-        HashAlgorithm::SHA1 => Hash::SHA1,
-        HashAlgorithm::SHA224 => Hash::SHA2_224,
-        HashAlgorithm::SHA256 => Hash::SHA2_256,
-        HashAlgorithm::SHA384 => Hash::SHA2_384,
-        HashAlgorithm::SHA512 => Hash::SHA2_512,
-        HashAlgorithm::RipeMD => Hash::RIPEMD160,
+        HashAlgorithm::MD5 => Pkcs1v15Sign::new::<md5::Md5>(),
+        HashAlgorithm::SHA1 => Pkcs1v15Sign::new::<sha1::Sha1>(),
+        HashAlgorithm::SHA224 => Pkcs1v15Sign::new::<sha2::Sha224>(),
+        HashAlgorithm::SHA256 => Pkcs1v15Sign::new::<sha2::Sha256>(),
+        HashAlgorithm::SHA384 => Pkcs1v15Sign::new::<sha2::Sha384>(),
+        HashAlgorithm::SHA512 => Pkcs1v15Sign::new::<sha2::Sha512>(),
+        HashAlgorithm::RipeMD => Pkcs1v15Sign::new::<ripemd::Ripemd160>(),
         _ => return Err(Error::InvalidArgument(format!(
             "Algorithm {:?} not representable", hash_algo)).into()),
     };
-    Ok(PaddingScheme::PKCS1v15Sign {
-        hash: Some(hash)
-    })
+    Ok(hash)
 }
 
-fn rsa_public_key(e: &MPI, n: &MPI) -> Result<RSAPublicKey> {
+fn rsa_public_key(e: &MPI, n: &MPI) -> Result<RsaPublicKey> {
     let n = BigUint::from_bytes_be(n.value());
     let e = BigUint::from_bytes_be(e.value());
-    Ok(RSAPublicKey::new(n, e)?)
+    Ok(RsaPublicKey::new(n, e)?)
 }
 
 #[allow(clippy::many_single_char_names)]
 fn rsa_private_key(e: &MPI, n: &MPI, p: &ProtectedMPI, q: &ProtectedMPI, d: &ProtectedMPI)
-    -> RSAPrivateKey
+    -> Result<RsaPrivateKey>
 {
     let n = BigUint::from_bytes_be(n.value());
     let e = BigUint::from_bytes_be(e.value());
     let p = BigUint::from_bytes_be(p.value());
     let q = BigUint::from_bytes_be(q.value());
     let d = BigUint::from_bytes_be(d.value());
-    RSAPrivateKey::from_components(n, e, d, vec![p, q])
+    Ok(RsaPrivateKey::from_components(n, e, d, vec![p, q])?)
 }
 
 impl Signer for KeyPair {
@@ -75,7 +76,7 @@ impl Signer for KeyPair {
             (RSASign,
              mpi::PublicKey::RSA { e, n },
              mpi::SecretKeyMaterial::RSA { p, q, d, .. }) => {
-                let key = rsa_private_key(e, n, p, q, d);
+                let key = rsa_private_key(e, n, p, q, d)?;
                 let padding = pkcs1_padding(hash_algo)?;
                 let sig = key.sign(padding, digest)?;
                 Ok(mpi::Signature::RSA {
@@ -97,6 +98,7 @@ impl Signer for KeyPair {
                     use p256::{
                         elliptic_curve::{
                             generic_array::GenericArray as GA,
+                            ops::Reduce,
                         },
                         Scalar,
                     };
@@ -105,18 +107,18 @@ impl Signer for KeyPair {
                     };
 
                     const LEN: usize = 32;
-                    let key = Scalar::from_bytes_reduced(
-                        GA::from_slice(&scalar.value_padded(LEN)));
-                    let dig = Scalar::from_bytes_reduced(
-                        GA::from_slice(&pad_truncating(digest, LEN)));
+                    let key = scalar.value_padded(LEN);
+                    let key = Scalar::reduce_bytes(GA::try_from_slice(&key)?);
+                    let dig = pad_truncating(digest, LEN);
+                    let dig = GA::try_from_slice(&dig)?;
 
                     let sig = loop {
                         let mut k: Protected = vec![0; LEN].into();
                         crate::crypto::random(&mut k);
-                        let k = Scalar::from_bytes_reduced(
-                            GA::from_slice(&k));
-                        if let Ok(s) = key.try_sign_prehashed(&k, &dig) {
-                            break s;
+                        let k = Scalar::reduce_bytes(
+                            GA::try_from_slice(&k)?);
+                        if let Ok(s) = key.try_sign_prehashed(k, &dig) {
+                            break s.0;
                         }
                     };
 
@@ -193,9 +195,8 @@ impl Decryptor for KeyPair {
             (mpi::PublicKey::RSA { e, n },
              mpi::SecretKeyMaterial::RSA { p, q, d, .. },
              mpi::Ciphertext::RSA { c }) => {
-                let key = rsa_private_key(e, n, p, q, d);
-                let padding = PaddingScheme::PKCS1v15Encrypt;
-                let decrypted = key.decrypt(padding, c.value())?;
+                let key = rsa_private_key(e, n, p, q, d)?;
+                let decrypted = key.decrypt(Pkcs1v15Encrypt, c.value())?;
                 Ok(SessionKey::from(decrypted))
             }
 
@@ -234,8 +235,9 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                             "Plaintext data too large".into()).into());
                     }
                     let key = rsa_public_key(e, n)?;
-                    let padding = PaddingScheme::PKCS1v15Encrypt;
-                    let ciphertext = key.encrypt(&mut OsRng, padding, data.as_ref())?;
+                    let ciphertext = key.encrypt(
+                        &mut rsa::rand_core::OsRng,
+                        Pkcs1v15Encrypt, data.as_ref())?;
                     Ok(mpi::Ciphertext::RSA {
                         c: mpi::MPI::new(&ciphertext)
                     })
@@ -268,7 +270,22 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
             (mpi::PublicKey::RSA { e, n }, mpi::Signature::RSA { s }) => {
                 let key = rsa_public_key(e, n)?;
                 let padding = pkcs1_padding(hash_algo)?;
-                key.verify(padding, digest, s.value())?;
+                // Originally, we had:
+                //
+                // key.verify(padding, digest, s.value())?;
+                //
+                // Since version 0.9.0 of the rsa crate, this no
+                // longer works, because the verify function checks
+                // that the signature length in bytes is the same as
+                // the key length.  No other crypto backend appears
+                // care (including older version of the rsa crate),
+                // but would happily left pad it with zeros.  We now
+                // do that manually:
+                //
+                // See
+                // https://docs.rs/rsa/0.9.0/src/rsa/pkcs1v15.rs.html#212
+                // and https://github.com/RustCrypto/RSA/issues/322.
+                key.verify(padding, digest, &s.value_padded(key.size())?)?;
                 Ok(())
             }
             (mpi::PublicKey::DSA { .. },
@@ -286,7 +303,6 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                             generic_array::GenericArray as GA,
                             sec1::FromEncodedPoint,
                         },
-                        Scalar,
                     };
                     use ecdsa::{
                         EncodedPoint,
@@ -295,17 +311,22 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                     const LEN: usize = 32;
 
                     let key = AffinePoint::from_encoded_point(
-                        &EncodedPoint::from_bytes(q.value())?)
-                        .ok_or_else(|| Error::InvalidKey(
-                            "Point is not on the curve".into()))?;
+                        &EncodedPoint::<p256::NistP256>::from_bytes(q.value())?);
+                    let key = if key.is_some().into() {
+                        key.unwrap()
+                    } else {
+                        return Err(Error::InvalidKey(
+                            "Point is not on the curve".into()).into());
+                    };
+
                     let sig = Signature::from_scalars(
-                        Scalar::from_bytes_reduced(
-                            GA::from_slice(&r.value_padded(LEN).map_err(bad)?)),
-                        Scalar::from_bytes_reduced(
-                            GA::from_slice(&s.value_padded(LEN).map_err(bad)?)))
+                        GA::try_clone_from_slice(
+                            &r.value_padded(LEN).map_err(bad)?)?,
+                        GA::try_clone_from_slice(
+                            &s.value_padded(LEN).map_err(bad)?)?)
                         .map_err(bad)?;
-                    let dig = Scalar::from_bytes_reduced(
-                        GA::from_slice(&pad_truncating(digest, LEN)));
+                    let dig = pad_truncating(digest, LEN);
+                    let dig = GA::try_from_slice(&dig)?;
                     key.verify_prehashed(&dig, &sig).map_err(bad)
                 },
                 _ => Err(Error::UnsupportedEllipticCurve(curve.clone()).into()),
@@ -441,7 +462,7 @@ impl<R> Key4<SecretParts, R>
 
     /// Generates a new RSA key with a public modulos of size `bits`.
     pub fn generate_rsa(bits: usize) -> Result<Self> {
-        let key = RSAPrivateKey::new(&mut OsRng, bits)?;
+        let key = RsaPrivateKey::new(&mut rsa::rand_core::OsRng, bits)?;
         let (p, q) = match key.primes() {
             [p, q] => (p, q),
             _ => panic!("RSA key generation resulted in wrong number of primes"),
@@ -484,7 +505,12 @@ impl<R> Key4<SecretParts, R>
             (Curve::Ed25519, true) => {
                 use ed25519_dalek::Keypair;
 
-                let Keypair { public, secret } = Keypair::generate(&mut OsRng);
+                // ed25519_dalek v1.0.1 doesn't reexport OsRng.  It
+                // depends on 0.7.
+                use rand07::rngs::OsRng as OsRng;
+
+                let Keypair { public, secret }
+                    = Keypair::generate(&mut OsRng);
 
                 let secret: Protected = secret.as_bytes().as_ref().into();
 
@@ -504,7 +530,11 @@ impl<R> Key4<SecretParts, R>
             (Curve::Cv25519, false) => {
                 use x25519_dalek::{StaticSecret, PublicKey};
 
-                let private_key = StaticSecret::new(OsRng);
+                // x25519_dalek v1.1 doesn't reexport OsRng.  It
+                // depends on rand 0.8.
+                use rand::rngs::OsRng;
+
+                let private_key = StaticSecret::new(&mut OsRng);
                 let public_key = PublicKey::from(&private_key);
 
                 let mut private_key = Vec::from(private_key.to_bytes());

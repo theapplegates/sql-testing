@@ -3,11 +3,10 @@
 use std::cmp;
 use std::cmp::Ordering;
 
-use cipher::{BlockCipher, NewBlockCipher};
-use cipher::block::Block;
+use cipher::{BlockCipher, BlockEncrypt, KeyInit, Unsigned};
 use cipher::consts::U16;
 use eax::online::{Eax, Encrypt, Decrypt};
-use generic_array::{ArrayLength, GenericArray};
+use generic_array::GenericArray;
 
 use crate::{Error, Result};
 use crate::crypto::aead::{Aead, CipherOp};
@@ -15,38 +14,22 @@ use crate::crypto::mem::secure_cmp;
 use crate::seal;
 use crate::types::{AEADAlgorithm, SymmetricAlgorithm};
 
+use super::GenericArrayExt;
+
 /// Disables authentication checks.
 ///
 /// This is DANGEROUS, and is only useful for debugging problems with
 /// malformed AEAD-encrypted messages.
 const DANGER_DISABLE_AUTHENTICATION: bool = false;
 
-trait GenericArrayExt<T, N: ArrayLength<T>> {
-    const LEN: usize;
+type TagLen = U16;
 
-    /// Like [`GenericArray::from_slice`], but fallible.
-    fn try_from_slice(slice: &[T]) -> Result<&GenericArray<T, N>> {
-        if slice.len() == Self::LEN {
-            Ok(GenericArray::from_slice(slice))
-        } else {
-            Err(Error::InvalidArgument(
-                format!("Invalid slice length, want {}, got {}",
-                        Self::LEN, slice.len())).into())
-        }
-    }
-}
-
-impl<T, N: ArrayLength<T>> GenericArrayExt<T, N> for GenericArray<T, N> {
-    const LEN: usize = N::USIZE;
-}
-
-impl<Cipher> Aead for Eax<Cipher, Encrypt>
+impl<Cipher> Aead for Eax<Cipher, Encrypt, TagLen>
 where
-    Cipher: BlockCipher<BlockSize = U16> + NewBlockCipher + Clone,
-    Cipher::ParBlocks: ArrayLength<Block<Cipher>>,
+    Cipher: BlockCipher<BlockSize = U16> + BlockEncrypt + Clone + KeyInit,
 {
     fn digest_size(&self) -> usize {
-        eax::Tag::LEN
+        TagLen::USIZE
     }
 
     fn encrypt_seal(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
@@ -64,13 +47,12 @@ where
     }
 }
 
-impl<Cipher> Aead for Eax<Cipher, Decrypt>
+impl<Cipher> Aead for Eax<Cipher, Decrypt, TagLen>
 where
-    Cipher: BlockCipher<BlockSize = U16> + NewBlockCipher + Clone,
-    Cipher::ParBlocks: ArrayLength<Block<Cipher>>,
+    Cipher: BlockCipher<BlockSize = U16> + BlockEncrypt + Clone + KeyInit,
 {
     fn digest_size(&self) -> usize {
-        eax::Tag::LEN
+        TagLen::USIZE
     }
 
     fn encrypt_seal(&mut self, _dst: &mut [u8], _src: &[u8]) -> Result<()> {
@@ -99,10 +81,9 @@ where
     }
 }
 
-impl<Cipher, Op> seal::Sealed for Eax<Cipher, Op>
+impl<Cipher, Op> seal::Sealed for Eax<Cipher, Op, TagLen>
 where
-    Cipher: BlockCipher<BlockSize = U16> + NewBlockCipher + Clone,
-    Cipher::ParBlocks: ArrayLength<Block<Cipher>>,
+    Cipher: BlockCipher<BlockSize = U16> + BlockEncrypt + Clone + KeyInit,
     Op: eax::online::CipherOp,
 {}
 

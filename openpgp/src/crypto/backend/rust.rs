@@ -1,6 +1,9 @@
 //! Implementation of Sequoia crypto API using pure Rust cryptographic
 //! libraries.
 
+use generic_array::{ArrayLength, GenericArray};
+
+use crate::{Error, Result};
 use crate::types::*;
 
 pub mod aead;
@@ -8,6 +11,38 @@ pub mod asymmetric;
 pub mod ecdh;
 pub mod hash;
 pub mod symmetric;
+
+trait GenericArrayExt<T, N: ArrayLength<T>> {
+    const LEN: usize;
+
+    /// Like [`GenericArray::from_slice`], but fallible.
+    fn try_from_slice(slice: &[T]) -> Result<&GenericArray<T, N>> {
+        if slice.len() == Self::LEN {
+            Ok(GenericArray::from_slice(slice))
+        } else {
+            Err(Error::InvalidArgument(
+                format!("Invalid slice length, want {}, got {}",
+                        Self::LEN, slice.len())).into())
+        }
+    }
+
+    /// Like [`GenericArray::clone_from_slice`], but fallible.
+    fn try_clone_from_slice(slice: &[T]) -> Result<GenericArray<T, N>>
+        where T: Clone
+    {
+        if slice.len() == Self::LEN {
+            Ok(GenericArray::clone_from_slice(slice))
+        } else {
+            Err(Error::InvalidArgument(
+                format!("Invalid slice length, want {}, got {}",
+                        Self::LEN, slice.len())).into())
+        }
+    }
+}
+
+impl<T, N: ArrayLength<T>> GenericArrayExt<T, N> for GenericArray<T, N> {
+    const LEN: usize = N::USIZE;
+}
 
 /// Returns a short, human-readable description of the backend.
 pub fn backend() -> String {

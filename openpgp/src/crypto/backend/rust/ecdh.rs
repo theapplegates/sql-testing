@@ -2,7 +2,7 @@
 
 use std::convert::TryInto;
 
-use rand07::rngs::OsRng;
+use x25519_dalek_ng as x25519_dalek;
 
 use crate::{Error, Result};
 use crate::crypto::SessionKey;
@@ -11,6 +11,8 @@ use crate::crypto::ecdh::{encrypt_wrap, decrypt_unwrap};
 use crate::crypto::mpi::{self, Ciphertext, SecretKeyMaterial, MPI};
 use crate::packet::{key, Key};
 use crate::types::Curve;
+
+use super::GenericArrayExt;
 
 const CURVE25519_SIZE: usize = 32;
 
@@ -28,6 +30,9 @@ pub fn encrypt<R>(recipient: &Key<key::PublicParts, R>,
 
     let (VB, shared) = match curve {
         Curve::Cv25519 => {
+            // x25519_dalek v1.1 doesn't reexport OsRng.  It
+            // depends on rand 0.8.
+            use rand::rngs::OsRng;
             use x25519_dalek::{EphemeralSecret, PublicKey};
 
             // Decode the recipient's public key.
@@ -68,7 +73,7 @@ pub fn encrypt<R>(recipient: &Key<key::PublicParts, R>,
             let VB = MPI::new(public.as_bytes());
 
             // Encode the shared secret.
-            let shared: &[u8] = shared.as_bytes();
+            let shared: &[u8] = shared.raw_secret_bytes();
             let shared = Protected::from(shared);
 
             (VB, shared)
@@ -115,7 +120,10 @@ pub fn decrypt<R>(recipient: &Key<key::PublicParts, R>,
             use p256::{
                 SecretKey,
                 PublicKey,
-                elliptic_curve::ecdh::diffie_hellman,
+                elliptic_curve::{
+                    ecdh::diffie_hellman,
+                    generic_array::GenericArray as GA,
+                },
             };
 
             const NISTP256_SIZE: usize = 32;
@@ -125,10 +133,11 @@ pub fn decrypt<R>(recipient: &Key<key::PublicParts, R>,
 
             let scalar: [u8; NISTP256_SIZE] =
                 scalar.value_padded(NISTP256_SIZE).as_ref().try_into()?;
-            let r = SecretKey::from_bytes(scalar)?;
+            let scalar = GA::try_from_slice(&scalar)?;
+            let r = SecretKey::from_bytes(&scalar)?;
 
-            let secret = diffie_hellman(r.secret_scalar(), V.as_affine());
-            Vec::from(secret.as_bytes().as_slice()).into()
+            let secret = diffie_hellman(r.to_nonzero_scalar(), V.as_affine());
+            Vec::from(secret.raw_secret_bytes().as_slice()).into()
         },
         _ => {
             return Err(Error::UnsupportedEllipticCurve(curve.clone()).into());
