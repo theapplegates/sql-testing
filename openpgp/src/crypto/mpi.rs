@@ -894,40 +894,49 @@ impl Hash for SecretKeyMaterial {
 }
 
 #[cfg(test)]
-impl Arbitrary for SecretKeyMaterial {
-    fn arbitrary(g: &mut Gen) -> Self {
-        use crate::arbitrary_helper::gen_arbitrary_from_range;
-
-        match gen_arbitrary_from_range(0..6, g) {
-            0 => SecretKeyMaterial::RSA {
+impl SecretKeyMaterial {
+    pub(crate) fn arbitrary_for(g: &mut Gen, pk: PublicKeyAlgorithm) -> Result<Self> {
+        use self::PublicKeyAlgorithm::*;
+        #[allow(deprecated)]
+        match pk {
+            RSAEncryptSign | RSASign | RSAEncrypt => Ok(SecretKeyMaterial::RSA {
                 d: MPI::arbitrary(g).into(),
                 p: MPI::arbitrary(g).into(),
                 q: MPI::arbitrary(g).into(),
                 u: MPI::arbitrary(g).into(),
-            },
+            }),
 
-            1 => SecretKeyMaterial::DSA {
+            DSA => Ok(SecretKeyMaterial::DSA {
                 x: MPI::arbitrary(g).into(),
-            },
+            }),
 
-            2 => SecretKeyMaterial::ElGamal {
+            ElGamalEncryptSign | ElGamalEncrypt => Ok(SecretKeyMaterial::ElGamal {
                 x: MPI::arbitrary(g).into(),
-            },
+            }),
 
-            3 => SecretKeyMaterial::EdDSA {
+            EdDSA => Ok(SecretKeyMaterial::EdDSA {
                 scalar: MPI::arbitrary(g).into(),
-            },
+            }),
 
-            4 => SecretKeyMaterial::ECDSA {
+            ECDSA => Ok(SecretKeyMaterial::ECDSA {
                 scalar: MPI::arbitrary(g).into(),
-            },
+            }),
 
-            5 => SecretKeyMaterial::ECDH {
+            ECDH => Ok(SecretKeyMaterial::ECDH {
                 scalar: MPI::arbitrary(g).into(),
-            },
+            }),
 
-            _ => unreachable!(),
+            Private(_) | Unknown(_) =>
+                Err(Error::UnsupportedPublicKeyAlgorithm(pk).into()),
         }
+    }
+}
+#[cfg(test)]
+impl Arbitrary for SecretKeyMaterial {
+    fn arbitrary(g: &mut Gen) -> Self {
+        let pk = *g.choose(&crate::types::PUBLIC_KEY_ALGORITHM_VARIANTS)
+            .expect("not empty");
+        Self::arbitrary_for(g, pk).expect("only known variants")
     }
 }
 

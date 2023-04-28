@@ -1749,40 +1749,11 @@ impl Arbitrary for Key4<SecretParts, SubordinateRole> {
 #[cfg(test)]
 impl Arbitrary for Key4<SecretParts, UnspecifiedRole> {
     fn arbitrary(g: &mut Gen) -> Self {
-        use PublicKeyAlgorithm::*;
-        use mpi::MPI;
-
         let key = Key4::arbitrary(g);
-        let mut secret: SecretKeyMaterial = match key.pk_algo() {
-            RSAEncryptSign => mpi::SecretKeyMaterial::RSA {
-                d: MPI::arbitrary(g).into(),
-                p: MPI::arbitrary(g).into(),
-                q: MPI::arbitrary(g).into(),
-                u: MPI::arbitrary(g).into(),
-            },
-
-            DSA => mpi::SecretKeyMaterial::DSA {
-                x: MPI::arbitrary(g).into(),
-            },
-
-            ElGamalEncrypt => mpi::SecretKeyMaterial::ElGamal {
-                x: MPI::arbitrary(g).into(),
-            },
-
-            EdDSA => mpi::SecretKeyMaterial::EdDSA {
-                scalar: MPI::arbitrary(g).into(),
-            },
-
-            ECDSA => mpi::SecretKeyMaterial::ECDSA {
-                scalar: MPI::arbitrary(g).into(),
-            },
-
-            ECDH => mpi::SecretKeyMaterial::ECDH {
-                scalar: MPI::arbitrary(g).into(),
-            },
-
-            _ => unreachable!("only valid algos, normalizes to these values"),
-        }.into();
+        let mut secret: SecretKeyMaterial =
+            mpi::SecretKeyMaterial::arbitrary_for(g, key.pk_algo())
+            .expect("only known algos used")
+            .into();
 
         if <bool>::arbitrary(g) {
             secret.encrypt_in_place(&Password::from(Vec::arbitrary(g)))

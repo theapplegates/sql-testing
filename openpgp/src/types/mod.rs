@@ -128,7 +128,7 @@ pub enum PublicKeyAlgorithm {
 assert_send_and_sync!(PublicKeyAlgorithm);
 
 #[allow(deprecated)]
-const PUBLIC_KEY_ALGORITHM_VARIANTS: [PublicKeyAlgorithm; 9] = [
+pub(crate) const PUBLIC_KEY_ALGORITHM_VARIANTS: [PublicKeyAlgorithm; 9] = [
     PublicKeyAlgorithm::RSAEncryptSign,
     PublicKeyAlgorithm::RSAEncrypt,
     PublicKeyAlgorithm::RSASign,
