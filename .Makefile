@@ -150,4 +150,4 @@ clean:
 codespell:
 	$(CODESPELL) $(CODESPELL_FLAGS) \
 	  -L "crate,ede,iff,mut,nd,te,uint,KeyServer,keyserver,Keyserver,keyservers,Keyservers,keypair,keypairs,KeyPair,fpr,dedup,deriver" \
-	  -S "*.bin,*.gpg,*.pgp,./.git,data,highlight.js,*/target,Makefile"
+	  -S "*.bin,*.gpg,*.pgp,./.git,data,highlight.js,*/target,Makefile,Cargo.lock"
