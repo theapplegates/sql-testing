@@ -246,3 +246,59 @@ pub enum BodyLength {
     Indeterminate,
 }
 assert_send_and_sync!(BodyLength);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::packet::Packet;
+    use crate::parse::{
+        Cookie, Dearmor, PacketParserBuilder, PacketParserResult, Parse,
+    };
+    use crate::serialize::SerializeInto;
+
+    quickcheck! {
+        /// Checks alignment of Header::parse-then-Header::valid, the
+        /// PacketParser, and Arbitrary::arbitrary.
+        fn parser_alignment(p: Packet) -> bool {
+            let verbose = false;
+            let buf = p.to_vec().expect("Failed to serialize packet");
+
+            // First, check Header::parse and Header::valid.
+            let mut reader = buffered_reader::Memory::with_cookie(
+                &buf, Cookie::default());
+            let header = Header::parse(&mut reader).unwrap();
+            if verbose {
+                eprintln!("header parsed: {:?}", header);
+            }
+            header.valid(true).unwrap();
+            header.valid(false).unwrap();
+
+            // Now check the packet parser.  Be careful to disable the
+            // armor detection because that in turn relies on
+            // Header::valid, and we want to test the behavior of the
+            // packet parser.
+            let ppr =
+                PacketParserBuilder::from_bytes(&buf).unwrap()
+                .dearmor(Dearmor::Disabled)
+                .buffer_unread_content()
+                .build().unwrap();
+
+            let (p, ppr) = match ppr {
+                PacketParserResult::Some(pp) => {
+                    pp.next().unwrap()
+                },
+                PacketParserResult::EOF(eof) =>
+                    panic!("no packet found: {:?}", eof),
+            };
+            if verbose {
+                eprintln!("packet parser parsed: {:?}", p);
+            }
+
+            if let PacketParserResult::Some(pp) = ppr {
+                panic!("Excess data after packet: {:?}", pp)
+            }
+
+            true
+        }
+    }
+}
