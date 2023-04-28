@@ -7,10 +7,11 @@ use crate::crypto::mem::secure_cmp;
 use crate::seal;
 use crate::types::{AEADAlgorithm, SymmetricAlgorithm};
 
+use cipher::generic_array::{GenericArray, ArrayLength};
+use cipher::generic_array::typenum::{U16, U128, U192, U256};
+use cipher::Unsigned;
 use eax::online::{Eax, Encrypt, Decrypt};
 use win_crypto_ng::symmetric::{BlockCipherKey, Aes};
-use win_crypto_ng::symmetric::block_cipher::generic_array::{GenericArray, ArrayLength};
-use win_crypto_ng::symmetric::block_cipher::generic_array::typenum::{U128, U192, U256};
 
 /// Disables authentication checks.
 ///
@@ -110,12 +111,14 @@ impl AEADAlgorithm {
     }
 }
 
+type EaxTagLen = U16;
+
 macro_rules! impl_aead {
     ($($type: ty),*) => {
         $(
-        impl Aead for Eax<$type, Encrypt> {
+        impl Aead for Eax<$type, Encrypt, EaxTagLen> {
             fn digest_size(&self) -> usize {
-                <eax::Tag as GenericArrayExt<_, _>>::LEN
+                EaxTagLen::USIZE
             }
             fn encrypt_seal(&mut self, dst: &mut [u8], src: &[u8]) -> Result<()> {
                 debug_assert_eq!(dst.len(), src.len() + self.digest_size());
@@ -136,7 +139,7 @@ macro_rules! impl_aead {
         $(
         impl Aead for Eax<$type, Decrypt> {
             fn digest_size(&self) -> usize {
-                <eax::Tag as GenericArrayExt<_, _>>::LEN
+                EaxTagLen::USIZE
             }
             fn encrypt_seal(&mut self, _dst: &mut [u8], _src: &[u8]) -> Result<()> {
                 panic!("AEAD encryption called in the decryption context")

@@ -85,7 +85,7 @@ typenum = { version = "1.12.0", optional = true }
 x25519-dalek = { version = "1.1.0", optional = true }
 
 [target.'cfg(windows)'.dependencies]
-win-crypto-ng = { version = "0.4", features = ["rand", "block-cipher"], optional = true }
+win-crypto-ng = { version = ">=0.4, <0.6", features = ["rand", "block-cipher"], optional = true }
 winapi = { version = "0.3.8", default-features = false, features = ["bcrypt"], optional = true }
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
@@ -112,7 +112,10 @@ crypto-rust = [
     "ripemd160", "rsa", "sha-1", "sha2", "twofish", "typenum", "x25519-dalek", "p256",
     "rand_core", "rand_core/getrandom", "ecdsa"
 ]
-crypto-cng = ["eax", "winapi", "win-crypto-ng", "ed25519-dalek", "num-bigint-dig"]
+crypto-cng = [
+    "cipher", "eax", "winapi", "win-crypto-ng", "ed25519-dalek",
+    "num-bigint-dig"
+]
 crypto-openssl = ["openssl", "openssl-sys", "foreign-types-shared"]
 crypto-botan = ["botan"]
 __implicit-crypto-backend-for-tests = []
