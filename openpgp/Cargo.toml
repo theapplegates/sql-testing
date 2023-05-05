@@ -52,7 +52,6 @@ openssl = { version = "0.10.47", optional = true }
 # in its build script is passed to sequoia-openpgp's build script
 # see: https://doc.rust-lang.org/cargo/reference/build-scripts.html#the-links-manifest-key
 openssl-sys = { version = "0.9.82", optional = true }
-foreign-types-shared = { version = "0.1.1", optional = true }
 
 # Botan.
 botan = { version = "0.10", optional = true }
@@ -134,7 +133,7 @@ crypto-cng = [
     "cipher", "eax", "winapi", "win-crypto-ng", "ed25519-dalek",
     "num-bigint-dig"
 ]
-crypto-openssl = ["openssl", "openssl-sys", "foreign-types-shared"]
+crypto-openssl = ["openssl", "openssl-sys"]
 crypto-botan = ["botan"]
 __implicit-crypto-backend-for-tests = []
 
