@@ -35,9 +35,10 @@ incomplete.
 Command line interface
 ----------------------
 
-Sequoia includes a simple frontend `sq` (crate [sq](./sq)) that
-can be used to experiment with Sequoia and OpenPGP. It is also an
-example of how to use various aspects of Sequoia.
+Sequoia includes a simple frontend `sq`
+([sequoia-sq](https://gitlab.com/sequoia-pgp/sequoia-sq)) that can be
+used to experiment with Sequoia and OpenPGP. It is also an example of
+how to use various aspects of Sequoia.
 
 
 Project status
