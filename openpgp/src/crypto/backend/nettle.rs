@@ -10,15 +10,18 @@ pub mod ecdh;
 pub mod hash;
 pub mod symmetric;
 
-/// Returns a short, human-readable description of the backend.
-pub fn backend() -> String {
-    let (major, minor) = nettle::version();
-    format!(
-        "Nettle {}.{} (Cv448: {:?}, OCB: {:?})",
-        major, minor,
-        nettle::curve448::IS_SUPPORTED,
-        nettle::aead::OCB_IS_SUPPORTED,
-    )
+pub struct Backend(());
+
+impl super::interface::Backend for Backend {
+    fn backend() -> String {
+        let (major, minor) = nettle::version();
+        format!(
+            "Nettle {}.{} (Cv448: {:?}, OCB: {:?})",
+            major, minor,
+            nettle::curve448::IS_SUPPORTED,
+            nettle::aead::OCB_IS_SUPPORTED,
+        )
+    }
 }
 
 /// Fills the given buffer with random data.

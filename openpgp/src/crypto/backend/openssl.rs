@@ -9,9 +9,12 @@ pub mod ecdh;
 pub mod hash;
 pub mod symmetric;
 
-/// Returns a short, human-readable description of the backend.
-pub fn backend() -> String {
-    "OpenSSL".to_string()
+pub struct Backend(());
+
+impl super::interface::Backend for Backend {
+    fn backend() -> String {
+        "OpenSSL".to_string()
+    }
 }
 
 /// Fills the given buffer with random data.

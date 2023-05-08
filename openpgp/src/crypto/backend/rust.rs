@@ -12,6 +12,15 @@ pub mod ecdh;
 pub mod hash;
 pub mod symmetric;
 
+pub struct Backend(());
+
+impl super::interface::Backend for Backend {
+    fn backend() -> String {
+        // XXX: can we include features and the version?
+        "RustCrypto".to_string()
+    }
+}
+
 trait GenericArrayExt<T, N: ArrayLength<T>> {
     const LEN: usize;
 
@@ -42,12 +51,6 @@ trait GenericArrayExt<T, N: ArrayLength<T>> {
 
 impl<T, N: ArrayLength<T>> GenericArrayExt<T, N> for GenericArray<T, N> {
     const LEN: usize = N::USIZE;
-}
-
-/// Returns a short, human-readable description of the backend.
-pub fn backend() -> String {
-    // XXX: can we include features and the version?
-    "RustCrypto".to_string()
 }
 
 /// Fills the given buffer with random data.

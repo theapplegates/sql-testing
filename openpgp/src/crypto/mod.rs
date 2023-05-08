@@ -49,7 +49,8 @@ mod tests;
 /// any optional features that are available.  This is meant for
 /// inclusion in version strings to improve bug reports.
 pub fn backend() -> String {
-    backend::backend()
+    use backend::interface::Backend;
+    backend::Backend::backend()
 }
 
 /// Fills the given buffer with random data.
