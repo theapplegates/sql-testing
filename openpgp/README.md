@@ -82,7 +82,9 @@ at compile time.  Currently, these libraries are available:
 
   - The Botan backend.  To select this backend, use
     `default-features = false`, and explicitly include the
-    `crypto-botan` feature to enable it.
+    `crypto-botan` feature to enable it.  `crypto-botan` defaults to
+    Botan v3, which was release in April 2023.  Use `crypto-botan2` to
+    use v2.
 
   - The Windows Cryptography API: Next Generation (CNG).  To select
     this backend, use `default-features = false`, and explicitly

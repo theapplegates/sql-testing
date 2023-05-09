@@ -14,6 +14,9 @@
 ** Notable fixes
    - Several parser bugs were fixed.  These are all low-severity as
      Rust correctly detects the out of bounds access and panics.
+ * Notable changes
+   - The crypto/botan feature now selects Botan's v3 interface.  The
+     crypt/botan2 feature can be used to select Botan's v2 interface.
 * Changes in 1.15.0
 ** New functionality
    - StandardPolicy::accept_hash_property
