@@ -17,13 +17,12 @@ impl super::interface::Backend for Backend {
         // XXX: can we include features and the version?
         "Windows CNG".to_string()
     }
-}
 
-/// Fills the given buffer with random data.
-pub fn random(buf: &mut [u8]) {
-    RandomNumberGenerator::system_preferred()
-        .gen_random(buf)
-        .expect("system-preferred RNG not to fail")
+    fn random(buf: &mut [u8]) -> crate::Result<()> {
+        RandomNumberGenerator::system_preferred()
+            .gen_random(buf)?;
+        Ok(())
+    }
 }
 
 impl PublicKeyAlgorithm {

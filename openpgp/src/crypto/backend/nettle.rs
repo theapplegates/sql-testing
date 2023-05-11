@@ -22,11 +22,11 @@ impl super::interface::Backend for Backend {
             nettle::aead::OCB_IS_SUPPORTED,
         )
     }
-}
 
-/// Fills the given buffer with random data.
-pub fn random(buf: &mut [u8]) {
-    Yarrow::default().random(buf);
+    fn random(buf: &mut [u8]) -> crate::Result<()> {
+        Yarrow::default().random(buf);
+        Ok(())
+    }
 }
 
 impl PublicKeyAlgorithm {

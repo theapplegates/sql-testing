@@ -63,7 +63,8 @@ pub fn backend() -> String {
 ///
 ///   [`SessionKey::new`]: crate::crypto::SessionKey::new()
 pub fn random<B: AsMut<[u8]>>(mut buf: B) {
-    backend::random(buf.as_mut());
+    use backend::interface::Backend;
+    backend::Backend::random(buf.as_mut()).unwrap();
 }
 
 /// Holds a session key.

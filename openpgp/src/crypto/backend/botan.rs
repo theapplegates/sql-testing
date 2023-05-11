@@ -14,12 +14,12 @@ impl super::interface::Backend for Backend {
     fn backend() -> String {
         "Botan".to_string()
     }
-}
 
-/// Fills the given buffer with random data.
-pub fn random(buf: &mut [u8]) {
-    let mut rng = botan::RandomNumberGenerator::new_system().unwrap();
-    rng.fill(buf).unwrap();
+    fn random(buf: &mut [u8]) -> crate::Result<()> {
+        let mut rng = botan::RandomNumberGenerator::new_system()?;
+        rng.fill(buf)?;
+        Ok(())
+    }
 }
 
 impl PublicKeyAlgorithm {

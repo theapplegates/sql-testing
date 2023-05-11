@@ -15,14 +15,11 @@ impl super::interface::Backend for Backend {
     fn backend() -> String {
         "OpenSSL".to_string()
     }
-}
 
-/// Fills the given buffer with random data.
-pub fn random(buf: &mut [u8]) {
-    // random is expected to always work or panic on wrong data.
-    // This is similar to what other backends do like CNG or Rust
-    // see: https://docs.rs/rand/latest/rand/trait.RngCore.html#tymethod.fill_bytes
-    openssl::rand::rand_bytes(buf).expect("rand_bytes to work");
+    fn random(buf: &mut [u8]) -> crate::Result<()> {
+        openssl::rand::rand_bytes(buf)?;
+        Ok(())
+    }
 }
 
 impl PublicKeyAlgorithm {

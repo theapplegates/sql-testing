@@ -19,6 +19,13 @@ impl super::interface::Backend for Backend {
         // XXX: can we include features and the version?
         "RustCrypto".to_string()
     }
+
+    fn random(buf: &mut [u8]) -> Result<()> {
+        use rand07::rngs::OsRng;
+        use rand07::RngCore;
+        OsRng.fill_bytes(buf);
+        Ok(())
+    }
 }
 
 trait GenericArrayExt<T, N: ArrayLength<T>> {
@@ -51,14 +58,6 @@ trait GenericArrayExt<T, N: ArrayLength<T>> {
 
 impl<T, N: ArrayLength<T>> GenericArrayExt<T, N> for GenericArray<T, N> {
     const LEN: usize = N::USIZE;
-}
-
-/// Fills the given buffer with random data.
-pub fn random(buf: &mut [u8]) {
-    use rand07::rngs::OsRng;
-    use rand07::RngCore;
-
-    OsRng.fill_bytes(buf)
 }
 
 impl PublicKeyAlgorithm {
