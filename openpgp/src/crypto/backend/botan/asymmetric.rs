@@ -185,30 +185,6 @@ impl KeyPair {
                 })
             },
 
-            (EdDSA,
-             PublicKey::EdDSA { curve, .. },
-             mpi::SecretKeyMaterial::EdDSA { scalar }) => match curve {
-                Curve::Ed25519 => {
-                    let size = 32;
-                    let scalar = scalar.value_padded(size);
-                    let secret = Privkey::load_ed25519(&scalar)?;
-                    let sig = secret.sign(digest, "", &mut rng)?;
-
-                    if sig.len() != size * 2 {
-                        return Err(Error::MalformedMPI(
-                            format!("Expected signature with length {}, got {}",
-                                    size * 2, sig.len())).into());
-                    }
-
-                    Ok(mpi::Signature::EdDSA {
-                        r: MPI::new(&sig[..size]),
-                        s: MPI::new(&sig[size..]),
-                    })
-                },
-                _ => Err(
-                    Error::UnsupportedEllipticCurve(curve.clone()).into()),
-            },
-
             (ECDSA,
              PublicKey::ECDSA { curve, .. },
              mpi::SecretKeyMaterial::ECDSA { scalar }) => {

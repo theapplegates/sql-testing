@@ -222,30 +222,6 @@ impl KeyPair {
                     })
                 }
 
-                (
-                    EdDSA,
-                    mpi::PublicKey::EdDSA { curve, .. },
-                    mpi::SecretKeyMaterial::EdDSA { scalar },
-                ) => match curve {
-                    Curve::Ed25519 => {
-                        let scalar = scalar.value_padded(32);
-
-                        let key =
-                            PKey::private_key_from_raw_bytes(&scalar, openssl::pkey::Id::ED25519)?;
-
-                        let mut signer = OpenSslSigner::new_without_digest(&key)?;
-                        let signature = signer.sign_oneshot_to_vec(digest)?;
-
-                        // https://tools.ietf.org/html/rfc8032#section-5.1.6
-                        let (r, s) = signature.split_at(signature.len() / 2);
-                        Ok(mpi::Signature::EdDSA {
-                            r: r.to_vec().into(),
-                            s: s.to_vec().into(),
-                        })
-                    }
-                    _ => Err(crate::Error::UnsupportedEllipticCurve(curve.clone()).into()),
-                },
-
                 (pk_algo, _, _) => Err(crate::Error::InvalidOperation(format!(
                     "unsupported combination of algorithm {:?}, key {:?}, \
                         and secret key {:?} by OpenSSL backend",

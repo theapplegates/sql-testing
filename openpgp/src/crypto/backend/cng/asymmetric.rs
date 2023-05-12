@@ -238,47 +238,7 @@ impl KeyPair {
                         s: mpi::MPI::new(s),
                     }
                 },
-                (
-                    PublicKeyAlgorithm::EdDSA,
-                    mpi::PublicKey::EdDSA { curve, q },
-                    mpi::SecretKeyMaterial::EdDSA { scalar },
-                ) => match curve {
-                    Curve::Ed25519 => {
-                        // CNG doesn't support EdDSA, use ed25519-dalek instead
-                        use ed25519_dalek::{Keypair, Signer};
-                        use ed25519_dalek::{PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
 
-                        let (public, ..) = q.decode_point(&Curve::Ed25519)?;
-                        // MPI::decode_point ensures we got the right length.
-                        assert_eq!(public.len(), PUBLIC_KEY_LENGTH);
-
-                        // It's expected for the private key to be exactly
-                        // SECRET_KEY_LENGTH bytes long but OpenPGP allows leading
-                        // zeros to be stripped.
-                        // Padding has to be unconditional; otherwise we have a
-                        // secret-dependent branch.
-                        let mut keypair = Protected::from(
-                            vec![0u8; SECRET_KEY_LENGTH + PUBLIC_KEY_LENGTH]
-                        );
-                        keypair[..SECRET_KEY_LENGTH]
-                            .copy_from_slice(
-                                &scalar.value_padded(SECRET_KEY_LENGTH));
-                        keypair[SECRET_KEY_LENGTH..]
-                            .copy_from_slice(&public);
-                        let pair = Keypair::from_bytes(&keypair).unwrap();
-
-                        let sig = pair.sign(digest).to_bytes();
-
-                        // https://tools.ietf.org/html/rfc8032#section-5.1.6
-                        let (r, s) = sig.split_at(sig.len() / 2);
-                        mpi::Signature::EdDSA {
-                            r: mpi::MPI::new(r),
-                            s: mpi::MPI::new(s),
-                        }
-                    },
-                    _ => return Err(
-                        Error::UnsupportedEllipticCurve(curve.clone()).into()),
-                },
                 (PublicKeyAlgorithm::DSA,
                     mpi:: PublicKey::DSA { y, p, q, g },
                     mpi::SecretKeyMaterial::DSA { x },

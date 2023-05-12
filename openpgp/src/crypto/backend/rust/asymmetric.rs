@@ -219,44 +219,6 @@ impl KeyPair {
                 _ => Err(Error::UnsupportedEllipticCurve(curve.clone()).into()),
             },
 
-            (EdDSA,
-             mpi::PublicKey::EdDSA { curve, q },
-             mpi::SecretKeyMaterial::EdDSA { scalar }) => match curve
-            {
-                Curve::Ed25519 => {
-                    use ed25519_dalek::{Keypair, Signer};
-                    use ed25519_dalek::{PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
-
-                    let (public, ..) = q.decode_point(&Curve::Ed25519)?;
-                    assert_eq!(public.len(), PUBLIC_KEY_LENGTH);
-
-                    // It's expected for the private key to be exactly
-                    // SECRET_KEY_LENGTH bytes long but OpenPGP allows leading
-                    // zeros to be stripped.
-                    // Padding has to be unconditional; otherwise we have a
-                    // secret-dependent branch.
-                    let mut keypair = Protected::from(
-                        vec![0u8; SECRET_KEY_LENGTH + PUBLIC_KEY_LENGTH]
-                    );
-                    keypair.as_mut()[..SECRET_KEY_LENGTH]
-                        .copy_from_slice(
-                            &scalar.value_padded(SECRET_KEY_LENGTH));
-                    keypair.as_mut()[SECRET_KEY_LENGTH..]
-                        .copy_from_slice(public);
-                    let pair = Keypair::from_bytes(&keypair)?;
-
-                    let sig = pair.sign(digest).to_bytes();
-
-                    // https://tools.ietf.org/html/rfc8032#section-5.1.6
-                    let (r, s) = sig.split_at(sig.len() / 2);
-                    Ok(mpi::Signature::EdDSA {
-                        r: mpi::MPI::new(r),
-                        s: mpi::MPI::new(s),
-                    })
-                },
-                _ => Err(Error::UnsupportedEllipticCurve(curve.clone()).into()),
-            },
-
             (pk_algo, _, _) => {
                 Err(Error::InvalidOperation(format!(
                     "unsupported combination of algorithm {:?}, key {:?}, \

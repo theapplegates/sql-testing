@@ -130,32 +130,6 @@ impl KeyPair {
                 })
             },
 
-            (EdDSA,
-             &PublicKey::EdDSA { ref curve, ref q },
-             &mpi::SecretKeyMaterial::EdDSA { ref scalar }) => match curve {
-                Curve::Ed25519 => {
-                    let public = q.decode_point(&Curve::Ed25519)?.0;
-
-                    let mut sig = vec![0; ed25519::ED25519_SIGNATURE_SIZE];
-
-                    // Nettle expects the private key to be exactly
-                    // ED25519_KEY_SIZE bytes long but OpenPGP allows leading
-                    // zeros to be stripped.
-                    // Padding has to be unconditional; otherwise we have a
-                    // secret-dependent branch.
-                    let sec = scalar.value_padded(ed25519::ED25519_KEY_SIZE);
-
-                    ed25519::sign(public, &sec[..], digest, &mut sig)?;
-
-                    Ok(mpi::Signature::EdDSA {
-                        r: MPI::new(&sig[..ed25519::ED25519_KEY_SIZE]),
-                        s: MPI::new(&sig[ed25519::ED25519_KEY_SIZE..]),
-                    })
-                },
-                _ => Err(
-                    Error::UnsupportedEllipticCurve(curve.clone()).into()),
-            },
-
             (ECDSA,
              &PublicKey::ECDSA { ref curve, .. },
              &mpi::SecretKeyMaterial::ECDSA { ref scalar }) => {

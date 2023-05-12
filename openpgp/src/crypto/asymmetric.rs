@@ -3,9 +3,9 @@
 use crate::packet::{self, key, Key};
 use crate::crypto::SessionKey;
 use crate::crypto::mpi;
-use crate::types::HashAlgorithm;
+use crate::types::{Curve, HashAlgorithm, PublicKeyAlgorithm};
 
-use crate::Result;
+use crate::{Error, Result};
 
 /// Creates a signature.
 ///
@@ -218,9 +218,28 @@ impl Signer for KeyPair {
     fn sign(&mut self, hash_algo: HashAlgorithm, digest: &[u8])
             -> Result<mpi::Signature>
     {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+
         self.secret().map(|secret| {
-            #[allow(clippy::match_single_binding)]
             match (self.public().pk_algo(), self.public().mpis(), secret) {
+                (PublicKeyAlgorithm::EdDSA,
+                 mpi::PublicKey::EdDSA { curve, q },
+                 mpi::SecretKeyMaterial::EdDSA { scalar }) => match curve {
+                    Curve::Ed25519 => {
+                        let public = q.decode_point(&Curve::Ed25519)?.0
+                            .try_into()?;
+                        let secret = scalar.value_padded(32);
+                        let sig =
+                            Backend::ed25519_sign(&secret, &public, digest)?;
+                        Ok(mpi::Signature::EdDSA {
+                            r: mpi::MPI::new(&sig[..32]),
+                            s: mpi::MPI::new(&sig[32..]),
+                        })
+                    },
+                    _ => Err(
+                        Error::UnsupportedEllipticCurve(curve.clone()).into()),
+                },
+
                 (_algo, _public, secret) =>
                     self.sign_backend(secret, hash_algo, digest),
             }
