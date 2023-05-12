@@ -1,6 +1,6 @@
 use crate::{Error, Result};
 
-use crate::crypto::asymmetric::{Decryptor, KeyPair, Signer};
+use crate::crypto::asymmetric::KeyPair;
 use crate::crypto::backend::interface::Asymmetric;
 use crate::crypto::mpi;
 use crate::crypto::mpi::{ProtectedMPI, MPI};
@@ -136,16 +136,16 @@ impl TryFrom<&Curve> for Nid {
     }
 }
 
-impl Signer for KeyPair {
-    fn public(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
-        KeyPair::public(self)
-    }
-
-    fn sign(&mut self, hash_algo: HashAlgorithm, digest: &[u8]) -> Result<mpi::Signature> {
+impl KeyPair {
+    pub(crate) fn sign_backend(&self,
+                               secret: &mpi::SecretKeyMaterial,
+                               hash_algo: HashAlgorithm,
+                               digest: &[u8])
+                               -> Result<mpi::Signature>
+    {
         use crate::PublicKeyAlgorithm::*;
         #[allow(deprecated)]
-        self.secret().map(
-            |secret| match (self.public().pk_algo(), self.public().mpis(), secret) {
+        match (self.public().pk_algo(), self.public().mpis(), secret) {
                 (
                     RSAEncryptSign,
                     mpi::PublicKey::RSA { e, n },
@@ -254,25 +254,20 @@ impl Signer for KeyPair {
                     self.secret()
                 ))
                 .into()),
-            },
-        )
+        }
     }
 }
 
-impl Decryptor for KeyPair {
-    fn public(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
-        KeyPair::public(self)
-    }
-
-    fn decrypt(
-        &mut self,
+impl KeyPair {
+    pub(crate) fn decrypt_backend(
+        &self,
+        secret: &mpi::SecretKeyMaterial,
         ciphertext: &mpi::Ciphertext,
         _plaintext_len: Option<usize>,
     ) -> Result<SessionKey> {
         use crate::crypto::mpi::PublicKey;
 
-        self.secret().map(|secret| {
-            Ok(match (self.public().mpis(), secret, ciphertext) {
+        Ok(match (self.public().mpis(), secret, ciphertext) {
                 (
                     PublicKey::RSA { ref e, ref n },
                     mpi::SecretKeyMaterial::RSA {
@@ -307,14 +302,13 @@ impl Decryptor for KeyPair {
                     ))
                     .into())
                 }
-            })
         })
     }
 }
 
 impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
     /// Encrypts the given data with this key.
-    pub fn encrypt(&self, data: &SessionKey) -> Result<mpi::Ciphertext> {
+    pub(crate) fn encrypt_backend(&self, data: &SessionKey) -> Result<mpi::Ciphertext> {
         use PublicKeyAlgorithm::*;
         #[allow(deprecated)]
         match self.pk_algo() {
@@ -361,7 +355,7 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
     }
 
     /// Verifies the given signature.
-    pub fn verify(
+    pub(crate) fn verify_backend(
         &self,
         sig: &mpi::Signature,
         hash_algo: HashAlgorithm,

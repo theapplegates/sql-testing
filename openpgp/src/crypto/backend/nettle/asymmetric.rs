@@ -9,7 +9,7 @@ use nettle::{curve25519, ecc, ecdh, ecdsa, ed25519, dsa, rsa, random::Yarrow};
 use crate::{Error, Result};
 
 use crate::packet::{key, Key};
-use crate::crypto::asymmetric::{KeyPair, Decryptor, Signer};
+use crate::crypto::asymmetric::KeyPair;
 use crate::crypto::backend::interface::Asymmetric;
 use crate::crypto::mpi::{self, MPI, PublicKey};
 use crate::crypto::SessionKey;
@@ -74,21 +74,19 @@ impl Asymmetric for super::Backend {
     }
 }
 
-impl Signer for KeyPair {
-    fn public(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
-        KeyPair::public(self)
-    }
-
-    fn sign(&mut self, hash_algo: HashAlgorithm, digest: &[u8])
-            -> Result<mpi::Signature>
+impl KeyPair {
+    pub(crate) fn sign_backend(&self,
+                               secret: &mpi::SecretKeyMaterial,
+                               hash_algo: HashAlgorithm,
+                               digest: &[u8])
+                               -> Result<mpi::Signature>
     {
         use crate::PublicKeyAlgorithm::*;
 
         let mut rng = Yarrow::default();
 
-        self.secret().map(|secret| {
-            #[allow(deprecated)]
-            match (self.public().pk_algo(), self.public().mpis(), secret)
+        #[allow(deprecated)]
+        match (self.public().pk_algo(), self.public().mpis(), secret)
         {
             (RSASign,
              &PublicKey::RSA { ref e, ref n },
@@ -189,24 +187,18 @@ impl Signer for KeyPair {
                 "unsupported combination of algorithm {:?}, key {:?}, \
                  and secret key {:?}",
                 pk_algo, self.public(), self.secret())).into()),
-        }})
+        }
     }
 }
 
-impl Decryptor for KeyPair {
-    fn public(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
-        KeyPair::public(self)
-    }
-
-    fn decrypt(&mut self, ciphertext: &mpi::Ciphertext,
+impl KeyPair {
+    pub(crate) fn decrypt_backend(&self, secret: &mpi::SecretKeyMaterial, ciphertext: &mpi::Ciphertext,
                plaintext_len: Option<usize>)
                -> Result<SessionKey>
     {
         use crate::PublicKeyAlgorithm::*;
 
-        self.secret().map(
-            |secret| Ok(match (self.public().mpis(), secret, ciphertext)
-        {
+        Ok(match (self.public().mpis(), secret, ciphertext) {
             (PublicKey::RSA{ ref e, ref n },
              mpi::SecretKeyMaterial::RSA{ ref p, ref q, ref d, .. },
              mpi::Ciphertext::RSA{ ref c }) => {
@@ -242,14 +234,14 @@ impl Decryptor for KeyPair {
                     "unsupported combination of key pair {:?}/{:?} \
                      and ciphertext {:?}",
                     public, secret, ciphertext)).into()),
-        }))
+        })
     }
 }
 
 
 impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
     /// Encrypts the given data with this key.
-    pub fn encrypt(&self, data: &SessionKey) -> Result<mpi::Ciphertext> {
+    pub(crate) fn encrypt_backend(&self, data: &SessionKey) -> Result<mpi::Ciphertext> {
         use crate::PublicKeyAlgorithm::*;
 
         #[allow(deprecated)]
@@ -298,7 +290,7 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
     }
 
     /// Verifies the given signature.
-    pub fn verify(&self, sig: &mpi::Signature, hash_algo: HashAlgorithm,
+    pub(crate) fn verify_backend(&self, sig: &mpi::Signature, hash_algo: HashAlgorithm,
                   digest: &[u8]) -> Result<()>
     {
         use crate::crypto::mpi::Signature;

@@ -6,7 +6,7 @@ use std::convert::TryInto;
 
 use crate::{Error, Result};
 
-use crate::crypto::asymmetric::{Decryptor, KeyPair, Signer};
+use crate::crypto::asymmetric::KeyPair;
 use crate::crypto::backend::interface::Asymmetric;
 use crate::crypto::mem::Protected;
 use crate::crypto::mpi;
@@ -131,12 +131,13 @@ impl Asymmetric for super::Backend {
     }
 }
 
-impl Signer for KeyPair {
-    fn public(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
-        KeyPair::public(self)
-    }
-
-    fn sign(&mut self, hash_algo: HashAlgorithm, digest: &[u8]) -> Result<mpi::Signature> {
+impl KeyPair {
+    pub(crate) fn sign_backend(&self,
+                               secret: &mpi::SecretKeyMaterial,
+                               hash_algo: HashAlgorithm,
+                               digest: &[u8])
+                               -> Result<mpi::Signature>
+    {
         use cng::asymmetric::{AsymmetricAlgorithm, AsymmetricAlgorithmId};
         use cng::asymmetric::{AsymmetricKey, Private, Rsa};
         use cng::asymmetric::signature::{Signer, SignaturePadding};
@@ -145,8 +146,7 @@ impl Signer for KeyPair {
         use cng::asymmetric::ecc::NamedCurve;
 
         #[allow(deprecated)]
-        self.secret().map(|secret| {
-            Ok(match (self.public().pk_algo(), self.public().mpis(), secret) {
+        Ok(match (self.public().pk_algo(), self.public().mpis(), secret) {
                 (PublicKeyAlgorithm::RSAEncryptSign,
                     &mpi::PublicKey::RSA { ref e, ref n },
                     &mpi::SecretKeyMaterial::RSA { ref p, ref q, ref d, .. }) |
@@ -403,27 +403,20 @@ impl Signer for KeyPair {
                     "unsupported combination of algorithm {:?}, key {:?}, \
                      and secret key {:?}",
                     pk_algo, self.public(), self.secret())))?,
-            })
         })
     }
 }
 
-impl Decryptor for KeyPair {
-    fn public(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
-        KeyPair::public(self)
-    }
-
-    /// Creates a signature over the `digest` produced by `hash_algo`.
-    fn decrypt(
-        &mut self,
+impl KeyPair {
+    pub(crate) fn decrypt_backend(
+        &self,
+        secret: &mpi::SecretKeyMaterial,
         ciphertext: &mpi::Ciphertext,
         plaintext_len: Option<usize>,
     ) -> Result<SessionKey> {
         use crate::PublicKeyAlgorithm::*;
 
-        self.secret().map(
-            |secret| Ok(match (self.public().mpis(), secret, ciphertext)
-        {
+        Ok(match (self.public().mpis(), secret, ciphertext) {
             (mpi::PublicKey::RSA { ref e, ref n },
              mpi::SecretKeyMaterial::RSA { ref p, ref q, ref d, .. },
              mpi::Ciphertext::RSA { ref c }) => {
@@ -471,13 +464,13 @@ impl Decryptor for KeyPair {
                     "unsupported combination of key pair {:?}/{:?} \
                      and ciphertext {:?}",
                     public, secret, ciphertext)).into()),
-        }))
+        })
     }
 }
 
 impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
     /// Encrypts the given data with this key.
-    pub fn encrypt(&self, data: &SessionKey) -> Result<mpi::Ciphertext> {
+    pub(crate) fn encrypt_backend(&self, data: &SessionKey) -> Result<mpi::Ciphertext> {
         use cng::asymmetric::{AsymmetricAlgorithm, AsymmetricAlgorithmId};
         use cng::asymmetric::{AsymmetricKey, Public, Rsa};
         use cng::key_blob::RsaKeyPublicPayload;
@@ -536,7 +529,7 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
     }
 
     /// Verifies the given signature.
-    pub fn verify(&self, sig: &mpi::Signature, hash_algo: HashAlgorithm,
+    pub(crate) fn verify_backend(&self, sig: &mpi::Signature, hash_algo: HashAlgorithm,
                   digest: &[u8]) -> Result<()> {
         use cng::asymmetric::{AsymmetricAlgorithm, AsymmetricAlgorithmId};
         use cng::asymmetric::{AsymmetricKey, Public, Rsa};

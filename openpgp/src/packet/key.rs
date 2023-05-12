@@ -102,6 +102,7 @@ use crate::types::{Curve, Timestamp};
 use crate::crypto::S2K;
 use crate::Result;
 use crate::crypto::Password;
+use crate::crypto::SessionKey;
 use crate::KeyID;
 use crate::Fingerprint;
 use crate::KeyHandle;
@@ -734,6 +735,22 @@ pub(crate) type UnspecifiedSecondary = Key<UnspecifiedParts, SubordinateRole>;
 #[allow(dead_code)]
 pub(crate) type UnspecifiedKey = Key<UnspecifiedParts, UnspecifiedRole>;
 
+/// Cryptographic operations using the key material.
+impl<P, R> Key<P, R>
+     where P: key::KeyParts,
+           R: key::KeyRole,
+{
+    /// Encrypts the given data with this key.
+    pub fn encrypt(&self, data: &SessionKey) -> Result<mpi::Ciphertext> {
+        self.encrypt_backend(data)
+    }
+
+    /// Verifies the given signature.
+    pub fn verify(&self, sig: &mpi::Signature, hash_algo: HashAlgorithm,
+                  digest: &[u8]) -> Result<()> {
+        self.verify_backend(sig, hash_algo, digest)
+    }
+}
 
 /// Holds a public key, public subkey, private key or private subkey
 /// packet.

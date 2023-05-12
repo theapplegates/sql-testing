@@ -209,3 +209,41 @@ impl From<KeyPair> for Key<key::SecretParts, key::UnspecifiedRole> {
         key.add_secret(secret.into()).0
     }
 }
+
+impl Signer for KeyPair {
+    fn public(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
+        KeyPair::public(self)
+    }
+
+    fn sign(&mut self, hash_algo: HashAlgorithm, digest: &[u8])
+            -> Result<mpi::Signature>
+    {
+        self.secret().map(|secret| {
+            #[allow(clippy::match_single_binding)]
+            match (self.public().pk_algo(), self.public().mpis(), secret) {
+                (_algo, _public, secret) =>
+                    self.sign_backend(secret, hash_algo, digest),
+            }
+        })
+    }
+}
+
+impl Decryptor for KeyPair {
+    fn public(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
+        KeyPair::public(self)
+    }
+
+    fn decrypt(&mut self,
+               ciphertext: &mpi::Ciphertext,
+               plaintext_len: Option<usize>)
+               -> Result<SessionKey>
+    {
+        self.secret().map(|secret| {
+            #[allow(clippy::match_single_binding)]
+            match (self.public().mpis(), secret, ciphertext) {
+                (_public, secret, _ciphertext) =>
+                    self.decrypt_backend(secret, ciphertext, plaintext_len),
+            }
+        })
+    }
+}
