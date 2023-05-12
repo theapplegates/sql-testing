@@ -395,30 +395,6 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                 let truncated_digest = &digest[..size.min(digest.len())];
                 pk.verify(truncated_digest, &sig, "Raw").unwrap()
             },
-            (PublicKey::EdDSA { curve, q }, Signature::EdDSA { r, s }) =>
-              match curve {
-                Curve::Ed25519 => {
-                    if q.value().get(0).map(|&b| b != 0x40).unwrap_or(true) {
-                        return Err(Error::MalformedPacket(
-                            "Invalid point encoding".into()).into());
-                    }
-
-                    // OpenPGP encodes R and S separately, but our
-                    // cryptographic library expects them to be
-                    // concatenated.
-                    let mut sig = Vec::with_capacity(64);
-
-                    // We need to zero-pad them at the front, because
-                    // the MPI encoding drops leading zero bytes.
-                    sig.extend_from_slice(&r.value_padded(32).map_err(bad)?);
-                    sig.extend_from_slice(&s.value_padded(32).map_err(bad)?);
-
-                    let pk = Pubkey::load_ed25519(&q.value()[1..])?;
-                    pk.verify(digest, &sig, "")?
-                },
-                _ => return
-                    Err(Error::UnsupportedEllipticCurve(curve.clone()).into()),
-            },
             (PublicKey::ECDSA { curve, q }, Signature::ECDSA { s, r }) =>
             {
                 // OpenPGP encodes R and S separately, but our

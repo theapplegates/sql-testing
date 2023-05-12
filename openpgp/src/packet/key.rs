@@ -748,7 +748,58 @@ impl<P, R> Key<P, R>
     /// Verifies the given signature.
     pub fn verify(&self, sig: &mpi::Signature, hash_algo: HashAlgorithm,
                   digest: &[u8]) -> Result<()> {
-        self.verify_backend(sig, hash_algo, digest)
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+        use crate::crypto::mpi::{PublicKey, Signature};
+
+        fn bad(e: impl ToString) -> anyhow::Error {
+            Error::BadSignature(e.to_string()).into()
+        }
+
+        let ok = match (self.mpis(), sig) {
+            (PublicKey::EdDSA { curve, q }, Signature::EdDSA { r, s }) =>
+              match curve {
+                Curve::Ed25519 => {
+                    let (public, ..) = q.decode_point(&Curve::Ed25519)?;
+                    assert_eq!(public.len(), 32);
+
+                    // OpenPGP encodes R and S separately, but our
+                    // cryptographic backends expect them to be
+                    // concatenated.
+                    let mut signature = Vec::with_capacity(64);
+
+                    // We need to zero-pad them at the front, because
+                    // the MPI encoding drops leading zero bytes.
+                    signature.extend_from_slice(
+                        &r.value_padded(32).map_err(bad)?);
+                    signature.extend_from_slice(
+                        &s.value_padded(32).map_err(bad)?);
+
+                    // Let's see if we got it right.
+                    debug_assert_eq!(signature.len(), 64);
+
+                    Backend::ed25519_verify(public.try_into()?,
+                                            digest,
+                                            &signature.as_slice().try_into()?)?
+                },
+                _ => return
+                    Err(Error::UnsupportedEllipticCurve(curve.clone()).into()),
+            },
+
+            (PublicKey::RSA { .. }, Signature::RSA { .. }) |
+            (PublicKey::DSA { .. }, Signature::DSA { .. }) |
+            (PublicKey::ECDSA { .. }, Signature::ECDSA { .. }) =>
+                return self.verify_backend(sig, hash_algo, digest),
+
+            _ => return Err(Error::MalformedPacket(format!(
+                "unsupported combination of key {} and signature {:?}.",
+                self.pk_algo(), sig)).into()),
+        };
+
+        if ok {
+            Ok(())
+        } else {
+            Err(Error::ManipulatedMessage.into())
+        }
     }
 }
 

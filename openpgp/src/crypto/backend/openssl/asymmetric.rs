@@ -393,29 +393,6 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                 ctx.verify_init()?;
                 ctx.verify(&digest, &signature.to_der()?)?
             }
-            (mpi::PublicKey::EdDSA { curve, q }, mpi::Signature::EdDSA { r, s }) => match curve {
-                Curve::Ed25519 => {
-                    let public = q.decode_point(&Curve::Ed25519)?.0;
-
-                    let key = PKey::public_key_from_raw_bytes(public, openssl::pkey::Id::ED25519)?;
-
-                    const SIGNATURE_LENGTH: usize = 64;
-
-                    // ed25519 expects full-sized signatures but OpenPGP allows
-                    // for stripped leading zeroes, pad each part with zeroes.
-                    let mut sig_bytes = [0u8; SIGNATURE_LENGTH];
-
-                    // We need to zero-pad them at the front, because
-                    // the MPI encoding drops leading zero bytes.
-                    let half = SIGNATURE_LENGTH / 2;
-                    sig_bytes[..half].copy_from_slice(&r.value_padded(half)?);
-                    sig_bytes[half..].copy_from_slice(&s.value_padded(half)?);
-
-                    let mut verifier = Verifier::new_without_digest(&key)?;
-                    verifier.verify_oneshot(&sig_bytes, digest)?
-                }
-                _ => return Err(crate::Error::UnsupportedEllipticCurve(curve.clone()).into()),
-            },
             (mpi::PublicKey::ECDSA { curve, q }, mpi::Signature::ECDSA { s, r }) => {
                 let nid = curve.try_into()?;
                 let group = EcGroup::from_curve_name(nid)?;

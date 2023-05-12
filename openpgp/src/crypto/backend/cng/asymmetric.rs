@@ -743,42 +743,6 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                         Error::UnsupportedEllipticCurve(curve.clone()).into()),
                 }
             },
-            (mpi::PublicKey::EdDSA { curve, q }, mpi::Signature::EdDSA { r, s })
-                => match curve
-            {
-                Curve::Ed25519 => {
-                    // CNG doesn't support EdDSA, use ed25519-dalek instead
-                    use ed25519_dalek::{PublicKey, Signature, SIGNATURE_LENGTH};
-                    use ed25519_dalek::{Verifier};
-
-                    let (public, ..) = q.decode_point(&Curve::Ed25519)?;
-                    assert_eq!(public.len(), 32);
-
-                    let key = PublicKey::from_bytes(public).map_err(|e| {
-                        Error::InvalidKey(e.to_string())
-                    })?;
-
-                    // ed25519 expects full-sized signatures but OpenPGP allows
-                    // for stripped leading zeroes, pad each part with zeroes.
-                    let mut sig_bytes = [0u8; SIGNATURE_LENGTH];
-
-                    // We need to zero-pad them at the front, because
-                    // the MPI encoding drops leading zero bytes.
-                    let half = SIGNATURE_LENGTH / 2;
-                    sig_bytes[..half].copy_from_slice(
-                        &r.value_padded(half).map_err(bad)?);
-                    sig_bytes[half..].copy_from_slice(
-                        &s.value_padded(half).map_err(bad)?);
-
-                    let signature = Signature::from(sig_bytes);
-
-                    key.verify(digest, &signature)
-                        .map(|_| true)
-                        .map_err(|e| Error::BadSignature(e.to_string()))?
-                },
-                _ => return Err(
-                    Error::UnsupportedEllipticCurve(curve.clone()).into()),
-            },
             _ => return Err(Error::MalformedPacket(format!(
                 "unsupported combination of key {} and signature {:?}.",
                 self.pk_algo(), sig)).into()),
