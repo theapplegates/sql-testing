@@ -10,9 +10,36 @@ use crate::{Error, Result};
 
 use crate::packet::{key, Key};
 use crate::crypto::asymmetric::{KeyPair, Decryptor, Signer};
+use crate::crypto::backend::interface::Asymmetric;
 use crate::crypto::mpi::{self, MPI, PublicKey};
 use crate::crypto::SessionKey;
 use crate::types::{Curve, HashAlgorithm};
+
+impl Asymmetric for super::Backend {
+    fn x25519_generate_key() -> Result<(Protected, [u8; 32])> {
+        debug_assert_eq!(curve25519::CURVE25519_SIZE, 32);
+        let mut rng = Yarrow::default();
+        let secret = curve25519::private_key(&mut rng);
+        let mut public = [0; 32];
+        curve25519::mul_g(&mut public, &secret)?;
+        Ok((secret.into(), public))
+    }
+
+    fn x25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
+        debug_assert_eq!(curve25519::CURVE25519_SIZE, 32);
+        let mut public = [0; 32];
+        curve25519::mul_g(&mut public, secret)?;
+        Ok(public)
+    }
+
+    fn x25519_shared_point(secret: &Protected, public: &[u8; 32])
+                           -> Result<Protected> {
+        debug_assert_eq!(curve25519::CURVE25519_SIZE, 32);
+        let mut s: Protected = vec![0; 32].into();
+        curve25519::mul(&mut s, secret, public)?;
+        Ok(s)
+    }
+}
 
 impl Signer for KeyPair {
     fn public(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
@@ -333,13 +360,6 @@ use crate::types::PublicKeyAlgorithm;
 impl<R> Key4<SecretParts, R>
     where R: key::KeyRole,
 {
-    pub(crate) fn derive_cv25519_public_key(private_key: &Protected) -> Result<[u8; 32]>
-    {
-        let mut public_key = [0; ed25519::ED25519_KEY_SIZE];
-        curve25519::mul_g(&mut public_key, private_key)?;
-        Ok(public_key)
-    }
-
     /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.
     ///
     /// The ECDH key will use hash algorithm `hash` and symmetric
@@ -449,10 +469,8 @@ impl<R> Key4<SecretParts, R>
             }
 
             (Curve::Cv25519, false) => {
-                let mut public = [0; curve25519::CURVE25519_SIZE];
-                let mut private: Protected =
-                    curve25519::private_key(&mut rng).into();
-                curve25519::mul_g(&mut public, &private)?;
+                let (mut private, public) =
+                    super::Backend::x25519_generate_key()?;
 
                 // Reverse the scalar.  See
                 // https://lists.gnupg.org/pipermail/gnupg-devel/2018-February/033437.html.

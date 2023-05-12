@@ -17,6 +17,7 @@ use crate::{
     Result,
     crypto::{
         asymmetric::{KeyPair, Decryptor, Signer},
+        backend::interface::Asymmetric,
         mem::Protected,
         mpi::{self, MPI, ProtectedMPI, PublicKey},
         SessionKey,
@@ -31,6 +32,36 @@ use crate::{
         PublicKeyAlgorithm,
     },
 };
+
+impl Asymmetric for super::Backend {
+    fn x25519_generate_key() -> Result<(Protected, [u8; 32])> {
+        let mut rng = RandomNumberGenerator::new_userspace()?;
+        let secret = Privkey::create("Curve25519", "", &mut rng)?;
+        let mut public = [0u8; 32];
+        public.copy_from_slice(&secret.pubkey()?.get_x25519_key()?);
+        let mut secret: Protected = secret.get_x25519_key()?.into();
+
+        // Clamp the scalar.  X25519 does the clamping implicitly, but
+        // OpenPGP's ECDH over Curve25519 requires the secret to be
+        // clamped.
+        secret[0] &= 0b1111_1000;
+        secret[31] &= !0b1000_0000;
+        secret[31] |= 0b0100_0000;
+
+        Ok((secret, public))
+    }
+
+    fn x25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
+        let secret = Privkey::load_x25519(secret)?;
+        Ok(<[u8; 32]>::try_from(&secret.pubkey()?.get_x25519_key()?[..])?)
+    }
+
+    fn x25519_shared_point(secret: &Protected, public: &[u8; 32])
+                           -> Result<Protected> {
+        let secret = Privkey::load_x25519(&secret)?;
+        Ok(secret.agree(public, 32, b"", "Raw")?.into())
+    }
+}
 
 // CONFIDENTIALITY: Botan clears the MPIs after use.
 impl TryFrom<&ProtectedMPI> for botan::MPI {
@@ -404,13 +435,6 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
 impl<R> Key4<SecretParts, R>
     where R: key::KeyRole,
 {
-    pub(crate) fn derive_cv25519_public_key(private_key: &Protected) -> Result<[u8; 32]>
-    {
-        let secret = Privkey::load_x25519(private_key)?;
-
-        Ok(<[u8; 32]>::try_from(&secret.pubkey()?.get_x25519_key()?[..])?)
-    }
-
     /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.
     ///
     /// The ECDH key will use hash algorithm `hash` and symmetric

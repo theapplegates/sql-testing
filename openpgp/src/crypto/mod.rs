@@ -31,7 +31,7 @@ use crate::{
 pub(crate) mod aead;
 mod asymmetric;
 pub use self::asymmetric::{Signer, Decryptor, KeyPair};
-mod backend;
+pub(crate) mod backend;
 pub mod ecdh;
 pub mod hash;
 pub mod mem;

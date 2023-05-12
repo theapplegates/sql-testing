@@ -1,6 +1,7 @@
 use crate::{Error, Result};
 
 use crate::crypto::asymmetric::{Decryptor, KeyPair, Signer};
+use crate::crypto::backend::interface::Asymmetric;
 use crate::crypto::mpi;
 use crate::crypto::mpi::{ProtectedMPI, MPI};
 use crate::crypto::mem::Protected;
@@ -12,6 +13,7 @@ use std::convert::{TryFrom, TryInto};
 use std::time::SystemTime;
 
 use openssl::bn::{BigNum, BigNumRef, BigNumContext};
+use openssl::derive::Deriver;
 use openssl::ec::{EcGroup, EcKey, EcPoint, PointConversionForm};
 use openssl::ecdsa::EcdsaSig;
 use openssl::nid::Nid;
@@ -20,6 +22,32 @@ use openssl::pkey_ctx::PkeyCtx;
 use openssl::rsa::{Padding, Rsa, RsaPrivateKeyBuilder};
 use openssl::sign::Signer as OpenSslSigner;
 use openssl::sign::Verifier;
+
+impl Asymmetric for super::Backend {
+    fn x25519_generate_key() -> Result<(Protected, [u8; 32])> {
+        let pair = openssl::pkey::PKey::generate_x25519()?;
+        Ok((pair.raw_private_key()?.into(),
+            pair.raw_public_key()?.as_slice().try_into()?))
+    }
+
+    fn x25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
+        let key = PKey::private_key_from_raw_bytes(
+            secret, openssl::pkey::Id::X25519)?;
+        Ok(key.raw_public_key()?.as_slice().try_into()?)
+    }
+
+    fn x25519_shared_point(secret: &Protected, public: &[u8; 32])
+                           -> Result<Protected> {
+        let public = PKey::public_key_from_raw_bytes(
+            public, openssl::pkey::Id::X25519)?;
+        let secret = PKey::private_key_from_raw_bytes(
+            secret, openssl::pkey::Id::X25519)?;
+
+        let mut deriver = Deriver::new(&secret)?;
+        deriver.set_peer(&public)?;
+        Ok(deriver.derive_to_vec()?.into())
+    }
+}
 
 impl TryFrom<&ProtectedMPI> for BigNum {
     type Error = anyhow::Error;
@@ -399,13 +427,6 @@ impl<R> Key4<SecretParts, R>
 where
     R: key::KeyRole,
 {
-    pub(crate) fn derive_cv25519_public_key(private_key: &Protected) -> Result<[u8; 32]>
-    {
-        let key = PKey::private_key_from_raw_bytes(private_key, openssl::pkey::Id::X25519)?;
-        let public = key.raw_public_key()?;
-        Ok(<[u8; 32]>::try_from(&public[..])?)
-    }
-
     /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.
     ///
     /// The ECDH key will use hash algorithm `hash` and symmetric

@@ -14,6 +14,7 @@ use rsa::{Pkcs1v15Encrypt, RsaPublicKey, RsaPrivateKey, Pkcs1v15Sign};
 
 use crate::{Error, Result};
 use crate::crypto::asymmetric::{KeyPair, Decryptor, Signer};
+use crate::crypto::backend::interface::Asymmetric;
 use crate::crypto::mem::Protected;
 use crate::crypto::mpi::{self, MPI, ProtectedMPI};
 use crate::crypto::SessionKey;
@@ -25,6 +26,42 @@ use crate::types::{Curve, HashAlgorithm, PublicKeyAlgorithm};
 use super::GenericArrayExt;
 
 const CURVE25519_SIZE: usize = 32;
+
+impl Asymmetric for super::Backend {
+    fn x25519_generate_key() -> Result<(Protected, [u8; 32])> {
+        use x25519_dalek::{StaticSecret, PublicKey};
+
+        // x25519_dalek v1.1 doesn't reexport OsRng.  It
+        // depends on rand 0.8.
+        use rand::rngs::OsRng;
+
+        let secret = StaticSecret::new(&mut OsRng);
+        let public = PublicKey::from(&secret);
+        let mut secret_bytes = secret.to_bytes();
+        let secret = secret_bytes.as_ref().into();
+        unsafe {
+            memsec::memzero(secret_bytes.as_mut_ptr(), secret_bytes.len());
+        }
+
+        Ok((secret, public.to_bytes()))
+    }
+
+    fn x25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
+        use x25519_dalek::{PublicKey, StaticSecret};
+
+        let secret = StaticSecret::from(<[u8; 32]>::try_from(&secret[..])?);
+        Ok(*PublicKey::from(&secret).as_bytes())
+    }
+
+    fn x25519_shared_point(secret: &Protected, public: &[u8; 32])
+                           -> Result<Protected> {
+        use x25519_dalek::{StaticSecret, PublicKey};
+
+        let secret = StaticSecret::from(<[u8; 32]>::try_from(&secret[..])?);
+        let public = PublicKey::from(public.clone());
+        Ok((&secret.diffie_hellman(&public).as_bytes()[..]).into())
+    }
+}
 
 fn pkcs1_padding(hash_algo: HashAlgorithm) -> Result<Pkcs1v15Sign> {
     let hash = match hash_algo {
@@ -375,14 +412,6 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
 impl<R> Key4<SecretParts, R>
     where R: key::KeyRole,
 {
-    pub(crate) fn derive_cv25519_public_key(private_key: &Protected) -> Result<[u8; 32]>
-    {
-        use x25519_dalek::{PublicKey, StaticSecret};
-
-        let secret = StaticSecret::from(<[u8; 32]>::try_from(&private_key[..])?);
-        Ok(*PublicKey::from(&secret).as_bytes())
-    }
-
     /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.
     ///
     /// The ECDH key will use hash algorithm `hash` and symmetric

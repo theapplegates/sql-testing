@@ -7,6 +7,7 @@ use std::convert::TryInto;
 use crate::{Error, Result};
 
 use crate::crypto::asymmetric::{Decryptor, KeyPair, Signer};
+use crate::crypto::backend::interface::Asymmetric;
 use crate::crypto::mem::Protected;
 use crate::crypto::mpi;
 use crate::crypto::SessionKey;
@@ -20,6 +21,64 @@ use num_bigint_dig::{traits::ModInverse, BigInt, BigUint};
 use win_crypto_ng as cng;
 
 const CURVE25519_SIZE: usize = 32;
+
+impl Asymmetric for super::Backend {
+    fn x25519_generate_key() -> Result<(Protected, [u8; 32])> {
+        use cng::asymmetric::{Ecdh, AsymmetricKey, Export};
+        use cng::asymmetric::ecc::Curve25519;
+
+        let pair =
+            AsymmetricKey::builder(Ecdh(Curve25519)).build()?.export()?;
+
+        let mut public = [0u8; 32];
+        public.copy_from_slice(pair.x());
+
+        Ok((pair.d().into(), public))
+    }
+
+    fn x25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
+        use cng::asymmetric::{AsymmetricAlgorithm, AsymmetricAlgorithmId, Ecdh,
+                              Private, AsymmetricKey, Export};
+        use cng::asymmetric::ecc::{Curve25519, NamedCurve};
+
+        let provider = AsymmetricAlgorithm::open(
+            AsymmetricAlgorithmId::Ecdh(NamedCurve::Curve25519)
+        )?;
+        let key = AsymmetricKey::<Ecdh<Curve25519>, Private>::import_from_parts(
+            &provider,
+            secret,
+        )?;
+        Ok(<[u8; 32]>::try_from(&key.export()?.x()[..])?)
+    }
+
+    fn x25519_shared_point(secret: &Protected, public: &[u8; 32])
+                           -> Result<Protected> {
+        use cng::asymmetric::{Ecdh, AsymmetricKey, Public, Private,
+                              AsymmetricAlgorithm, AsymmetricAlgorithmId};
+        use cng::asymmetric::agreement::secret_agreement;
+        use cng::asymmetric::ecc::{NamedCurve, Curve25519};
+
+        let provider =
+            AsymmetricAlgorithm::open(
+                AsymmetricAlgorithmId::Ecdh(NamedCurve::Curve25519))?;
+        let public =
+            AsymmetricKey::<Ecdh<Curve25519>, Public>::import_from_parts(
+                &provider,
+                public,
+            )?;
+        let secret =
+            AsymmetricKey::<Ecdh<Curve25519>, Private>::import_from_parts(
+                &provider,
+                secret,
+            )?;
+
+        let shared = secret_agreement(&secret, &public)?;
+        let mut shared = Protected::from(shared.derive_raw()?);
+        // Returned secret is little-endian, flip it to big-endian
+        shared.reverse();
+        Ok(shared)
+    }
+}
 
 impl Signer for KeyPair {
     fn public(&self) -> &Key<key::PublicParts, key::UnspecifiedRole> {
@@ -693,22 +752,6 @@ impl<R> Key4<SecretParts, R>
 where
     R: key::KeyRole,
 {
-    pub(crate) fn derive_cv25519_public_key(private_key: &Protected) -> Result<[u8; 32]>
-    {
-        use cng::asymmetric::{AsymmetricAlgorithm, AsymmetricAlgorithmId, Ecdh, Private};
-        use cng::asymmetric::{AsymmetricKey, Export};
-        use cng::asymmetric::ecc::{Curve25519, NamedCurve};
-
-        let provider = AsymmetricAlgorithm::open(
-            AsymmetricAlgorithmId::Ecdh(NamedCurve::Curve25519)
-        )?;
-        let key = AsymmetricKey::<Ecdh<Curve25519>, Private>::import_from_parts(
-            &provider,
-            private_key
-        )?;
-        Ok(<[u8; 32]>::try_from(&key.export()?.x()[..])?)
-    }
-
     /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.
     ///
     /// The key will have it's creation date set to `ctime` or the current time

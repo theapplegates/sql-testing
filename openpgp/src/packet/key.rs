@@ -1066,9 +1066,10 @@ impl<R> Key4<SecretParts, R>
                               S: Into<Option<SymmetricAlgorithm>>,
                               T: Into<Option<std::time::SystemTime>>
     {
-        let mut private_key = Protected::from(private_key);
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
 
-        let public_key = Self::derive_cv25519_public_key(&private_key)?;
+        let mut private_key = Protected::from(private_key);
+        let public_key = Backend::x25519_derive_public(&private_key)?;
 
         private_key.reverse();
 
