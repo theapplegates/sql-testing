@@ -297,7 +297,7 @@ impl AutocryptHeaders {
 
         for pair in ac_value.split(';') {
             let pair = pair
-                .splitn(2, |c| c == '=')
+                .splitn(2, '=')
                 .collect::<Vec<&str>>();
 
             let (key, value) : (String, String) = if pair.len() == 1 {
