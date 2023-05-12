@@ -465,40 +465,6 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
 impl<R> Key4<SecretParts, R>
     where R: key::KeyRole,
 {
-    /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.
-    ///
-    /// The ECDH key will use hash algorithm `hash` and symmetric
-    /// algorithm `sym`.  If one or both are `None` secure defaults
-    /// will be used.  The key will have it's creation date set to
-    /// `ctime` or the current time if `None` is given.
-    pub fn import_secret_ed25519<T>(private_key: &[u8], ctime: T)
-        -> Result<Self> where T: Into<Option<SystemTime>>
-    {
-        use ed25519_dalek::{PublicKey, SecretKey};
-
-        let private = SecretKey::from_bytes(private_key).map_err(|e| {
-            Error::InvalidKey(e.to_string())
-        })?;
-
-        // Mark MPI as compressed point with 0x40 prefix. See
-        // https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-07#section-13.2.
-        let mut public = [0u8; 1 + CURVE25519_SIZE];
-        public[0] = 0x40;
-        public[1..].copy_from_slice(Into::<PublicKey>::into(&private).as_bytes());
-
-        Self::with_secret(
-            ctime.into().unwrap_or_else(crate::now),
-            PublicKeyAlgorithm::EdDSA,
-            mpi::PublicKey::EdDSA {
-                curve: Curve::Ed25519,
-                q: mpi::MPI::new(&public)
-            },
-            mpi::SecretKeyMaterial::EdDSA {
-                scalar: private_key.into(),
-            }.into()
-        )
-    }
-
     /// Creates a new OpenPGP public key packet for an existing RSA key.
     ///
     /// The RSA key will use public exponent `e` and modulo `n`. The key will

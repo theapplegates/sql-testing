@@ -393,30 +393,6 @@ use crate::types::PublicKeyAlgorithm;
 impl<R> Key4<SecretParts, R>
     where R: key::KeyRole,
 {
-    /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.
-    ///
-    /// The ECDH key will use hash algorithm `hash` and symmetric
-    /// algorithm `sym`.  If one or both are `None` secure defaults
-    /// will be used.  The key will have it's creation date set to
-    /// `ctime` or the current time if `None` is given.
-    pub fn import_secret_ed25519<T>(private_key: &[u8], ctime: T)
-        -> Result<Self> where T: Into<Option<SystemTime>>
-    {
-        let mut public_key = [0; ed25519::ED25519_KEY_SIZE];
-        ed25519::public_key(&mut public_key, private_key).unwrap();
-
-        Self::with_secret(
-            ctime.into().unwrap_or_else(crate::now),
-            PublicKeyAlgorithm::EdDSA,
-            mpi::PublicKey::EdDSA {
-                curve: Curve::Ed25519,
-                q: MPI::new_compressed_point(&public_key),
-            },
-            mpi::SecretKeyMaterial::EdDSA {
-                scalar: private_key.into(),
-            }.into())
-    }
-
     /// Creates a new OpenPGP public key packet for an existing RSA key.
     ///
     /// The RSA key will use public exponent `e` and modulo `n`. The key will

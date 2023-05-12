@@ -456,33 +456,6 @@ impl<R> Key4<SecretParts, R>
 where
     R: key::KeyRole,
 {
-    /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.
-    ///
-    /// The ECDH key will use hash algorithm `hash` and symmetric
-    /// algorithm `sym`.  If one or both are `None` secure defaults
-    /// will be used.  The key will have it's creation date set to
-    /// `ctime` or the current time if `None` is given.
-    pub fn import_secret_ed25519<T>(private_key: &[u8], ctime: T) -> Result<Self>
-    where
-        T: Into<Option<SystemTime>>,
-    {
-        let key = PKey::private_key_from_raw_bytes(private_key, openssl::pkey::Id::ED25519)?;
-        let public_key = key.raw_public_key()?;
-
-        Self::with_secret(
-            ctime.into().unwrap_or_else(crate::now),
-            PublicKeyAlgorithm::EdDSA,
-            mpi::PublicKey::EdDSA {
-                curve: Curve::Ed25519,
-                q: public_key.into(),
-            },
-            mpi::SecretKeyMaterial::EdDSA {
-                scalar: private_key.into(),
-            }
-            .into(),
-        )
-    }
-
     /// Creates a new OpenPGP public key packet for an existing RSA key.
     ///
     /// The RSA key will use public exponent `e` and modulo `n`. The key will
