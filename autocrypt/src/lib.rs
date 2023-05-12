@@ -267,8 +267,19 @@ impl AutocryptHeaders {
 
             if let Some(rest) = line.strip_prefix(FROM) {
                 headers.from = Some(rest.trim_matches(' ').into());
-            } else if line.starts_with(AUTOCRYPT) || line.starts_with(AUTOCRYPT_GOSSIP) {
-                headers.headers.push(Self::decode_autocrypt_like_header(&line));
+            } else {
+                if let Some((key, value)) =
+                    if let Some(v) = line.strip_prefix(AUTOCRYPT) {
+                        Some((AutocryptHeaderType::Sender, v))
+                    } else if let Some(v) = line.strip_prefix(AUTOCRYPT_GOSSIP) {
+                        Some((AutocryptHeaderType::Gossip, v))
+                    } else {
+                        None
+                    }
+                {
+                    headers.headers.push(
+                        Self::decode_autocrypt_like_header(key, value));
+                }
             }
         }
 
@@ -278,17 +289,10 @@ impl AutocryptHeaders {
     /// Decode header that has the same format as the Autocrypt header.
     /// This function should be called only on "Autocrypt" or "Autocrypt-Gossip"
     /// headers.
-    fn decode_autocrypt_like_header(line: &str) -> AutocryptHeader {
-        let mut parts = line.splitn(2, ": ");
-        let header_name = parts.next().unwrap();
-        let ac_value = parts.next().unwrap();
-
-        let header_type = match header_name {
-            "Autocrypt" => AutocryptHeaderType::Sender,
-            "Autocrypt-Gossip" => AutocryptHeaderType::Gossip,
-            other => panic!("Expected Autocrypt header but found: {}", other)
-        };
-
+    fn decode_autocrypt_like_header(header_type: AutocryptHeaderType,
+                                    ac_value: &str)
+        -> AutocryptHeader
+    {
         let mut header = AutocryptHeader::empty(header_type);
 
         for pair in ac_value.split(';') {

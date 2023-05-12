@@ -9,4 +9,5 @@ rustflags = [
           "-Aclippy::redundant-clone",
           "-Aclippy::try-err",
           "-Aclippy::unnecessary-lazy-evaluations",
+          "-Aclippy::manual-map",
 ]
