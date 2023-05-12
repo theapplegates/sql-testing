@@ -207,7 +207,8 @@ impl PublicKeyAlgorithm {
     /// assert!(!PublicKeyAlgorithm::Private(101).is_supported());
     /// ```
     pub fn is_supported(&self) -> bool {
-        self.is_supported_by_backend()
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+        Backend::supports_algo(*self)
     }
 
     /// Returns an iterator over all valid variants.
@@ -605,7 +606,8 @@ impl Curve {
     /// assert!(!Curve::Unknown(Box::new([0x2B, 0x11])).is_supported());
     /// ```
     pub fn is_supported(&self) -> bool {
-        self.is_supported_by_backend()
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+        Backend::supports_curve(self)
     }
 }
 

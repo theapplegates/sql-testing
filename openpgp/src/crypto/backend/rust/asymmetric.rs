@@ -28,6 +28,33 @@ use super::GenericArrayExt;
 const CURVE25519_SIZE: usize = 32;
 
 impl Asymmetric for super::Backend {
+    fn supports_algo(algo: PublicKeyAlgorithm) -> bool {
+        use PublicKeyAlgorithm::*;
+        #[allow(deprecated)]
+        match algo {
+            RSAEncryptSign | RSAEncrypt | RSASign | ECDH | EdDSA | ECDSA
+                => true,
+            DSA
+                => false,
+            ElGamalEncrypt | ElGamalEncryptSign | Private(_) | Unknown(_)
+                => false,
+        }
+    }
+
+    fn supports_curve(curve: &Curve) -> bool {
+        use self::Curve::*;
+        match curve {
+            NistP256
+                => true,
+            NistP384 | NistP521
+                => false,
+            Ed25519 | Cv25519
+                => true,
+            BrainpoolP256 | BrainpoolP512 | Unknown(_)
+                => false,
+        }
+    }
+
     fn x25519_generate_key() -> Result<(Protected, [u8; 32])> {
         use x25519_dalek::{StaticSecret, PublicKey};
 

@@ -34,6 +34,31 @@ use crate::{
 };
 
 impl Asymmetric for super::Backend {
+    fn supports_algo(algo: PublicKeyAlgorithm) -> bool {
+        use PublicKeyAlgorithm::*;
+        #[allow(deprecated)]
+        match algo {
+            RSAEncryptSign | RSAEncrypt | RSASign | DSA | ECDH | ECDSA | EdDSA |
+            ElGamalEncrypt | ElGamalEncryptSign
+                => true,
+            Private(_) | Unknown(_)
+                => false,
+        }
+    }
+
+    fn supports_curve(curve: &Curve) -> bool {
+        use Curve::*;
+        match curve {
+            NistP256 | NistP384 | NistP521 | Ed25519 | Cv25519 |
+            BrainpoolP256 | BrainpoolP512
+                => true,
+            Unknown(_) if curve.is_brainpoolp384() // XXX
+                => true,
+            Unknown(_)
+                => false,
+        }
+    }
+
     fn x25519_generate_key() -> Result<(Protected, [u8; 32])> {
         let mut rng = RandomNumberGenerator::new_userspace()?;
         let secret = Privkey::create("Curve25519", "", &mut rng)?;

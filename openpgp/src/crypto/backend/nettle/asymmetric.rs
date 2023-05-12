@@ -16,6 +16,27 @@ use crate::crypto::SessionKey;
 use crate::types::{Curve, HashAlgorithm};
 
 impl Asymmetric for super::Backend {
+    fn supports_algo(algo: PublicKeyAlgorithm) -> bool {
+        use PublicKeyAlgorithm::*;
+        #[allow(deprecated)]
+        match algo {
+            RSAEncryptSign | RSAEncrypt | RSASign | DSA | ECDH | ECDSA | EdDSA
+                => true,
+            ElGamalEncrypt | ElGamalEncryptSign | Private(_) | Unknown(_)
+                => false,
+        }
+    }
+
+    fn supports_curve(curve: &Curve) -> bool {
+        use Curve::*;
+        match curve {
+            NistP256 | NistP384 | NistP521 | Ed25519 | Cv25519
+                => true,
+            BrainpoolP256 | BrainpoolP512 | Unknown(_)
+                => false,
+        }
+    }
+
     fn x25519_generate_key() -> Result<(Protected, [u8; 32])> {
         debug_assert_eq!(curve25519::CURVE25519_SIZE, 32);
         let mut rng = Yarrow::default();

@@ -1,5 +1,4 @@
 //! Implementation of Sequoia crypto API using the OpenSSL cryptographic library.
-use std::convert::TryFrom;
 
 use crate::types::*;
 
@@ -19,38 +18,6 @@ impl super::interface::Backend for Backend {
     fn random(buf: &mut [u8]) -> crate::Result<()> {
         openssl::rand::rand_bytes(buf)?;
         Ok(())
-    }
-}
-
-impl PublicKeyAlgorithm {
-    pub(crate) fn is_supported_by_backend(&self) -> bool {
-        use PublicKeyAlgorithm::*;
-        #[allow(deprecated)]
-        match self {
-            RSAEncryptSign | RSAEncrypt | RSASign => true,
-            DSA => true,
-            ECDH | ECDSA | EdDSA => true,
-            ElGamalEncrypt | ElGamalEncryptSign |
-            Private(_) | Unknown(_)
-                => false,
-        }
-    }
-}
-
-impl Curve {
-    pub(crate) fn is_supported_by_backend(&self) -> bool {
-        if matches!(self, Curve::Ed25519 | Curve::Cv25519) {
-            // 25519-based algorithms are special-cased and supported
-            true
-        } else {
-            // the rest of EC algorithms are supported via the same
-            // codepath
-            if let Ok(nid) = openssl::nid::Nid::try_from(self) {
-                openssl::ec::EcGroup::from_curve_name(nid).is_ok()
-            } else {
-                false
-            }
-        }
     }
 }
 

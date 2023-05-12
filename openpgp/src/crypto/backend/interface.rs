@@ -3,6 +3,7 @@
 use crate::{
     Result,
     crypto::mem::Protected,
+    types::{Curve, PublicKeyAlgorithm},
 };
 
 /// Abstracts over the cryptographic backends.
@@ -25,6 +26,22 @@ pub trait Backend: Asymmetric {
 
 /// Public-key cryptography interface.
 pub trait Asymmetric {
+    /// Returns whether the given public key cryptography algorithm is
+    /// supported by this backend.
+    ///
+    /// Note: when implementing this function, match exhaustively on
+    /// `algo`, do not use a catch-all.  This way, when new algorithms
+    /// are introduced, we will see where we may need to add support.
+    fn supports_algo(algo: PublicKeyAlgorithm) -> bool;
+
+    /// Returns whether the given elliptic curve is supported by this
+    /// backend.
+    ///
+    /// Note: when implementing this function, match exhaustively on
+    /// `curve`, do not use a catch-all.  This way, when new algorithms
+    /// are introduced, we will see where we may need to add support.
+    fn supports_curve(curve: &Curve) -> bool;
+
     /// Generates an X25519 key pair.
     ///
     /// Returns a tuple containing the secret and public key.

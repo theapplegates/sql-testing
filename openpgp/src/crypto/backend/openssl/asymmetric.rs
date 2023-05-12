@@ -24,6 +24,34 @@ use openssl::sign::Signer as OpenSslSigner;
 use openssl::sign::Verifier;
 
 impl Asymmetric for super::Backend {
+    fn supports_algo(algo: PublicKeyAlgorithm) -> bool {
+        use PublicKeyAlgorithm::*;
+        #[allow(deprecated)]
+        match algo {
+            RSAEncryptSign | RSAEncrypt | RSASign => true,
+            DSA => true,
+            ECDH | ECDSA | EdDSA => true,
+            ElGamalEncrypt | ElGamalEncryptSign |
+            Private(_) | Unknown(_)
+                => false,
+        }
+    }
+
+    fn supports_curve(curve: &Curve) -> bool {
+        if matches!(curve, Curve::Ed25519 | Curve::Cv25519) {
+            // 25519-based algorithms are special-cased and supported
+            true
+        } else {
+            // the rest of EC algorithms are supported via the same
+            // codepath
+            if let Ok(nid) = openssl::nid::Nid::try_from(curve) {
+                openssl::ec::EcGroup::from_curve_name(nid).is_ok()
+            } else {
+                false
+            }
+        }
+    }
+
     fn x25519_generate_key() -> Result<(Protected, [u8; 32])> {
         let pair = openssl::pkey::PKey::generate_x25519()?;
         Ok((pair.raw_private_key()?.into(),
