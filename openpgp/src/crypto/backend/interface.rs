@@ -36,4 +36,20 @@ pub trait Asymmetric {
     /// Computes the shared point.
     fn x25519_shared_point(secret: &Protected, public: &[u8; 32])
                            -> Result<Protected>;
+
+    /// Generates an Ed25519 key pair.
+    ///
+    /// Returns a tuple containing the secret and public key.
+    fn ed25519_generate_key() -> Result<(Protected, [u8; 32])>;
+
+    /// Computes the public key for a given secret key.
+    fn ed25519_derive_public(secret: &Protected) -> Result<[u8; 32]>;
+
+    /// Creates an Ed25519 signature.
+    fn ed25519_sign(secret: &Protected, public: &[u8; 32], digest: &[u8])
+                    -> Result<[u8; 64]>;
+
+    /// Verifies an Ed25519 signature.
+    fn ed25519_verify(public: &[u8; 32], digest: &[u8], signature: &[u8; 64])
+                      -> Result<bool>;
 }

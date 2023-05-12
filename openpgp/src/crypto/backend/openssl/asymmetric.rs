@@ -47,6 +47,35 @@ impl Asymmetric for super::Backend {
         deriver.set_peer(&public)?;
         Ok(deriver.derive_to_vec()?.into())
     }
+
+    fn ed25519_generate_key() -> Result<(Protected, [u8; 32])> {
+        let pair = openssl::pkey::PKey::generate_ed25519()?;
+        Ok((pair.raw_private_key()?.into(),
+            pair.raw_public_key()?.as_slice().try_into()?))
+    }
+
+    fn ed25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
+        let key = PKey::private_key_from_raw_bytes(
+            secret, openssl::pkey::Id::ED25519)?;
+        Ok(key.raw_public_key()?.as_slice().try_into()?)
+    }
+
+    fn ed25519_sign(secret: &Protected, _public: &[u8; 32], digest: &[u8])
+                    -> Result<[u8; 64]> {
+        let key = PKey::private_key_from_raw_bytes(
+            secret, openssl::pkey::Id::ED25519)?;
+
+        let mut signer = OpenSslSigner::new_without_digest(&key)?;
+        Ok(signer.sign_oneshot_to_vec(digest)?.as_slice().try_into()?)
+    }
+
+    fn ed25519_verify(public: &[u8; 32], digest: &[u8], signature: &[u8; 64])
+                      -> Result<bool> {
+        let key = PKey::public_key_from_raw_bytes(
+            public, openssl::pkey::Id::ED25519)?;
+        let mut verifier = Verifier::new_without_digest(&key)?;
+        Ok(verifier.verify_oneshot(signature, digest)?)
+    }
 }
 
 impl TryFrom<&ProtectedMPI> for BigNum {

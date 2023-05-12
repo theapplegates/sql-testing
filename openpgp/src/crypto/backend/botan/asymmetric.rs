@@ -61,6 +61,33 @@ impl Asymmetric for super::Backend {
         let secret = Privkey::load_x25519(&secret)?;
         Ok(secret.agree(public, 32, b"", "Raw")?.into())
     }
+
+    fn ed25519_generate_key() -> Result<(Protected, [u8; 32])> {
+        let mut rng = RandomNumberGenerator::new_userspace()?;
+        let secret = Privkey::create("Ed25519", "", &mut rng)?;
+        let (public, secret) = secret.get_ed25519_key()?;
+        Ok((secret.into(), public.as_slice().try_into()?))
+    }
+
+    fn ed25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
+        let secret = Privkey::load_ed25519(secret)?;
+        let (public, secret) = secret.get_ed25519_key()?;
+        let _ = Protected::from(secret); // Securely dispose.
+        Ok(public.as_slice().try_into()?)
+    }
+
+    fn ed25519_sign(secret: &Protected, _public: &[u8; 32], digest: &[u8])
+                    -> Result<[u8; 64]> {
+        let mut rng = RandomNumberGenerator::new_userspace()?;
+        let secret = Privkey::load_ed25519(&secret)?;
+        Ok(secret.sign(digest, "", &mut rng)?.as_slice().try_into()?)
+    }
+
+    fn ed25519_verify(public: &[u8; 32], digest: &[u8], signature: &[u8; 64])
+                      -> Result<bool> {
+        let pk = Pubkey::load_ed25519(public)?;
+        Ok(pk.verify(digest, signature, "")?)
+    }
 }
 
 // CONFIDENTIALITY: Botan clears the MPIs after use.

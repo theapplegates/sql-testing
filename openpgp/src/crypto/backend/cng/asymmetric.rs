@@ -78,6 +78,57 @@ impl Asymmetric for super::Backend {
         shared.reverse();
         Ok(shared)
     }
+
+    fn ed25519_generate_key() -> Result<(Protected, [u8; 32])> {
+        let mut rng = cng::random::RandomNumberGenerator::system_preferred();
+        let pair = ed25519_dalek::Keypair::generate(&mut rng);
+        Ok((pair.secret.as_bytes().as_slice().into(), pair.secret.to_bytes()))
+    }
+
+    fn ed25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
+        use ed25519_dalek::{PublicKey, SecretKey};
+
+        let secret = SecretKey::from_bytes(secret).map_err(|e| {
+            Error::InvalidKey(e.to_string())
+        })?;
+        let public = PublicKey::from(&secret);
+        Ok(public.to_bytes())
+    }
+
+    fn ed25519_sign(secret: &Protected, public: &[u8; 32], digest: &[u8])
+                    -> Result<[u8; 64]> {
+        use ed25519_dalek::{Keypair, Signer};
+        use ed25519_dalek::{PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
+
+        if secret.len() != SECRET_KEY_LENGTH {
+            return Err(crate::Error::InvalidArgument(
+                "Bad Ed25519 secret length".into()).into());
+        }
+
+        let mut keypair = Protected::from(
+            vec![0u8; SECRET_KEY_LENGTH + PUBLIC_KEY_LENGTH]
+        );
+        keypair.as_mut()[..SECRET_KEY_LENGTH].copy_from_slice(secret);
+        keypair.as_mut()[SECRET_KEY_LENGTH..].copy_from_slice(public);
+        let pair = Keypair::from_bytes(&keypair)?;
+        unsafe {
+            memsec::memzero(keypair.as_mut_ptr(), keypair.len());
+        }
+
+        Ok(pair.sign(digest).to_bytes().try_into()?)
+    }
+
+    fn ed25519_verify(public: &[u8; 32], digest: &[u8], signature: &[u8; 64])
+                      -> Result<bool> {
+        use ed25519_dalek::{PublicKey, Signature};
+        use ed25519_dalek::{Verifier};
+
+        let public = PublicKey::from_bytes(public).map_err(|e| {
+            Error::InvalidKey(e.to_string())
+        })?;
+        let signature = Signature::from_bytes(&signature.clone())?;
+        Ok(public.verify(digest, &signature).is_ok())
+    }
 }
 
 impl Signer for KeyPair {

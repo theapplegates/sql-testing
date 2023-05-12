@@ -39,6 +39,39 @@ impl Asymmetric for super::Backend {
         curve25519::mul(&mut s, secret, public)?;
         Ok(s)
     }
+
+    fn ed25519_generate_key() -> Result<(Protected, [u8; 32])> {
+        debug_assert_eq!(ed25519::ED25519_KEY_SIZE, 32);
+        let mut rng = Yarrow::default();
+        let mut public = [0; 32];
+        let secret: Protected =
+            ed25519::private_key(&mut rng).into();
+        ed25519::public_key(&mut public, &secret)?;
+        Ok((secret, public))
+    }
+
+    fn ed25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
+        debug_assert_eq!(ed25519::ED25519_KEY_SIZE, 32);
+        let mut public = [0; 32];
+        ed25519::public_key(&mut public, secret)?;
+        Ok(public)
+    }
+
+    fn ed25519_sign(secret: &Protected, public: &[u8; 32], digest: &[u8])
+                    -> Result<[u8; 64]> {
+        debug_assert_eq!(ed25519::ED25519_KEY_SIZE, 32);
+        debug_assert_eq!(ed25519::ED25519_SIGNATURE_SIZE, 64);
+        let mut sig = [0u8; 64];
+        ed25519::sign(public, secret, digest, &mut sig)?;
+        Ok(sig)
+    }
+
+    fn ed25519_verify(public: &[u8; 32], digest: &[u8], signature: &[u8; 64])
+                      -> Result<bool> {
+        debug_assert_eq!(ed25519::ED25519_KEY_SIZE, 32);
+        debug_assert_eq!(ed25519::ED25519_SIGNATURE_SIZE, 64);
+        Ok(ed25519::verify(public, digest, signature)?)
+    }
 }
 
 impl Signer for KeyPair {
