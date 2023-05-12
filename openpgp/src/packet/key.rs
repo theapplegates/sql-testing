@@ -1122,6 +1122,9 @@ impl<P, R> Key4<P, R>
                                 -> Result<time::SystemTime>
         where T: Into<time::SystemTime>
     {
+        // Clear the cache.
+        self.fingerprint = Default::default();
+
         Ok(std::mem::replace(&mut self.creation_time,
                              timestamp.into().try_into()?)
            .into())
@@ -1138,6 +1141,9 @@ impl<P, R> Key4<P, R>
     pub fn set_pk_algo(&mut self, pk_algo: PublicKeyAlgorithm)
         -> PublicKeyAlgorithm
     {
+        // Clear the cache.
+        self.fingerprint = Default::default();
+
         ::std::mem::replace(&mut self.pk_algo, pk_algo)
     }
 
@@ -1148,6 +1154,9 @@ impl<P, R> Key4<P, R>
 
     /// Returns a mutable reference to the `Key`'s MPIs.
     pub fn mpis_mut(&mut self) -> &mut mpi::PublicKey {
+        // Clear the cache.
+        self.fingerprint = Default::default();
+
         &mut self.mpis
     }
 
@@ -1155,6 +1164,9 @@ impl<P, R> Key4<P, R>
     ///
     /// This function returns the old MPIs, if any.
     pub fn set_mpis(&mut self, mpis: mpi::PublicKey) -> mpi::PublicKey {
+        // Clear the cache.
+        self.fingerprint = Default::default();
+
         ::std::mem::replace(&mut self.mpis, mpis)
     }
 
@@ -2341,5 +2353,34 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
                                       i: usize) -> bool {
             mutate_eq_discriminates_key(key, i)
         }
+    }
+
+    #[test]
+    fn issue_1016() {
+        // The fingerprint is a function of the creation time,
+        // algorithm, and public MPIs.  When we change them make sure
+        // the fingerprint also changes.
+
+        let mut g = quickcheck::Gen::new(256);
+
+        let mut key = Key4::<PublicParts, UnspecifiedRole>::arbitrary(&mut g);
+        let fpr1 = key.fingerprint();
+        key.set_creation_time(std::time::UNIX_EPOCH).expect("ok");
+        assert_ne!(fpr1, key.fingerprint());
+
+        let mut key = Key4::<PublicParts, UnspecifiedRole>::arbitrary(&mut g);
+        let fpr1 = key.fingerprint();
+        key.set_pk_algo(PublicKeyAlgorithm::Unknown(222));
+        assert_ne!(fpr1, key.fingerprint());
+
+        let mut key = Key4::<PublicParts, UnspecifiedRole>::arbitrary(&mut g);
+        let fpr1 = key.fingerprint();
+        *key.mpis_mut() = mpi::PublicKey::arbitrary(&mut g);
+        assert_ne!(fpr1, key.fingerprint());
+
+        let mut key = Key4::<PublicParts, UnspecifiedRole>::arbitrary(&mut g);
+        let fpr1 = key.fingerprint();
+        key.set_mpis(mpi::PublicKey::arbitrary(&mut g));
+        assert_ne!(fpr1, key.fingerprint());
     }
 }
