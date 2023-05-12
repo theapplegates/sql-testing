@@ -336,7 +336,13 @@ pub enum Error {
     /// The optional time is the time at which the operation was
     /// determined to no longer be secure.
     #[error("{0} is not considered secure{}",
-            .1.as_ref().map(|t| format!(" since {}", crate::fmt::time(t)))
+            .1.as_ref().map(|t| {
+                if *t == std::time::UNIX_EPOCH {
+                    "".to_string()
+                } else {
+                    format!(" since {}", crate::fmt::time(t))
+                }
+            })
             .unwrap_or_else(|| "".into()))]
     PolicyViolation(String, Option<std::time::SystemTime>),
 }
