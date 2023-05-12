@@ -280,6 +280,15 @@ impl KeyFlags {
         self.clear(KEY_FLAG_CERTIFY)
     }
 
+    /// Declares whether this key may be used to certify other keys.
+    pub fn set_certification_to(self, value: bool) -> Self {
+        if value {
+            self.set(KEY_FLAG_CERTIFY)
+        } else {
+            self.clear(KEY_FLAG_CERTIFY)
+        }
+    }
+
     /// This key may be used to sign data.
     pub fn for_signing(&self) -> bool {
         self.get(KEY_FLAG_SIGN)
@@ -293,6 +302,15 @@ impl KeyFlags {
     /// Declares that this key may not be used to sign data.
     pub fn clear_signing(self) -> Self {
         self.clear(KEY_FLAG_SIGN)
+    }
+
+    /// Declares whether this key may be used to sign data.
+    pub fn set_signing_to(self, value: bool) -> Self {
+        if value {
+            self.set(KEY_FLAG_SIGN)
+        } else {
+            self.clear(KEY_FLAG_SIGN)
+        }
     }
 
     /// This key may be used to encrypt communications.
@@ -310,6 +328,15 @@ impl KeyFlags {
         self.clear(KEY_FLAG_ENCRYPT_FOR_TRANSPORT)
     }
 
+    /// Declares whether this key may be used to encrypt communications.
+    pub fn set_transport_encryption_to(self, value: bool) -> Self {
+        if value {
+            self.set(KEY_FLAG_ENCRYPT_FOR_TRANSPORT)
+        } else {
+            self.clear(KEY_FLAG_ENCRYPT_FOR_TRANSPORT)
+        }
+    }
+
     /// This key may be used to encrypt storage.
     pub fn for_storage_encryption(&self) -> bool {
         self.get(KEY_FLAG_ENCRYPT_AT_REST)
@@ -325,6 +352,15 @@ impl KeyFlags {
         self.clear(KEY_FLAG_ENCRYPT_AT_REST)
     }
 
+    /// Declares whether this key may be used to encrypt storage.
+    pub fn set_storage_encryption_to(self, value: bool) -> Self {
+        if value {
+            self.set(KEY_FLAG_ENCRYPT_AT_REST)
+        } else {
+            self.clear(KEY_FLAG_ENCRYPT_AT_REST)
+        }
+    }
+
     /// This key may be used for authentication.
     pub fn for_authentication(&self) -> bool {
         self.get(KEY_FLAG_AUTHENTICATE)
@@ -338,6 +374,15 @@ impl KeyFlags {
     /// Declares that this key may not be used for authentication.
     pub fn clear_authentication(self) -> Self {
         self.clear(KEY_FLAG_AUTHENTICATE)
+    }
+
+    /// Declares whether this key may be used for authentication.
+    pub fn set_authentication_to(self, value: bool) -> Self {
+        if value {
+            self.set(KEY_FLAG_AUTHENTICATE)
+        } else {
+            self.clear(KEY_FLAG_AUTHENTICATE)
+        }
     }
 
     /// The private component of this key may have been split
@@ -358,6 +403,16 @@ impl KeyFlags {
         self.clear(KEY_FLAG_SPLIT_KEY)
     }
 
+    /// Declares whether the private component of this key may have been
+    /// split using a secret-sharing mechanism.
+    pub fn set_split_key_to(self, value: bool) -> Self {
+        if value {
+            self.set(KEY_FLAG_SPLIT_KEY)
+        } else {
+            self.clear(KEY_FLAG_SPLIT_KEY)
+        }
+    }
+
     /// The private component of this key may be in possession of more
     /// than one person.
     pub fn is_group_key(&self) -> bool {
@@ -374,6 +429,16 @@ impl KeyFlags {
     /// in possession of more than one person.
     pub fn clear_group_key(self) -> Self {
         self.clear(KEY_FLAG_GROUP_KEY)
+    }
+
+    /// Declares whether the private component of this key is in
+    /// possession of more than one person.
+    pub fn set_group_key_to(self, value: bool) -> Self {
+        if value {
+            self.set(KEY_FLAG_GROUP_KEY)
+        } else {
+            self.clear(KEY_FLAG_GROUP_KEY)
+        }
     }
 
     /// Returns whether no flags are set.
@@ -433,5 +498,31 @@ mod tests {
 
             true
         }
+    }
+
+    #[test]
+    fn test_set_to() {
+        macro_rules! t {
+            ($set:ident, $set2:ident) => {
+                // Set using set2.
+                assert_eq!(KeyFlags::empty().$set(),
+                           KeyFlags::empty().$set2(true));
+
+                // Clear using set2.
+                assert_eq!(KeyFlags::empty().$set2(false),
+                           KeyFlags::empty());
+
+                // Set using set, then clear using set2.
+                assert_eq!(KeyFlags::empty().$set().$set2(false),
+                           KeyFlags::empty());
+            }
+        }
+
+        t!(set_certification, set_certification_to);
+        t!(set_signing, set_signing_to);
+        t!(set_transport_encryption, set_transport_encryption_to);
+        t!(set_storage_encryption, set_storage_encryption_to);
+        t!(set_split_key, set_split_key_to);
+        t!(set_group_key, set_group_key_to);
     }
 }

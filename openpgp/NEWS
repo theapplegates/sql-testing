@@ -3,6 +3,14 @@
 #+TITLE: sequoia-openpgp NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 1.16.0
+** New functionality
+   - Add KeyFlags::set_certification_to.
+   - Add KeyFlags::set_signing_to.
+   - Add KeyFlags::set_transport_encryption_to.
+   - Add KeyFlags::set_storage_encryption_to.
+   - Add KeyFlags::set_split_key_to.
+   - Add KeyFlags::set_group_key_to.
 * Changes in 1.15.0
 ** New functionality
    - StandardPolicy::accept_hash_property
