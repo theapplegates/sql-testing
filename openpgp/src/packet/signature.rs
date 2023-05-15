@@ -1627,12 +1627,17 @@ impl SignatureBuilder {
     {
         use std::time;
 
-        let now = || self.reference_time.unwrap_or_else(crate::now);
+        let now = || -> Result<SystemTime> {
+            let rt = self.reference_time.unwrap_or_else(crate::now);
+            // Roundtrip via Timestamp to ensure that the time has the
+            // right resolution and is representable.
+            Ok(SystemTime::from(Timestamp::try_from(rt)?))
+        };
 
         if ! self.overrode_creation_time {
             // See if we want to backdate the signature.
             if let Some(orig) = self.original_creation_time {
-                let now = now();
+                let now = now()?;
                 let t =
                     (orig + time::Duration::new(1, 0)).max(
                         now - time::Duration::new(SIG_BACKDATE_BY, 0));
@@ -1645,7 +1650,7 @@ impl SignatureBuilder {
 
                 Ok(Some(t))
             } else {
-                Ok(Some(now()))
+                Ok(Some(now()?))
             }
         } else {
             Ok(self.signature_creation_time())
