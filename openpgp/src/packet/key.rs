@@ -1778,6 +1778,9 @@ impl Arbitrary for Key4<SecretParts, UnspecifiedRole> {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+    use std::time::UNIX_EPOCH;
+
     use crate::packet::Key;
     use crate::Cert;
     use crate::packet::pkesk::PKESK3;
@@ -2365,22 +2368,38 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
 
         let mut key = Key4::<PublicParts, UnspecifiedRole>::arbitrary(&mut g);
         let fpr1 = key.fingerprint();
-        key.set_creation_time(std::time::UNIX_EPOCH).expect("ok");
+        if key.creation_time() == UNIX_EPOCH {
+            key.set_creation_time(UNIX_EPOCH + Duration::new(1, 0)).expect("ok");
+        } else {
+            key.set_creation_time(UNIX_EPOCH).expect("ok");
+        }
         assert_ne!(fpr1, key.fingerprint());
 
         let mut key = Key4::<PublicParts, UnspecifiedRole>::arbitrary(&mut g);
         let fpr1 = key.fingerprint();
-        key.set_pk_algo(PublicKeyAlgorithm::Unknown(222));
+        key.set_pk_algo(PublicKeyAlgorithm::from(u8::from(key.pk_algo()) + 1));
         assert_ne!(fpr1, key.fingerprint());
 
         let mut key = Key4::<PublicParts, UnspecifiedRole>::arbitrary(&mut g);
         let fpr1 = key.fingerprint();
-        *key.mpis_mut() = mpi::PublicKey::arbitrary(&mut g);
+        loop {
+            let mpis2 = mpi::PublicKey::arbitrary(&mut g);
+            if key.mpis() != &mpis2 {
+                *key.mpis_mut() = mpis2;
+                break;
+            }
+        }
         assert_ne!(fpr1, key.fingerprint());
 
         let mut key = Key4::<PublicParts, UnspecifiedRole>::arbitrary(&mut g);
         let fpr1 = key.fingerprint();
-        key.set_mpis(mpi::PublicKey::arbitrary(&mut g));
+        loop {
+            let mpis2 = mpi::PublicKey::arbitrary(&mut g);
+            if key.mpis() != &mpis2 {
+                key.set_mpis(mpis2);
+                break;
+            }
+        }
         assert_ne!(fpr1, key.fingerprint());
     }
 }
