@@ -570,6 +570,7 @@ mod tests {
 /// # Ok(())
 /// # }
 /// ```
+#[derive(Clone)]
 pub struct SubpacketArea {
     /// The subpackets.
     packets: Vec<Subpacket>,
@@ -619,12 +620,6 @@ impl_arbitrary_with_bound!(SubpacketArea);
 impl Default for SubpacketArea {
     fn default() -> Self {
         Self::new(Default::default()).unwrap()
-    }
-}
-
-impl Clone for SubpacketArea {
-    fn clone(&self) -> Self {
-        Self::new(self.packets.clone()).unwrap()
     }
 }
 
