@@ -1062,7 +1062,8 @@ impl Cert {
     /// **Note:** This returns all User IDs, even those without a
     /// binding signature.  This is not what you want, unless you are
     /// doing a low-level inspection of the certificate.  Use
-    /// [`ValidCert::userids`] instead.
+    /// [`ValidCert::userids`] instead.  (You turn a `Cert` into a
+    /// [`ValidCert`] by using [`Cert::with_policy`].)
     ///
     /// # Examples
     ///
@@ -1096,7 +1097,8 @@ impl Cert {
     /// **Note:** This returns all User Attributes, even those without
     /// a binding signature.  This is not what you want, unless you
     /// are doing a low-level inspection of the certificate.  Use
-    /// [`ValidCert::user_attributes`] instead.
+    /// [`ValidCert::user_attributes`] instead.  (You turn a `Cert`
+    /// into a [`ValidCert`] by using [`Cert::with_policy`].)
     ///
     /// # Examples
     ///
@@ -1127,7 +1129,8 @@ impl Cert {
     /// **Note:** This returns all keys, even those without a binding
     /// signature.  This is not what you want, unless you are doing a
     /// low-level inspection of the certificate.  Use
-    /// [`ValidCert::keys`] instead.
+    /// [`ValidCert::keys`] instead.  (You turn a `Cert` into a
+    /// [`ValidCert`] by using [`Cert::with_policy`].)
     ///
     /// By necessity, this function erases the returned keys' roles.
     /// If you are only interested in the primary key, use
