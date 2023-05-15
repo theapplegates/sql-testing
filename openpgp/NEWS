@@ -11,6 +11,9 @@
    - Add KeyFlags::set_storage_encryption_to.
    - Add KeyFlags::set_split_key_to.
    - Add KeyFlags::set_group_key_to.
+** Notable fixes
+   - Several parser bugs were fixed.  These are all low-severity as
+     Rust correctly detects the out of bounds access and panics.
 * Changes in 1.15.0
 ** New functionality
    - StandardPolicy::accept_hash_property
