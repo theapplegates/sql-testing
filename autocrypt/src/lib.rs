@@ -21,6 +21,9 @@ use std::path::Path;
 use std::fs::File;
 use std::str;
 
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as base64std;
+
 use sequoia_openpgp as openpgp;
 use openpgp::armor;
 use openpgp::Error;
@@ -203,7 +206,7 @@ impl AutocryptHeader {
 
         let mut buf = Vec::new();
         self.key.as_ref().unwrap().serialize(&mut buf)?;
-        write!(o, "keydata={} ", base64::encode(&buf))?;
+        write!(o, "keydata={} ", base64std.encode(&buf))?;
         Ok(())
     }
 
@@ -309,7 +312,7 @@ impl AutocryptHeaders {
             };
 
             if key == "keydata" {
-                if let Ok(decoded) = base64::decode(
+                if let Ok(decoded) = base64std.decode(
                     &value.replace(' ', "")[..]) {
                     if let Ok(cert) = Cert::from_bytes(&decoded[..]) {
                         header.key = Some(cert);
