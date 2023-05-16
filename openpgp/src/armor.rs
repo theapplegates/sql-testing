@@ -42,6 +42,10 @@ use std::borrow::Cow;
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
 
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as base64std;
+use base64::engine::general_purpose::STANDARD_NO_PAD as base64nopad;
+
 use crate::packet::prelude::*;
 use crate::packet::header::{BodyLength, CTBNew, CTBOld};
 use crate::parse::Cookie;
@@ -377,8 +381,7 @@ impl<W: Write> Writer<W> {
 
         // Write any stashed bytes and pad.
         if !self.stash.is_empty() {
-            self.sink.write_all(base64::encode_config(
-                &self.stash, base64::STANDARD).as_bytes())?;
+            self.sink.write_all(base64std.encode(&self.stash).as_bytes())?;
             self.column += 4;
         }
 
@@ -404,7 +407,7 @@ impl<W: Write> Writer<W> {
 
         // CRC and footer.
         write!(self.sink, "={}{}{}{}",
-               base64::encode_config(&bytes, base64::STANDARD_NO_PAD),
+               base64nopad.encode(&bytes),
                LINE_ENDING, self.kind.end(), LINE_ENDING)?;
 
         self.dirty = false;
@@ -454,8 +457,7 @@ impl<W: Write> Write for Writer<W> {
             // If this fails for some reason, and the caller retries
             // the write, we might end up with a stash of size 3.
             self.sink
-                .write_all(base64::encode_config(
-                    &self.stash, base64::STANDARD_NO_PAD).as_bytes())?;
+                .write_all(base64nopad.encode(&self.stash).as_bytes())?;
             self.column += 4;
             self.linebreak()?;
             crate::vec_truncate(&mut self.stash, 0);
@@ -472,9 +474,9 @@ impl<W: Write> Write for Writer<W> {
             }
 
             written += input_bytes;
-            base64::encode_config_slice(&input[..input_bytes],
-                                        base64::STANDARD_NO_PAD,
-                                        &mut self.scratch[..encoded_bytes]);
+            base64nopad.encode_slice(&input[..input_bytes],
+                                  &mut self.scratch[..encoded_bytes])
+                .expect("buffer correctly sized");
 
             let mut n = 0;
             while ! self.scratch[n..encoded_bytes].is_empty() {
@@ -846,12 +848,14 @@ impl<'a> Reader<'a> {
                     let mut o = [ 0u8; 4 ];
 
                     CTBNew::new(tag).serialize_into(&mut ctb[..]).unwrap();
-                    base64::encode_config_slice(&ctb[..], base64::STANDARD, &mut o[..]);
+                    base64std.encode_slice(&ctb[..], &mut o[..])
+                        .expect("buffer correctly sized");
                     valid_start.push(o[0]);
 
                     CTBOld::new(tag, BodyLength::Full(0)).unwrap()
                         .serialize_into(&mut ctb[..]).unwrap();
-                    base64::encode_config_slice(&ctb[..], base64::STANDARD, &mut o[..]);
+                    base64std.encode_slice(&ctb[..], &mut o[..])
+                        .expect("buffer correctly sized");
                     valid_start.push(o[0]);
                 }
 
@@ -1241,8 +1245,7 @@ impl<'a> Reader<'a> {
                 // (Note: the computed size *might* be a slight
                 // overestimate, because the last base64 chunk may
                 // include padding.)
-                self.decode_buffer = base64::decode_config(
-                    &base64data, base64::STANDARD)
+                self.decode_buffer = base64std.decode(&base64data)
                     .map_err(|e| Error::new(ErrorKind::InvalidData, e))?;
 
                 let copied = cmp::min(buf.len(), self.decode_buffer.len());
@@ -1253,8 +1256,7 @@ impl<'a> Reader<'a> {
             } else {
                 // We can decode directly into the caller-supplied
                 // buffer.
-                base64::decode_config_slice(
-                    &base64data, base64::STANDARD, buf)
+                base64std.decode_slice(&base64data, buf)
                     .map_err(|e| Error::new(ErrorKind::InvalidData, e))?
             };
 

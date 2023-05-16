@@ -2,6 +2,9 @@ use std::{
     borrow::Cow,
 };
 
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as base64std;
+
 use crate::{
     packet::Header,
 };
@@ -163,7 +166,7 @@ pub fn is_armored_pgp_blob(bytes: &[u8]) -> bool {
     // packet's header.
     let (bytes, _, _) = base64_filter(Cow::Borrowed(bytes), 32, 0, 0);
 
-    match base64::decode_config(&bytes, base64::STANDARD) {
+    match base64std.decode(bytes) {
         Ok(d) => {
             // Don't consider an empty message to be valid.
             if d.is_empty() {
