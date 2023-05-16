@@ -14,9 +14,10 @@ pub mod symmetric;
 pub fn backend() -> String {
     let (major, minor) = nettle::version();
     format!(
-        "Nettle {}.{} (Cv448: {:?})",
+        "Nettle {}.{} (Cv448: {:?}, OCB: {:?})",
         major, minor,
         nettle::curve448::IS_SUPPORTED,
+        nettle::aead::OCB_IS_SUPPORTED,
     )
 }
 
@@ -65,7 +66,9 @@ impl AEADAlgorithm {
         match &self {
             EAX
                 => true,
-            OCB | Private(_) | Unknown(_)
+            OCB
+                => nettle::aead::OCB_IS_SUPPORTED,
+            Private(_) | Unknown(_)
                 => false,
         }
     }
@@ -74,6 +77,17 @@ impl AEADAlgorithm {
     pub(crate) fn supports_symmetric_algo(&self, algo: &SymmetricAlgorithm) -> bool {
         match &self {
             AEADAlgorithm::EAX =>
+                match algo {
+                    SymmetricAlgorithm::AES128 |
+                    SymmetricAlgorithm::AES192 |
+                    SymmetricAlgorithm::AES256 |
+                    SymmetricAlgorithm::Twofish |
+                    SymmetricAlgorithm::Camellia128 |
+                    SymmetricAlgorithm::Camellia192 |
+                    SymmetricAlgorithm::Camellia256 => true,
+                    _ => false,
+                },
+            AEADAlgorithm::OCB =>
                 match algo {
                     SymmetricAlgorithm::AES128 |
                     SymmetricAlgorithm::AES192 |

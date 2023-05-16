@@ -1552,14 +1552,15 @@ dependencies = [
 
 [[package]]
 name = "nettle"
-version = "7.2.2"
+version = "7.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91ff5d538c014cb58ab701db16e28aa66fbbb8b472bf65821d0e84f72aae6d4f"
+checksum = "b9fdccf3eae7b161910d2daa2f0155ca35041322e8fe5c5f1f2c9d0b12356336"
 dependencies = [
  "getrandom 0.2.9",
  "libc",
  "nettle-sys",
  "thiserror",
+ "typenum",
 ]
 
 [[package]]
