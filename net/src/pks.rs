@@ -30,6 +30,9 @@ use openpgp::Fingerprint;
 use hyper::{Body, Client, Uri, client::HttpConnector, Request, HeaderMap, header::HeaderValue};
 use hyper_tls::HttpsConnector;
 
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as base64std;
+
 use super::Result;
 use url::Url;
 
@@ -104,7 +107,7 @@ fn create_request_params(store_uri: &str, fingerprint: &Fingerprint, capability:
     let auth = if !url.username().is_empty() {
         let password = url.password().unwrap_or_default();
         let credentials = format!("{}:{}", url.username(), password);
-        Some(format!("Basic {}", base64::encode(credentials)))
+        Some(format!("Basic {}", base64std.encode(credentials)))
     } else {
         None
     };
