@@ -9,6 +9,7 @@
      keys.  Being lenient in this case helps the user recover their
      valuable key material.
 ** New functionality
+   - crypto::SessionKey::as_protected
    - types::AEADAlgorithm::GCM
 ** Deprecated functionality
    - types::Curve::len, use types::Curve::bits instead
