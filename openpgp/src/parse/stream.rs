@@ -3204,13 +3204,15 @@ pub mod test {
             (crate::tests::message("a-cypherpunks-manifesto.txt.cleartext.sig")
              .to_vec(),
              {
+                 // The test vector, created by GnuPG, does not preserve
+                 // the final newline.
+                 //
                  // The transformation process trims trailing whitespace,
                  // and the manifesto has a trailing whitespace right at
                  // the end.
                  let mut manifesto = crate::tests::manifesto().to_vec();
-                 let ws_at = manifesto.len() - 2;
-                 let ws = manifesto.remove(ws_at);
-                 assert_eq!(ws, b' ');
+                 assert_eq!(manifesto.pop(), Some(b'\n'));
+                 assert_eq!(manifesto.pop(), Some(b' '));
                  manifesto
              },
              false,
@@ -3218,7 +3220,14 @@ pub mod test {
              VHelper::new(1, 0, 0, 0, certs.clone())),
             (crate::tests::message("a-problematic-poem.txt.cleartext.sig")
              .to_vec(),
-             crate::tests::message("a-problematic-poem.txt").to_vec(),
+             {
+                 // The test vector, created by GnuPG, does not preserve
+                 // the final newline.
+                 let mut reference =
+                     crate::tests::message("a-problematic-poem.txt").to_vec();
+                 assert_eq!(reference.pop(), Some(b'\n'));
+                 reference
+             },
              false,
              None,
              VHelper::new(1, 0, 0, 0, certs.clone())),

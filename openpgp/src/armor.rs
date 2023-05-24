@@ -1461,6 +1461,15 @@ impl<'a> Reader<'a> {
                         self.source.consume(l);
                     }
 
+                    // Trim the final newline, it is not part of the
+                    // message, but separates the signature marker
+                    // from the text.
+                    let c = text.pop();
+                    assert!(c.is_none() || c == Some(b'\n'));
+                    if text.ends_with(b"\r") {
+                        text.pop();
+                    }
+
                     // Now, we have the whole text.
                     let mut literal = Literal::new(DataFormat::Text);
                     literal.set_body(text);
@@ -2350,16 +2359,25 @@ mod test {
         }
 
         f(crate::tests::message("a-problematic-poem.txt.cleartext.sig"),
-          crate::tests::message("a-problematic-poem.txt"), HashAlgorithm::SHA256)?;
+          {
+              // The test vector, created by GnuPG, does not preserve
+              // the final newline.
+              let mut reference =
+                  crate::tests::message("a-problematic-poem.txt").to_vec();
+              assert_eq!(reference.pop(), Some(b'\n'));
+              reference
+          }, HashAlgorithm::SHA256)?;
         f(crate::tests::message("a-cypherpunks-manifesto.txt.cleartext.sig"),
           {
+              // The test vector, created by GnuPG, does not preserve
+              // the final newline.
+              //
               // The transformation process trims trailing whitespace,
               // and the manifesto has a trailing whitespace right at
               // the end.
               let mut manifesto = crate::tests::manifesto().to_vec();
-              let ws_at = manifesto.len() - 2;
-              let ws = manifesto.remove(ws_at);
-              assert_eq!(ws, b' ');
+              assert_eq!(manifesto.pop(), Some(b'\n'));
+              assert_eq!(manifesto.pop(), Some(b' '));
               manifesto
           }, HashAlgorithm::SHA256)?;
         Ok(())

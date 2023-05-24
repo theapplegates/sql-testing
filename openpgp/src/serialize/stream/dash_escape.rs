@@ -52,17 +52,12 @@ impl<'a, C: 'a> DashEscapeFilter<'a, C> {
     ///
     /// Any extra data is buffered.
     ///
-    /// If `done` is set, then flushes any data, and writes a final
-    /// newline.
+    /// If `done` is set, then flushes any data.
     fn write_out(&mut self, other: &[u8], done: bool)
                  -> io::Result<()> {
         // XXX: Currently, we don't mind copying the data.  This
         // could be optimized.
         self.buffer.extend_from_slice(other);
-
-        if done && ! self.buffer.is_empty() && ! self.buffer.ends_with(b"\n") {
-            self.buffer.push(b'\n');
-        }
 
         // Write out all whole lines (i.e. those terminated by a
         // newline).  This is a bit awkward, because we only know that
@@ -78,6 +73,16 @@ impl<'a, C: 'a> DashEscapeFilter<'a, C> {
                 self.inner.write_all(b"\n")?;
             }
             last_line = Some(line);
+        }
+
+        if done {
+            if let Some(l) = last_line.take() {
+                if l.starts_with(b"-") || l.starts_with(b"From ") {
+                    // Dash-escape!
+                    self.inner.write_all(b"- ")?;
+                }
+                self.inner.write_all(l)?;
+            }
         }
 
         let new_buffer = last_line.map(|l| l.to_vec())
@@ -175,7 +180,7 @@ mod test {
             // No final newline.
             m.finalize()?;
         }
-        assert_eq!(&buf[..], &b"01234567\n89abcdef\n"[..]);
+        assert_eq!(&buf[..], &b"01234567\n89abcdef"[..]);
 
         Ok(())
     }
@@ -207,7 +212,7 @@ mod test {
             // No final newline.
             m.finalize()?;
         }
-        assert_eq!(&buf[..], &b"- -0123-4567\n- -89ab-cdef-\n"[..]);
+        assert_eq!(&buf[..], &b"- -0123-4567\n- -89ab-cdef-"[..]);
 
         Ok(())
     }
@@ -239,7 +244,39 @@ mod test {
             // No final newline.
             m.finalize()?;
         }
-        assert_eq!(&buf[..], &b"- From 0123From 4567\n- From 89abFrom cdefFrom \n"[..]);
+        assert_eq!(&buf[..], &b"- From 0123From 4567\n- From 89abFrom cdefFrom "[..]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn one_line() -> Result<()> {
+        let mut buf = Vec::new();
+        {
+            let m = Message::new(&mut buf);
+            let mut m = DashEscapeFilter::new(m, Default::default());
+            m.write_all(b"From 0123")?;
+            m.write_all(b"From 4567")?;
+            m.write_all(b"From 89ab")?;
+            m.write_all(b"From cdef")?;
+            m.write_all(b"From \n")?;
+            m.finalize()?;
+        }
+        assert_eq!(&buf[..], &b"- From 0123From 4567From 89abFrom cdefFrom \n"[..]);
+
+        let mut buf = Vec::new();
+        {
+            let m = Message::new(&mut buf);
+            let mut m = DashEscapeFilter::new(m, Default::default());
+            m.write_all(b"From 0123")?;
+            m.write_all(b"From 4567")?;
+            m.write_all(b"From 89ab")?;
+            m.write_all(b"From cdef")?;
+            m.write_all(b"From ")?;
+            // No final newline.
+            m.finalize()?;
+        }
+        assert_eq!(&buf[..], &b"- From 0123From 4567From 89abFrom cdefFrom "[..]);
 
         Ok(())
     }

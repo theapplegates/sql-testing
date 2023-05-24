@@ -640,12 +640,6 @@ pub struct Signer<'a> {
     hash: HashingMode<Box<dyn crypto::hash::Digest>>,
     cookie: Cookie,
     position: u64,
-
-    /// When creating a message using the cleartext signature
-    /// framework, the final newline is not part of the signature,
-    /// hence, we delay hashing up to two bytes so that we can omit
-    /// them when the message is finalized.
-    hash_stash: Vec<u8>,
 }
 assert_send_and_sync!(Signer<'_>);
 
@@ -821,7 +815,6 @@ impl<'a> Signer<'a> {
                 private: Private::Signer,
             },
             position: 0,
-            hash_stash: Vec::with_capacity(0),
         }
     }
 
@@ -913,10 +906,6 @@ impl<'a> Signer<'a> {
     ///
     /// Note:
     ///
-    /// - If your message does not end in a newline, creating a signed
-    ///   message using the Cleartext Signature Framework will add
-    ///   one.
-    ///
     /// - The cleartext signature framework does not hash trailing
     ///   whitespace (in this case, space and tab, see [Section 7.1 of
     ///   RFC 4880] for more information).  We align what we emit and
@@ -996,7 +985,7 @@ impl<'a> Signer<'a> {
     ///
     /// let mut content = Vec::new();
     /// verifier.read_to_end(&mut content)?;
-    /// assert_eq!(content, b"Make it so, number one!\n");
+    /// assert_eq!(content, b"Make it so, number one!");
     /// # Ok(()) }
     /// ```
     //
@@ -1328,8 +1317,12 @@ impl<'a> Signer<'a> {
     fn emit_signatures(&mut self) -> Result<()> {
         if self.mode == SignatureMode::Cleartext {
             // Pop off the DashEscapeFilter.
-            let inner = self.inner.take().expect("It's the DashEscapeFilter")
+            let mut inner =
+                self.inner.take().expect("It's the DashEscapeFilter")
                 .into_inner()?.expect("It's the DashEscapeFilter");
+
+            // Add the separating newline that is not part of the message.
+            writeln!(inner)?;
 
             // And install an armorer.
             self.inner =
@@ -1410,42 +1403,7 @@ impl<'a> Write for Signer<'a> {
 
         if let Ok(amount) = written {
             let data = &buf[..amount];
-
-            if self.mode == Cleartext {
-                // Delay hashing the last two bytes, because we the
-                // final newline is not part of the signature (see
-                // Section 7.1 of RFC4880).
-
-                // First, hash the stashed bytes.  We know that it is
-                // a newline, but we know that more text follows (buf
-                // is not empty), so it cannot be the last.
-                assert!(! buf.is_empty());
-                self.hash.update(&self.hash_stash[..]);
-                crate::vec_truncate(&mut self.hash_stash, 0);
-
-                // Compute the length of data that should be hashed.
-                // If it ends in a newline, we delay hashing it.
-                let l = data.len() - if data.ends_with(b"\r\n") {
-                    2
-                } else if data.ends_with(b"\n") {
-                    1
-                } else {
-                    0
-                };
-
-                // XXX: This logic breaks if we get a b"\r\n" in two
-                // writes.  However, TrailingWSFilter will only emit
-                // b"\r\n" in one write.
-
-                // Hash everything but the last newline now.
-                self.hash.update(&data[..l]);
-                // The newline we stash away.  If more text is written
-                // later, we will hash it then.  Otherwise, it is
-                // implicitly omitted when the signer is finalized.
-                self.hash_stash.extend_from_slice(&data[l..]);
-            } else {
-                self.hash.update(data);
-            }
+            self.hash.update(data);
             self.position += amount as u64;
         }
 
