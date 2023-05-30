@@ -6,6 +6,8 @@
 * Changes in 1.17.0
 ** New functionality
    - types::AEADAlgorithm::GCM
+** Deprecated functionality
+   - types::Curve::len, use types::Curve::bits instead
 * Changes in 1.16.0
 ** New functionality
    - Add KeyFlags::set_certification_to.

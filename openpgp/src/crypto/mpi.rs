@@ -216,7 +216,7 @@ impl MPI {
                 =>
             {
                 // Length of one coordinate in bytes, rounded up.
-                let coordinate_length = (curve.len()? + 7) / 8;
+                let coordinate_length = curve.field_size()?;
 
                 // Check length of Q.
                 let expected_length =

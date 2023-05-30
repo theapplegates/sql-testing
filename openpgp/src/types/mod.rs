@@ -381,6 +381,8 @@ impl Curve {
     /// For the Kobliz curves this is the size of the underlying
     /// finite field.  For X25519 it is 256.
     ///
+    /// This value is also equal to the length of a coordinate in bits.
+    ///
     /// Note: This information is useless and should not be used to
     /// gauge the security of a particular curve. This function exists
     /// only because some legacy PGP application like HKP need it.
@@ -578,20 +580,11 @@ impl Curve {
     ///
     /// Returns `Error::UnsupportedEllipticCurve` if the curve is not
     /// supported.
+    #[deprecated(note = "Use bits()", since = "1.17.0")]
     pub fn len(&self) -> Result<usize> {
-        match self {
-            Curve::NistP256 => Ok(256),
-            Curve::NistP384 => Ok(384),
-            Curve::NistP521 => Ok(521),
-            Curve::BrainpoolP256 => Ok(256),
-            Curve::Unknown(_) if self.is_brainpoolp384() => Ok(384),
-            Curve::BrainpoolP512 => Ok(512),
-            Curve::Ed25519 => Ok(256),
-            Curve::Cv25519 => Ok(256),
-            Curve::Unknown(_) =>
-                Err(Error::UnsupportedEllipticCurve(self.clone())
-                    .into()),
-        }
+        self.bits()
+            .ok_or_else(|| Error::UnsupportedEllipticCurve(self.clone()).into())
+
     }
 
     /// Returns whether this algorithm is supported.
