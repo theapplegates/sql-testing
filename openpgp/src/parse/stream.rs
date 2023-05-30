@@ -2478,6 +2478,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
 
                     return Ok(v);
                 },
+                #[allow(deprecated)]
                 Packet::MDC(ref mdc) => if ! mdc.valid() {
                     return Err(Error::ManipulatedMessage.into());
                 },
@@ -2672,6 +2673,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                         && self.structure.expect_mdc_at(recursion_depth)
                     {
                         match &p {
+                            #[allow(deprecated)]
                             Packet::MDC(mdc) if mdc.valid() =>
                                 (), // Good.
                             _ =>    // Bad.

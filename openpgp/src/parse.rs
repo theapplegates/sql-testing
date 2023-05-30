@@ -321,6 +321,7 @@ macro_rules! impl_parse_with_buffered_reader {
                 pp.buffer_unread_content()?;
 
                 match pp.next()? {
+                    #[allow(deprecated)]
                     (Packet::$typ(o), PacketParserResult::EOF(_))
                         => Ok(o),
                     (p, PacketParserResult::EOF(_)) =>
@@ -2894,6 +2895,7 @@ impl MDC {
         let mut digest: [u8; 20] = Default::default();
         digest.copy_from_slice(&php_try!(php.parse_bytes("digest", 20)));
 
+        #[allow(deprecated)]
         php.ok(Packet::MDC(MDC::new(digest, computed_digest)))
     }
 }
@@ -4813,6 +4815,7 @@ impl <'a> PacketParser<'a> {
                 }
             },
             // Packets that don't recurse.
+            #[allow(deprecated)]
             Packet::Unknown(_) | Packet::Signature(_) | Packet::OnePassSig(_)
                 | Packet::PublicKey(_) | Packet::PublicSubkey(_)
                 | Packet::SecretKey(_) | Packet::SecretSubkey(_)
@@ -5742,6 +5745,7 @@ mod test {
         decrypt_test_common(true);
     }
 
+    #[allow(deprecated)]
     fn decrypt_test_common(stream: bool) {
         for test in DECRYPT_TESTS.iter() {
             if !test.algo.is_supported() {

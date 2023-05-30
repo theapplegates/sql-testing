@@ -2960,6 +2960,7 @@ impl<'a> Encryptor<'a> {
         BodyLength::Full(20).serialize(&mut header)?;
 
         self.hash.update(&header);
+        #[allow(deprecated)]
         Packet::MDC(MDC::from(self.hash.clone())).serialize(&mut w)?;
 
         // Now recover the original writer.  First, strip the
@@ -3341,6 +3342,7 @@ mod test {
                         },
 
                     // Look for the MDC packet.
+                    #[allow(deprecated)]
                     State::MDC =>
                         if let Packet::MDC(ref mdc) = pp.packet {
                             assert_eq!(mdc.digest(), mdc.computed_digest());

@@ -2738,6 +2738,7 @@ impl Marshal for Packet {
             Packet::PKESK(ref p) => p.serialize(o),
             Packet::SKESK(ref p) => p.serialize(o),
             Packet::SEIP(ref p) => p.serialize(o),
+            #[allow(deprecated)]
             Packet::MDC(ref p) => p.serialize(o),
             Packet::AED(ref p) => p.serialize(o),
         }
@@ -2779,6 +2780,7 @@ impl Marshal for Packet {
             Packet::PKESK(ref p) => p.export(o),
             Packet::SKESK(ref p) => p.export(o),
             Packet::SEIP(ref p) => p.export(o),
+            #[allow(deprecated)]
             Packet::MDC(ref p) => p.export(o),
             Packet::AED(ref p) => p.export(o),
         }
@@ -2804,6 +2806,7 @@ impl NetLength for Packet {
             Packet::PKESK(ref p) => p.net_len(),
             Packet::SKESK(ref p) => p.net_len(),
             Packet::SEIP(ref p) => p.net_len(),
+            #[allow(deprecated)]
             Packet::MDC(ref p) => p.net_len(),
             Packet::AED(ref p) => p.net_len(),
         }

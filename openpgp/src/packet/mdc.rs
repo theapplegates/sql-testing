@@ -77,6 +77,7 @@ impl MDC {
 
 impl From<MDC> for Packet {
     fn from(s: MDC) -> Self {
+        #[allow(deprecated)]
         Packet::MDC(s)
     }
 }

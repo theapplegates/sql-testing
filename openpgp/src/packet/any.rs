@@ -75,6 +75,7 @@ pub trait Any<T>: crate::seal::Sealed {
 
 macro_rules! impl_downcast_for {
     ($typ: tt) => {
+        #[allow(deprecated)]
         impl Any<$typ> for Packet {
             fn downcast(self) -> std::result::Result<$typ, Packet> {
                 match self {
@@ -108,7 +109,7 @@ macro_rules! impl_downcasts {
         ///
         /// Not visible outside this module, isn't supposed to be
         /// called, this is a compile-time check.
-        #[allow(unused)]
+        #[allow(unused, deprecated)]
         fn check_exhaustion(p: Packet) {
             match p {
                 $(Packet::$typ(_) => (),)*

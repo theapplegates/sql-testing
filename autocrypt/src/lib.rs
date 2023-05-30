@@ -786,6 +786,7 @@ impl<'a> AutocryptSetupMessageParser<'a> {
         // Get the MDC packet.
         if let PacketParserResult::Some(pp) = ppr {
             match pp.packet {
+                #[allow(deprecated)]
                 Packet::MDC(_) => (),
                 ref p => return
                     Err(Error::MalformedMessage(

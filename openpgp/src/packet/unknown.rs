@@ -223,6 +223,7 @@ impl std::convert::TryFrom<Packet> for Unknown {
             Packet::UserAttribute(v) => convert(tag, common, v),
             Packet::PKESK(v) => convert(tag, common, v),
             Packet::SKESK(v) => convert(tag, common, v),
+            #[allow(deprecated)]
             Packet::MDC(v) => convert(tag, common, v),
 
             // Here we can avoid copying the body.

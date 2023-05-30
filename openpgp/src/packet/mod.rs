@@ -273,6 +273,7 @@ pub enum Packet {
     /// Symmetric key encrypted, integrity protected data packet.
     SEIP(SEIP),
     /// Modification detection code packet.
+    #[deprecated]
     MDC(MDC),
     /// AEAD Encrypted Data Packet.
     AED(AED),
@@ -349,6 +350,7 @@ impl Packet {
             Packet::PKESK(_) => Tag::PKESK,
             Packet::SKESK(_) => Tag::SKESK,
             Packet::SEIP(_) => Tag::SEIP,
+            #[allow(deprecated)]
             Packet::MDC(_) => Tag::MDC,
             Packet::AED(_) => Tag::AED,
         }
@@ -391,6 +393,7 @@ impl Packet {
             Packet::PKESK(p) => Some(p.version()),
             Packet::SKESK(p) => Some(p.version()),
             Packet::SEIP(p) => Some(p.version()),
+            #[allow(deprecated)]
             Packet::MDC(_) => None,
             Packet::AED(p) => Some(p.version()),
         }
@@ -431,6 +434,7 @@ impl Packet {
             Packet::PKESK(x) => Hash::hash(&x, state),
             Packet::SKESK(x) => Hash::hash(&x, state),
             Packet::SEIP(x) => Hash::hash(&x, state),
+            #[allow(deprecated)]
             Packet::MDC(x) => Hash::hash(&x, state),
             Packet::AED(x) => Hash::hash(&x, state),
             Packet::Unknown(x) => Hash::hash(&x, state),
@@ -461,6 +465,7 @@ impl Deref for Packet {
             Packet::SKESK(SKESK::V4(ref packet)) => &packet.common,
             Packet::SKESK(SKESK::V5(ref packet)) => &packet.skesk4.common,
             Packet::SEIP(ref packet) => &packet.common,
+            #[allow(deprecated)]
             Packet::MDC(ref packet) => &packet.common,
             Packet::AED(ref packet) => &packet.common,
         }
@@ -487,6 +492,7 @@ impl DerefMut for Packet {
             Packet::SKESK(SKESK::V4(ref mut packet)) => &mut packet.common,
             Packet::SKESK(SKESK::V5(ref mut packet)) => &mut packet.skesk4.common,
             Packet::SEIP(ref mut packet) => &mut packet.common,
+            #[allow(deprecated)]
             Packet::MDC(ref mut packet) => &mut packet.common,
             Packet::AED(ref mut packet) => &mut packet.common,
         }
@@ -514,6 +520,7 @@ impl fmt::Debug for Packet {
                 PKESK(v) => write!(f, "PKESK({:?})", v),
                 SKESK(v) => write!(f, "SKESK({:?})", v),
                 SEIP(v) => write!(f, "SEIP({:?})", v),
+                #[allow(deprecated)]
                 MDC(v) => write!(f, "MDC({:?})", v),
                 AED(v) => write!(f, "AED({:?})", v),
             }
