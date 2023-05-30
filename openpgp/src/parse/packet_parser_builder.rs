@@ -437,7 +437,7 @@ impl<'a> PacketParserBuilder<'a> {
             self.bio =
                 armor::Reader::from_buffered_reader_csft(self.bio, Some(mode),
                     Cookie::new(ARMOR_READER_LEVEL), self.csf_transformation)
-                .as_boxed();
+                .into_boxed();
         }
 
         // Parse the first packet.

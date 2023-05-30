@@ -341,7 +341,7 @@ macro_rules! impl_parse_with_buffered_reader {
             fn from_buffered_reader<'a, B>(br: B) -> Result<Self>
             where B: 'a + BufferedReader<Cookie>,
             {
-                Ok($from_buffered_reader(br.as_boxed())?)
+                Ok($from_buffered_reader(br.into_boxed())?)
             }
         }
 
@@ -1110,7 +1110,7 @@ impl<'a> Parse<'a, S2K> for S2K {
     fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut parser = PacketHeaderParser::new_naked(bio.as_boxed());
+        let mut parser = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::parse_v4(&mut parser)
     }
 }
@@ -3052,7 +3052,7 @@ impl<'a> Parse<'a, MPI> for MPI {
     fn from_reader<R: io::Read + Send + Sync>(reader: R) -> Result<Self> {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut parser = PacketHeaderParser::new_naked(bio.as_boxed());
+        let mut parser = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::parse("(none_len)", "(none)", &mut parser)
     }
 }
@@ -3533,7 +3533,7 @@ impl<'a> PacketParserEOF<'a> {
         Self::new(
             PacketParserState::new(Default::default()),
             buffered_reader::Memory::with_cookie(b"", Default::default())
-                .as_boxed())
+                .into_boxed())
     }
 
     /// Returns whether the stream is an OpenPGP Message.

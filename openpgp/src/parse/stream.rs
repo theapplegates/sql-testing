@@ -1616,19 +1616,19 @@ impl<'a, H: VerificationHelper> DetachedVerifier<'a, H> {
     /// Verifies the given data.
     pub fn verify_reader<R: io::Read + Send + Sync>(&mut self, reader: R) -> Result<()> {
         self.verify(buffered_reader::Generic::with_cookie(
-            reader, None, Default::default()).as_boxed())
+            reader, None, Default::default()).into_boxed())
     }
 
     /// Verifies the given data.
     pub fn verify_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         self.verify(buffered_reader::File::with_cookie(
-            path, Default::default())?.as_boxed())
+            path, Default::default())?.into_boxed())
     }
 
     /// Verifies the given data.
     pub fn verify_bytes<B: AsRef<[u8]>>(&mut self, buf: B) -> Result<()> {
         self.verify(buffered_reader::Memory::with_cookie(
-            buf.as_ref(), Default::default()).as_boxed())
+            buf.as_ref(), Default::default()).into_boxed())
     }
 
     /// Verifies the given data.

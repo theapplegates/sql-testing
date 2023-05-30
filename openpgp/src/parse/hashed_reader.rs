@@ -434,7 +434,7 @@ impl<R: BufferedReader<Cookie>>
     fn into_inner<'b>(self: Box<Self>)
             -> Option<Box<dyn BufferedReader<Cookie> + 'b>>
             where Self: 'b {
-        Some(self.reader.as_boxed())
+        Some(self.reader.into_boxed())
     }
 
     fn cookie_set(&mut self, cookie: Cookie) -> Cookie {

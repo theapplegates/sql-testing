@@ -614,12 +614,12 @@ impl<'a> RawCertParser<'a> {
         }
 
         // Strip the Dup reader.
-        let mut reader = dup.as_boxed().into_inner().expect("inner");
+        let mut reader = dup.into_boxed().into_inner().expect("inner");
 
         if dearmor {
             reader = armor::Reader::from_buffered_reader(
                 reader, armor::ReaderMode::Tolerant(None),
-                Default::default()).as_boxed();
+                Default::default()).into_boxed();
 
             let mut dup = Dup::with_cookie(reader, Default::default());
             match Header::parse(&mut dup) {
@@ -639,7 +639,7 @@ impl<'a> RawCertParser<'a> {
                 }
             }
 
-            reader = dup.as_boxed().into_inner().expect("inner");
+            reader = dup.into_boxed().into_inner().expect("inner");
         }
 
         Ok(RawCertParser {
@@ -703,7 +703,7 @@ impl<'a> Iterator for RawCertParser<'a>
             // Get the reader,
             let reader = std::mem::replace(
                 &mut self.reader,
-                EOF::with_cookie(Default::default()).as_boxed());
+                EOF::with_cookie(Default::default()).into_boxed());
 
             // peel off the armor reader,
             let reader = reader.into_inner().expect("the armor reader");
@@ -711,7 +711,7 @@ impl<'a> Iterator for RawCertParser<'a>
             // and install a new one!
             self.reader = armor::Reader::from_buffered_reader(
                 reader, armor::ReaderMode::Tolerant(None),
-                Default::default()).as_boxed();
+                Default::default()).into_boxed();
         }
 
         if self.reader.eof() {

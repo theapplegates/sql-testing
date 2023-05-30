@@ -915,11 +915,19 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     }
 
     /// Boxes the reader.
-    #[allow(clippy::wrong_self_convention)]
-    fn as_boxed<'a>(self) -> Box<dyn BufferedReader<C> + 'a>
+    fn into_boxed<'a>(self) -> Box<dyn BufferedReader<C> + 'a>
         where Self: 'a + Sized
     {
         Box::new(self)
+    }
+
+    /// Boxes the reader.
+    #[allow(clippy::wrong_self_convention)]
+    #[deprecated(note = "Use into_boxed")]
+    fn as_boxed<'a>(self) -> Box<dyn BufferedReader<C> + 'a>
+        where Self: 'a + Sized
+    {
+        self.into_boxed()
     }
 
     /// Returns the underlying reader, if any.
@@ -1064,6 +1072,12 @@ impl <'a, C: fmt::Debug + Sync + Send> BufferedReader<C> for Box<dyn BufferedRea
     fn get_ref(&self) -> Option<&dyn BufferedReader<C>> {
         // Strip the outer box.
         self.as_ref().get_ref()
+    }
+
+    fn into_boxed<'b>(self) -> Box<dyn BufferedReader<C> + 'b>
+        where Self: 'b
+    {
+        self
     }
 
     fn as_boxed<'b>(self) -> Box<dyn BufferedReader<C> + 'b>

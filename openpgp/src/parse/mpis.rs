@@ -26,7 +26,7 @@ impl mpi::PublicKey {
     {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
+        let mut php = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::_parse(algo, &mut php)
     }
 
@@ -160,7 +160,7 @@ impl mpi::SecretKeyMaterial {
                                         -> Result<Self> {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
+        let mut php = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::_parse(algo, &mut php, Some(checksum))
     }
 
@@ -173,7 +173,7 @@ impl mpi::SecretKeyMaterial {
                                     -> Result<Self> {
         let bio = buffered_reader::Memory::with_cookie(
             bytes, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
+        let mut php = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::_parse(algo, &mut php, Some(checksum))
     }
 
@@ -189,7 +189,7 @@ impl mpi::SecretKeyMaterial {
     {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
+        let mut php = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::_parse(algo, &mut php, None)
     }
 
@@ -201,7 +201,7 @@ impl mpi::SecretKeyMaterial {
     pub fn from_bytes(algo: PublicKeyAlgorithm, buf: &[u8]) -> Result<Self> {
         let bio = buffered_reader::Memory::with_cookie(
             buf, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
+        let mut php = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::_parse(algo, &mut php, None)
     }
 
@@ -336,7 +336,7 @@ impl mpi::Ciphertext {
     {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
+        let mut php = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::_parse(algo, &mut php)
     }
 
@@ -415,7 +415,7 @@ impl mpi::Signature {
     {
         let bio = buffered_reader::Generic::with_cookie(
             reader, None, Cookie::default());
-        let mut php = PacketHeaderParser::new_naked(bio.as_boxed());
+        let mut php = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::_parse(algo, &mut php)
     }
 

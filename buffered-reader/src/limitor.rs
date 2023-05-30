@@ -131,7 +131,7 @@ impl<T: BufferedReader<C>, C: fmt::Debug + Sync + Send> BufferedReader<C> for Li
 
     fn into_inner<'b>(self: Box<Self>) -> Option<Box<dyn BufferedReader<C> + 'b>>
         where Self: 'b {
-        Some(self.reader.as_boxed())
+        Some(self.reader.into_boxed())
     }
 
     fn cookie_set(&mut self, cookie: C) -> C {
