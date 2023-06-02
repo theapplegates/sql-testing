@@ -21,16 +21,46 @@ Sequoia PGP in a proprietary product, the exact code that Foo Corp
 uses will also be licensed under a GNU-approved license.
 
 If you want to contribute to Sequoia PGP, and you agree to the above,
-please sign the [p≡p foundation]'s [CLA].  This is an electronic
-assignment; no paper work is required.  You'll need to provide a valid
-email address.  After clicking on a link to verify your email address,
-you'll receive a second email, which contains the contract between you
-and the [p≡p foundation].  Be sure to keep it for future reference.
-The maintainers of Sequoia PGP will also receive a notification.  At
-that point, we can merge patches from you into Sequoia PGP.
-
-  [CLA]: https://contribution.pep.foundation/contribute/
-
-Please direct questions regarding the CLA to [contribution@pep.foundation].
+please clear sign the [p≡p foundation]'s CLA (in [doc/CLA.txt]), and
+send it to [contribution@pep.foundation] and cc
+[team@sequoia-pgp.org].  Please use the same certificate as you'll use
+to sign your commits.  This allows us to automatically link CLAs to
+commits.
 
   [contribution@pep.foundation]: mailto:contribution@pep.foundation
+  [team@sequoia-pgp.org]: mailto:team@sequoia-pgp.org
+  [doc/CLA.txt]: https://gitlab.com/sequoia-pgp/sequoia/-/blob/main/doc/CLA.txt
+
+You can do this using `sq` as follows:
+
+```bash
+$ sq sign --cleartext-signature doc/CLA.txt --signer-file contributor.pgp
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+p≡p Foundation – Contributor Copyright Assignment
+...
+```
+
+Or using the
+[chameleon](https://gitlab.com/sequoia-pgp/sequoia-chameleon-gnupg) as
+follows:
+
+```
+$ gpg-sq -u FINGERPRINT --clear-sign doc/CLA.txt
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+p≡p Foundation – Contributor Copyright Assignment
+...
+```
+
+Or, just use `gpg`, if `gpg-sq` or an API-compatible tool is installed
+as `gpg` on your system.
+
+This is an electronic assignment; no paper work is required.
+
+Please direct questions regarding the CLA to
+[contribution@pep.foundation] and cc [team@sequoia-pgp.org].
+
+Thanks for considering contributing to Sequoia PGP!
