@@ -4,13 +4,10 @@ terms of the LGPLv2+.
   [p≡p foundation]: https://pep.foundation/
 
 To finance its mission, privacy by default, the [p≡p foundation]
-allows third parties (currently only [p≡p security]) to relicense its
-software.  Consistent with the rules of a foundation, the money
-collected by the foundation in this manner is fully reinvested in the
-foundation's mission, which includes further development of Sequoia
-PGP.
-
-  [p≡p security]: https://www.pep.security/
+allows third parties to relicense its software.  Consistent with the
+rules of a foundation, the money collected by the foundation in this
+manner is fully reinvested in the foundation's mission, which includes
+further development of Sequoia PGP.
 
 To do this, the [p≡p foundation] needs permission from all
 contributors to relicense their changes.  In return, the
