@@ -152,7 +152,7 @@ fn encode_local_part<S: AsRef<str>>(local_part: S) -> String {
     let _ = ctx.digest(&mut digest);
 
     // After z-base-32 encoding 20 bytes, it will be 32 bytes long.
-    zbase32::encode_full_bytes(&digest[..])
+    zbase32::encode(&digest[..])
 }
 
 
