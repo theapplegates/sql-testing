@@ -298,7 +298,7 @@ fn decrypt(also_try_explicit_async: bool) -> openpgp::Result<()> {
 
             // We want to encrypt a literal data packet.
             let encryptor =
-                Encryptor::for_recipients(message, recipients)
+                Encryptor2::for_recipients(message, recipients)
                 .build().unwrap();
 
             // Emit a literal data packet.

@@ -15,7 +15,7 @@
 //! be freely combined:
 //!
 //!   - [`Armorer`] applies ASCII-Armor to the stream,
-//!   - [`Encryptor`] encrypts data fed into it,
+//!   - [`Encryptor2`] encrypts data fed into it,
 //!   - [`Compressor`] compresses data,
 //!   - [`Padder`] pads data,
 //!   - [`Signer`] signs data,
@@ -77,7 +77,7 @@
 //! use openpgp::policy::StandardPolicy;
 //! use openpgp::cert::prelude::*;
 //! use openpgp::serialize::stream::{
-//!     Message, Armorer, Encryptor, Signer, LiteralWriter,
+//!     Message, Armorer, Encryptor2, Signer, LiteralWriter,
 //! };
 //! # use openpgp::parse::Parse;
 //!
@@ -102,7 +102,7 @@
 //! # let mut sink = vec![];
 //! let message = Message::new(&mut sink);
 //! let message = Armorer::new(message).build()?;
-//! let message = Encryptor::for_recipients(message, recipients).build()?;
+//! let message = Encryptor2::for_recipients(message, recipients).build()?;
 //! // Reduce metadata leakage by concealing the message size.
 //! let message = Signer::new(message, signing_keypair)
 //!     // Prevent Surreptitious Forwarding.
@@ -2106,7 +2106,7 @@ impl<'a> Recipient<'a> {
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::cert::prelude::*;
     /// use openpgp::serialize::stream::{
-    ///     Recipient, Message, Encryptor,
+    ///     Recipient, Message, Encryptor2,
     /// };
     /// use openpgp::policy::StandardPolicy;
     /// # use openpgp::parse::Parse;
@@ -2142,7 +2142,7 @@ impl<'a> Recipient<'a> {
     ///
     /// # let mut sink = vec![];
     /// let message = Message::new(&mut sink);
-    /// let message = Encryptor::for_recipients(message, recipients).build()?;
+    /// let message = Encryptor2::for_recipients(message, recipients).build()?;
     /// # let _ = message;
     /// # Ok(()) }
     /// ```
@@ -2218,7 +2218,7 @@ impl<'a> Recipient<'a> {
     /// use openpgp::KeyID;
     /// use openpgp::cert::prelude::*;
     /// use openpgp::serialize::stream::{
-    ///     Recipient, Message, Encryptor,
+    ///     Recipient, Message, Encryptor2,
     /// };
     /// use openpgp::policy::StandardPolicy;
     /// # use openpgp::parse::Parse;
@@ -2257,7 +2257,7 @@ impl<'a> Recipient<'a> {
     ///
     /// # let mut sink = vec![];
     /// let message = Message::new(&mut sink);
-    /// let message = Encryptor::for_recipients(message, recipients).build()?;
+    /// let message = Encryptor2::for_recipients(message, recipients).build()?;
     /// # let _ = message;
     /// # Ok(()) }
     /// ```
@@ -2293,7 +2293,7 @@ impl<'a> Recipient<'a> {
 /// # use openpgp::cert::prelude::*;
 /// # use openpgp::parse::Parse;
 /// use openpgp::serialize::stream::{
-///     Message, Encryptor, LiteralWriter,
+///     Message, Encryptor2, LiteralWriter,
 /// };
 /// use openpgp::policy::StandardPolicy;
 /// let p = &StandardPolicy::new();
@@ -2326,31 +2326,33 @@ impl<'a> Recipient<'a> {
 ///
 /// # let mut sink = vec![];
 /// let message = Message::new(&mut sink);
-/// let message = Encryptor::for_recipients(message, recipients).build()?;
+/// let message = Encryptor2::for_recipients(message, recipients).build()?;
 /// let mut w = LiteralWriter::new(message).build()?;
 /// w.write_all(b"Hello world.")?;
 /// w.finalize()?;
 /// # Ok(()) }
 /// ```
-pub struct Encryptor<'a> {
+pub struct Encryptor2<'a, 'b>
+where 'b: 'a
+{
     inner: writer::BoxStack<'a, Cookie>,
     session_key: Option<SessionKey>,
-    recipients: Vec<Recipient<'a>>,
+    recipients: Vec<Recipient<'b>>,
     passwords: Vec<Password>,
     sym_algo: SymmetricAlgorithm,
     aead_algo: Option<AEADAlgorithm>,
     hash: Box<dyn crypto::hash::Digest>,
     cookie: Cookie,
 }
-assert_send_and_sync!(Encryptor<'_>);
+assert_send_and_sync!(Encryptor2<'_, '_>);
 
-impl<'a> Encryptor<'a> {
+impl<'a, 'b> Encryptor2<'a, 'b> {
     /// Creates a new encryptor for the given recipients.
     ///
-    /// To add more recipients, use [`Encryptor::add_recipients`].  To
-    /// add passwords, use [`Encryptor::add_passwords`].  To change
+    /// To add more recipients, use [`Encryptor2::add_recipients`].  To
+    /// add passwords, use [`Encryptor2::add_passwords`].  To change
     /// the symmetric encryption algorithm, use
-    /// [`Encryptor::symmetric_algo`].
+    /// [`Encryptor2::symmetric_algo`].
     ///
     /// # Examples
     ///
@@ -2360,7 +2362,7 @@ impl<'a> Encryptor<'a> {
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::cert::prelude::*;
     /// use openpgp::serialize::stream::{
-    ///     Message, Encryptor, LiteralWriter,
+    ///     Message, Encryptor2, LiteralWriter,
     /// };
     /// use openpgp::policy::StandardPolicy;
     /// # use openpgp::parse::Parse;
@@ -2394,7 +2396,7 @@ impl<'a> Encryptor<'a> {
     ///
     /// # let mut sink = vec![];
     /// let message = Message::new(&mut sink);
-    /// let message = Encryptor::for_recipients(message, recipients).build()?;
+    /// let message = Encryptor2::for_recipients(message, recipients).build()?;
     /// let mut w = LiteralWriter::new(message).build()?;
     /// w.write_all(b"Hello world.")?;
     /// w.finalize()?;
@@ -2402,7 +2404,7 @@ impl<'a> Encryptor<'a> {
     /// ```
     pub fn for_recipients<R>(inner: Message<'a>, recipients: R) -> Self
         where R: IntoIterator,
-              R::Item: Into<Recipient<'a>>,
+              R::Item: Into<Recipient<'b>>,
     {
         Self {
             inner: inner.into(),
@@ -2418,10 +2420,10 @@ impl<'a> Encryptor<'a> {
 
     /// Creates a new encryptor for the given passwords.
     ///
-    /// To add more passwords, use [`Encryptor::add_passwords`].  To
-    /// add recipients, use [`Encryptor::add_recipients`].  To change
+    /// To add more passwords, use [`Encryptor2::add_passwords`].  To
+    /// add recipients, use [`Encryptor2::add_recipients`].  To change
     /// the symmetric encryption algorithm, use
-    /// [`Encryptor::symmetric_algo`].
+    /// [`Encryptor2::symmetric_algo`].
     ///
     /// # Examples
     ///
@@ -2430,12 +2432,12 @@ impl<'a> Encryptor<'a> {
     /// use std::io::Write;
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::serialize::stream::{
-    ///     Message, Encryptor, LiteralWriter,
+    ///     Message, Encryptor2, LiteralWriter,
     /// };
     ///
     /// # let mut sink = vec![];
     /// let message = Message::new(&mut sink);
-    /// let message = Encryptor::with_passwords(
+    /// let message = Encryptor2::with_passwords(
     ///     message, Some("совершенно секретно")).build()?;
     /// let mut w = LiteralWriter::new(message).build()?;
     /// w.write_all(b"Hello world.")?;
@@ -2477,8 +2479,8 @@ impl<'a> Encryptor<'a> {
     ///   - Using the encryptor if the session key is transmitted or
     ///     derived using a scheme not supported by Sequoia.
     ///
-    /// To add more passwords, use [`Encryptor::add_passwords`].  To
-    /// add recipients, use [`Encryptor::add_recipients`].
+    /// To add more passwords, use [`Encryptor2::add_passwords`].  To
+    /// add recipients, use [`Encryptor2::add_recipients`].
     ///
     /// # Examples
     ///
@@ -2513,7 +2515,7 @@ impl<'a> Encryptor<'a> {
     ///
     /// let mut original = vec![];
     /// let message = Message::new(&mut original);
-    /// let message = Encryptor::for_recipients(message, recipients).build()?;
+    /// let message = Encryptor2::for_recipients(message, recipients).build()?;
     /// let mut w = LiteralWriter::new(message).build()?;
     /// w.write_all(b"Original message")?;
     /// w.finalize()?;
@@ -2530,7 +2532,7 @@ impl<'a> Encryptor<'a> {
     /// for p in pkesks { // Emit the stashed PKESK packets.
     ///     Packet::from(p).serialize(&mut message)?;
     /// }
-    /// let message = Encryptor::with_session_key(message, algo, sk)?.build()?;
+    /// let message = Encryptor2::with_session_key(message, algo, sk)?.build()?;
     /// let mut w = LiteralWriter::new(message).build()?;
     /// w.write_all(b"Encrypted reply")?;
     /// w.finalize()?;
@@ -2639,7 +2641,7 @@ impl<'a> Encryptor<'a> {
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::cert::prelude::*;
     /// use openpgp::serialize::stream::{
-    ///     Message, Encryptor, LiteralWriter,
+    ///     Message, Encryptor2, LiteralWriter,
     /// };
     /// use openpgp::policy::StandardPolicy;
     /// # use openpgp::parse::Parse;
@@ -2691,7 +2693,7 @@ impl<'a> Encryptor<'a> {
     /// # let mut sink = vec![];
     /// let message = Message::new(&mut sink);
     /// let message =
-    ///     Encryptor::with_passwords(message, Some("совершенно секретно"))
+    ///     Encryptor2::with_passwords(message, Some("совершенно секретно"))
     ///     .add_recipients(recipients)
     ///     .build()?;
     /// let mut message = LiteralWriter::new(message).build()?;
@@ -2701,7 +2703,7 @@ impl<'a> Encryptor<'a> {
     /// ```
     pub fn add_recipients<R>(mut self, recipients: R) -> Self
         where R: IntoIterator,
-              R::Item: Into<Recipient<'a>>,
+              R::Item: Into<Recipient<'b>>,
     {
         for r in recipients {
             self.recipients.push(r.into());
@@ -2722,7 +2724,7 @@ impl<'a> Encryptor<'a> {
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::cert::prelude::*;
     /// use openpgp::serialize::stream::{
-    ///     Message, Encryptor, LiteralWriter,
+    ///     Message, Encryptor2, LiteralWriter,
     /// };
     /// use openpgp::policy::StandardPolicy;
     /// # use openpgp::parse::Parse;
@@ -2774,7 +2776,7 @@ impl<'a> Encryptor<'a> {
     /// # let mut sink = vec![];
     /// let message = Message::new(&mut sink);
     /// let message =
-    ///     Encryptor::for_recipients(message, recipients)
+    ///     Encryptor2::for_recipients(message, recipients)
     ///         .add_passwords(Some("совершенно секретно"))
     ///         .build()?;
     /// let mut message = LiteralWriter::new(message).build()?;
@@ -2802,13 +2804,13 @@ impl<'a> Encryptor<'a> {
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::types::SymmetricAlgorithm;
     /// use openpgp::serialize::stream::{
-    ///     Message, Encryptor, LiteralWriter,
+    ///     Message, Encryptor2, LiteralWriter,
     /// };
     ///
     /// # let mut sink = vec![];
     /// let message = Message::new(&mut sink);
     /// let message =
-    ///     Encryptor::with_passwords(message, Some("совершенно секретно"))
+    ///     Encryptor2::with_passwords(message, Some("совершенно секретно"))
     ///         .symmetric_algo(SymmetricAlgorithm::AES128)
     ///         .build()?;
     /// let mut message = LiteralWriter::new(message).build()?;
@@ -2833,13 +2835,13 @@ impl<'a> Encryptor<'a> {
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::types::AEADAlgorithm;
     /// use openpgp::serialize::stream::{
-    ///     Message, Encryptor, LiteralWriter,
+    ///     Message, Encryptor2, LiteralWriter,
     /// };
     ///
     /// # let mut sink = vec![];
     /// let message = Message::new(&mut sink);
     /// let message =
-    ///     Encryptor::with_passwords(message, Some("совершенно секретно"))
+    ///     Encryptor2::with_passwords(message, Some("совершенно секретно"))
     ///         .aead_algo(AEADAlgorithm::default())
     ///         .build()?;
     /// let mut message = LiteralWriter::new(message).build()?;
@@ -2877,14 +2879,14 @@ impl<'a> Encryptor<'a> {
     /// use std::io::Write;
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::serialize::stream::{
-    ///     Message, Encryptor, LiteralWriter,
+    ///     Message, Encryptor2, LiteralWriter,
     /// };
     ///
     /// # let mut sink = vec![];
     /// let message = Message::new(&mut sink);
     /// let message =
-    ///     Encryptor::with_passwords(message, Some("совершенно секретно"))
-    ///         // Customize the `Encryptor` here.
+    ///     Encryptor2::with_passwords(message, Some("совершенно секретно"))
+    ///         // Customize the `Encryptor2` here.
     ///         .build()?;
     ///
     /// // Optionally add a `Padder` or `Compressor` here.
@@ -3037,7 +3039,9 @@ impl<'a> Encryptor<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Encryptor<'a> {
+impl<'a, 'b> fmt::Debug for Encryptor2<'a, 'b>
+    where 'b: 'a
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Encryptor")
             .field("inner", &self.inner)
@@ -3045,7 +3049,9 @@ impl<'a> fmt::Debug for Encryptor<'a> {
     }
 }
 
-impl<'a> Write for Encryptor<'a> {
+impl<'a, 'b> Write for Encryptor2<'a, 'b>
+    where 'b: 'a
+{
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let written = self.inner.write(buf);
         if let Ok(amount) = written {
@@ -3059,7 +3065,9 @@ impl<'a> Write for Encryptor<'a> {
     }
 }
 
-impl<'a> writer::Stackable<'a, Cookie> for Encryptor<'a> {
+impl<'a, 'b> writer::Stackable<'a, Cookie> for Encryptor2<'a, 'b>
+    where 'b: 'a
+{
     fn pop(&mut self) -> Result<Option<writer::BoxStack<'a, Cookie>>> {
         unreachable!("Only implemented by Signer")
     }
@@ -3084,6 +3092,167 @@ impl<'a> writer::Stackable<'a, Cookie> for Encryptor<'a> {
     }
     fn cookie_mut(&mut self) -> &mut Cookie {
         &mut self.cookie
+    }
+    fn position(&self) -> u64 {
+        self.inner.position()
+    }
+}
+
+/// Encrypts a message.
+///
+/// Use [`Encryptor2`] instead.  `Encryptor2` is exactly the same as
+/// `Encryptor`, but `Encryptor` only uses a single lifetime, which is
+/// in some situations is too restrictive.  `Encryptor2` fixes that
+/// issue without breaking the API.
+#[deprecated(note = "Use Encryptor2 instead")]
+pub struct Encryptor<'a> {
+    inner: Encryptor2<'a, 'a>,
+}
+// We can't use #[allow(deprecated)] on assert_send_and_sync, but we
+// can put it in a module and allow deprecated symbols within the
+// module.
+#[allow(deprecated)]
+mod encryptor_assert_send_and_sync {
+    use super::Encryptor;
+    assert_send_and_sync!(Encryptor<'_>);
+}
+
+#[allow(deprecated)]
+impl<'a> Encryptor<'a> {
+    /// Creates a new encryptor for the given recipients.
+    ///
+    /// See [`Encryptor2::for_recipients`].
+    pub fn for_recipients<R>(inner: Message<'a>, recipients: R) -> Self
+        where R: IntoIterator,
+              R::Item: Into<Recipient<'a>>,
+    {
+        Encryptor {
+            inner: Encryptor2::for_recipients(inner, recipients),
+        }
+    }
+
+    /// Creates a new encryptor for the given passwords.
+    ///
+    /// See [`Encryptor2::with_passwords`].
+    pub fn with_passwords<P>(inner: Message<'a>, passwords: P) -> Self
+        where P: IntoIterator,
+              P::Item: Into<Password>,
+    {
+        Encryptor {
+            inner: Encryptor2::with_passwords(inner, passwords),
+        }
+    }
+
+    /// Creates a new encryptor for the given algorithm and session
+    /// key.
+    ///
+    /// See [`Encryptor2::with_session_key`].
+    pub fn with_session_key(inner: Message<'a>,
+                            sym_algo: SymmetricAlgorithm,
+                            session_key: SessionKey)
+                            -> Result<Self>
+    {
+        Ok(Encryptor {
+            inner: Encryptor2::with_session_key(inner, sym_algo, session_key)?,
+        })
+    }
+
+    /// Adds recipients.
+    ///
+    /// See [`Encryptor2::add_recipients`].
+    pub fn add_recipients<R>(self, recipients: R) -> Self
+        where R: IntoIterator,
+              R::Item: Into<Recipient<'a>>,
+    {
+        Encryptor {
+            inner: self.inner.add_recipients(recipients),
+        }
+    }
+
+    /// Adds passwords to encrypt with.
+    ///
+    /// See [`Encryptor2::add_passwords`].
+    pub fn add_passwords<P>(self, passwords: P) -> Self
+        where P: IntoIterator,
+              P::Item: Into<Password>,
+    {
+        Encryptor {
+            inner: self.inner.add_passwords(passwords),
+        }
+    }
+
+    /// Sets the symmetric algorithm to use.
+    ///
+    /// See [`Encryptor2::symmetric_algo`].
+    pub fn symmetric_algo(self, algo: SymmetricAlgorithm) -> Self {
+        Encryptor {
+            inner: self.inner.symmetric_algo(algo),
+        }
+    }
+
+    /// Enables AEAD and sets the AEAD algorithm to use.
+    ///
+    /// See [`Encryptor2::aead_algo`].
+    #[cfg(test)]
+    pub fn aead_algo(self, algo: AEADAlgorithm) -> Self {
+        Encryptor {
+            inner: self.inner.aead_algo(algo),
+        }
+    }
+
+    /// Builds the encryptor, returning the writer stack.
+    ///
+    /// See [`Encryptor2::build`].
+    pub fn build(self) -> Result<Message<'a>> {
+        self.inner.build()
+    }
+}
+
+#[allow(deprecated)]
+impl<'a> fmt::Debug for Encryptor<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
+#[allow(deprecated)]
+impl<'a> Write for Encryptor<'a> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.inner.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+#[allow(deprecated)]
+impl<'a> writer::Stackable<'a, Cookie> for Encryptor<'a>
+{
+    fn pop(&mut self) -> Result<Option<writer::BoxStack<'a, Cookie>>> {
+        self.inner.pop()
+    }
+    /// Sets the inner stackable.
+    fn mount(&mut self, new: writer::BoxStack<'a, Cookie>) {
+        self.inner.mount(new)
+    }
+    fn inner_ref(&self) -> Option<&(dyn writer::Stackable<'a, Cookie> + Send + Sync)> {
+        self.inner.inner_ref()
+    }
+    fn inner_mut(&mut self) -> Option<&mut (dyn writer::Stackable<'a, Cookie> + Send + Sync)> {
+        self.inner.inner_mut()
+    }
+    fn into_inner(self: Box<Self>) -> Result<Option<writer::BoxStack<'a, Cookie>>> {
+        Box::new(self.inner).into_inner()
+    }
+    fn cookie_set(&mut self, cookie: Cookie) -> Cookie {
+        self.inner.cookie_set(cookie)
+    }
+    fn cookie_ref(&self) -> &Cookie {
+        self.inner.cookie_ref()
+    }
+    fn cookie_mut(&mut self) -> &mut Cookie {
+        self.inner.cookie_mut()
     }
     fn position(&self) -> u64 {
         self.inner.position()
@@ -3329,7 +3498,7 @@ mod test {
         let mut o = vec![];
         {
             let m = Message::new(&mut o);
-            let encryptor = Encryptor::with_passwords(m, passwords.clone())
+            let encryptor = Encryptor2::with_passwords(m, passwords.clone())
                 .build().unwrap();
             let mut literal = LiteralWriter::new(encryptor).build()
                 .unwrap();
@@ -3522,8 +3691,8 @@ mod test {
 
         for chunks in 0..3 {
             for msg_len in
-                      cmp::max(24, chunks * Encryptor::AEAD_CHUNK_SIZE) - 24
-                          ..chunks * Encryptor::AEAD_CHUNK_SIZE + 24
+                      cmp::max(24, chunks * Encryptor2::AEAD_CHUNK_SIZE) - 24
+                          ..chunks * Encryptor2::AEAD_CHUNK_SIZE + 24
             {
                 eprintln!("Encrypting message of size: {}", msg_len);
 
@@ -3538,7 +3707,7 @@ mod test {
                     let recipients = tsk
                         .keys().with_policy(p, None)
                         .for_storage_encryption().for_transport_encryption();
-                    let encryptor = Encryptor::for_recipients(m, recipients)
+                    let encryptor = Encryptor2::for_recipients(m, recipients)
                         .aead_algo(algo)
                         .build().unwrap();
                     let mut literal = LiteralWriter::new(encryptor).build()
@@ -3549,9 +3718,9 @@ mod test {
 
                 for &read_len in &[
                     37,
-                    Encryptor::AEAD_CHUNK_SIZE - 1,
-                    Encryptor::AEAD_CHUNK_SIZE,
-                    100 * Encryptor::AEAD_CHUNK_SIZE
+                    Encryptor2::AEAD_CHUNK_SIZE - 1,
+                    Encryptor2::AEAD_CHUNK_SIZE,
+                    100 * Encryptor2::AEAD_CHUNK_SIZE
                 ] {
                     for &do_err in &[ false, true ] {
                         let mut msg = msg.clone();
@@ -3903,7 +4072,7 @@ mod test {
         use crate::types::AEADAlgorithm;
         use crate::policy::StandardPolicy;
         use crate::serialize::stream::{
-            Message, Encryptor, LiteralWriter,
+            Message, Encryptor2, LiteralWriter,
         };
         use crate::parse::stream::{
             DecryptorBuilder, VerificationHelper,
@@ -3913,7 +4082,7 @@ mod test {
         let mut sink = vec![];
         let message = Message::new(&mut sink);
         let message =
-          Encryptor::with_passwords(message, Some("совершенно секретно"))
+          Encryptor2::with_passwords(message, Some("совершенно секретно"))
               .aead_algo(AEADAlgorithm::const_default())
               .build()?;
         let mut message = LiteralWriter::new(message).build()?;
@@ -4061,7 +4230,7 @@ mod test {
             let mut sink = vec![];
             let message = Message::new(&mut sink);
             let message =
-                Encryptor::for_recipients(message, recipients)
+                Encryptor2::for_recipients(message, recipients)
                 .build()?;
             let mut message = LiteralWriter::new(message).build()?;
             message.write_all(b"Hello world.")?;
@@ -4079,5 +4248,41 @@ mod test {
         }
 
         Ok(())
+    }
+
+    #[test]
+    fn encryptor_lifetime()
+    {
+        // See https://gitlab.com/sequoia-pgp/sequoia/-/issues/1028
+        //
+        // Using Encryptor instead of Encryptor2, we get the error:
+        //
+        // pub fn _encrypt_data<'a, B: AsRef<[u8]>, R>(data: B, recipients: R)
+        //                      -- lifetime `'a` defined here
+        //
+        //     let message = Message::new(&mut sink);
+        //                   -------------^^^^^^^^^-
+        //                   |            |
+        //                   |            borrowed value does not live long enough
+        //                   argument requires that `sink` is borrowed for `'a`
+        //
+        // }
+        // - `sink` dropped here while still borrowed
+        pub fn _encrypt_data<'a, B: AsRef<[u8]>, R>(data: B, recipients: R)
+            -> anyhow::Result<Vec<u8>>
+        where
+            R: IntoIterator,
+            R::Item: Into<Recipient<'a>>,
+        {
+            let mut sink = vec![];
+            let message = Message::new(&mut sink);
+            let armorer = Armorer::new(message).build()?;
+            let encryptor = Encryptor2::for_recipients(armorer, recipients).build()?;
+            let mut writer = LiteralWriter::new(encryptor).build()?;
+            writer.write_all(data.as_ref())?;
+            writer.finalize()?;
+
+            Ok(sink)
+        }
     }
 }

@@ -32,6 +32,10 @@
      adds a primary key binding signature.
 
    - The MSRV is now 1.67.
+
+   - serialize::stream::Encryptor2 replaces
+     serialize::stream::Encryptor, which fixes an issue with the
+     lifetimes.
 ** New functionality
    - The RustCrypto backend now supports DSA.
    - crypto::SessionKey::as_protected
@@ -41,6 +45,7 @@
    - parse::PacketParser::start_hashing
    - parse::PacketParserBuilder::automatic_hashing
    - impl Default for types::AEADAlgorithm
+   - serialize::stream::Encryptor2
    - types::AEADAlgorithm::GCM
    - types::Bitfield
    - types::Features::clear_seipdv1
@@ -56,6 +61,7 @@
    - packet::signature::subpacket::SubpacketAreas::preferred_aead_algorithms
    - packet::signature::subpacket::SubpacketTag::PreferredAEADAlgorithms
    - packet::signature::subpacket::SubpacketValue::PreferredAEADAlgorithms
+   - serialize::stream::Encryptor
    - types::Curve::len, use types::Curve::bits instead
    - types::Features::clear_mdc
    - types::Features::set_mdc
