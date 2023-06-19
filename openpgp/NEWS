@@ -4,6 +4,10 @@
 #+STARTUP: content hidestars
 
 * Changes in 1.17.0
+** Notable fixes
+   - Sequoia now ignores some formatting errors when reading secret
+     keys.  Being lenient in this case helps the user recover their
+     valuable key material.
 ** New functionality
    - types::AEADAlgorithm::GCM
 ** Deprecated functionality

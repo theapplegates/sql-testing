@@ -2955,18 +2955,22 @@ impl MPI {
     fn parse(name_len: &'static str,
              name: &'static str,
              php: &mut PacketHeaderParser<'_>) -> Result<Self> {
-        Ok(MPI::parse_common(name_len, name, false, php)?.into())
+        Ok(MPI::parse_common(name_len, name, false, false, php)?.into())
     }
 
     /// Parses an OpenPGP MPI.
     ///
-    /// See [Section 3.2 of RFC 4880] for details.
+    /// If `parsing_secrets` is `true`, errors are normalized as not
+    /// to reveal parts of the plaintext to the caller.
     ///
-    ///   [Section 3.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-3.2
+    /// If `lenient_parsing` is `true`, this function will accept MPIs
+    /// that are not well-formed (notably, issues related to leading
+    /// zeros).
     fn parse_common(
         name_len: &'static str,
         name: &'static str,
         parsing_secrets: bool,
+        lenient_parsing: bool,
         php: &mut PacketHeaderParser<'_>)
                  -> Result<Vec<u8>> {
         // When we are parsing secrets, we don't want to leak it
@@ -3017,7 +3021,7 @@ impl MPI {
             let mask = !((1 << (8 - unused_bits)) - 1);
             let unused_value = value[0] & mask;
 
-            if unused_value != 0 {
+            if unused_value != 0 && ! lenient_parsing {
                 return uniform_error_for_secrets(
                     Error::MalformedMPI(
                         format!("{} unused bits not zeroed: ({:x})",
@@ -3027,7 +3031,7 @@ impl MPI {
         }
 
         let first_used_bit = 8 - unused_bits;
-        if value[0] & (1 << (first_used_bit - 1)) == 0 {
+        if value[0] & (1 << (first_used_bit - 1)) == 0 && ! lenient_parsing {
             return uniform_error_for_secrets(
                 Error::MalformedMPI(
                     format!("leading bit is not set: \
@@ -3068,7 +3072,7 @@ impl ProtectedMPI {
     fn parse(name_len: &'static str,
              name: &'static str,
              php: &mut PacketHeaderParser<'_>) -> Result<Self> {
-        Ok(MPI::parse_common(name_len, name, true, php)?.into())
+        Ok(MPI::parse_common(name_len, name, true, true, php)?.into())
     }
 }
 impl PKESK {
@@ -6505,5 +6509,17 @@ heLBX8Pq0kUBwQz2iFAzRwOdgTBvH5KsDU9lmE
 
 -----END PGP MESSAGE-----
 ");
+    }
+
+    /// Tests issue 1024.
+    #[test]
+    fn parse_secret_with_leading_zeros() -> Result<()> {
+        crate::Cert::from_bytes(
+            crate::tests::key("leading-zeros-private.pgp"))?
+            .primary_key().key().clone()
+            .parts_into_secret()?
+            .decrypt_secret(&("hunter22"[..]).into())?
+            .into_keypair()?;
+        Ok(())
     }
 }
