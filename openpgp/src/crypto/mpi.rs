@@ -962,6 +962,16 @@ impl Default for SecretKeyChecksum {
     }
 }
 
+impl SecretKeyChecksum {
+    /// Returns the on-wire length of the checksum.
+    pub(crate) fn len(&self) -> usize {
+        match self {
+            SecretKeyChecksum::SHA1 => 20,
+            SecretKeyChecksum::Sum16 => 2,
+        }
+    }
+}
+
 /// An encrypted session key.
 ///
 /// Provides a typed and structured way of storing multiple MPIs in

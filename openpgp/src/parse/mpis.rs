@@ -219,6 +219,11 @@ impl mpi::SecretKeyMaterial {
     {
         use crate::PublicKeyAlgorithm::*;
 
+        // We want to get the data we are going to read next as raw
+        // bytes later.  To do so, we remember the cursor position now
+        // before reading the MPIs.
+        let mpis_start = php.reader.total_out();
+
         #[allow(deprecated)]
         let mpis: Result<Self> = match algo {
             RSAEncryptSign | RSAEncrypt | RSASign => {
@@ -286,15 +291,31 @@ impl mpi::SecretKeyMaterial {
         let mpis = mpis?;
 
         if let Some(checksum) = checksum {
-            use crate::serialize::{Marshal, MarshalInto};
+            // We want to get the data we are going to read next as
+            // raw bytes later.  To do so, we remember the cursor
+            // position now after reading the MPIs and compute the
+            // length.
+            let mpis_len = php.reader.total_out() - mpis_start;
+
+            // We do a bit of acrobatics to avoid copying the secrets.
+            // We read the checksum now, so that we can freely
+            // manipulate the Dup reader and get a borrow of the raw
+            // MPIs.
+            let their_chksum = php.parse_bytes("checksum", checksum.len())?;
+
+            // Remember how much we read in total for a sanity check.
+            let total_out = php.reader.total_out();
+
+            // Now get the secrets as raw byte slice.
+            php.reader.rewind();
+            php.reader.consume(mpis_start);
+            let data = &php.reader.data_consume_hard(mpis_len)?[..mpis_len];
+
             let good = match checksum {
                 mpi::SecretKeyChecksum::SHA1 => {
-                    // Read expected SHA1 hash of the MPIs.
-                    let their_chksum = php.parse_bytes("checksum", 20)?;
-
                     // Compute SHA1 hash.
                     let mut hsh = HashAlgorithm::SHA1.context().unwrap();
-                    mpis.serialize(&mut hsh)?;
+                    hsh.update(data);
                     let mut our_chksum = [0u8; 20];
                     let _ = hsh.digest(&mut our_chksum);
 
@@ -302,17 +323,21 @@ impl mpi::SecretKeyMaterial {
                 },
 
                 mpi::SecretKeyChecksum::Sum16 => {
-                    // Read expected sum of the MPIs.
-                    let their_chksum = php.parse_bytes("checksum", 2)?;
-
                     // Compute sum.
-                    let our_chksum = mpis.to_vec()?.iter()
+                    let our_chksum = data.iter()
                         .fold(0u16, |acc, v| acc.wrapping_add(*v as u16))
                         .to_be_bytes();
 
                     our_chksum == their_chksum[..]
                 },
             };
+
+            // Finally, consume the checksum to fix the state of the
+            // Dup reader.
+            php.reader.consume(checksum.len());
+
+            // See if we got the state right.
+            debug_assert_eq!(total_out, php.reader.total_out());
 
             if good {
                 Ok(mpis)
