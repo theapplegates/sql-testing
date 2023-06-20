@@ -96,6 +96,20 @@ impl<'a, C: fmt::Debug + Sync + Send> fmt::Debug for Imp<'a, C> {
 }
 
 impl<'a> File<'a, ()> {
+    /// Wraps a [`fs::File`].
+    ///
+    /// The given `path` should be the path that has been used to
+    /// obtain `file` from.  It is used in error messages to provide
+    /// context to the user.
+    ///
+    /// While this is slightly less convenient than [`Self::open`], it
+    /// allows one to inspect or manipulate the [`fs::File`] object
+    /// before handing it off.  For example, one can inspect the
+    /// metadata.
+    pub fn new<P: AsRef<Path>>(file: fs::File, path: P) -> io::Result<Self> {
+        Self::new_with_cookie(file, path.as_ref(), ())
+    }
+
     /// Opens the given file.
     pub fn open<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         Self::with_cookie(path, ())
@@ -103,8 +117,18 @@ impl<'a> File<'a, ()> {
 }
 
 impl<'a, C: fmt::Debug + Sync + Send> File<'a, C> {
-    /// Like [`Self::open`], but sets a cookie.
-    pub fn with_cookie<P: AsRef<Path>>(path: P, cookie: C) -> io::Result<Self> {
+    /// Like [`Self::new`], but sets a cookie.
+    ///
+    /// The given `path` should be the path that has been used to
+    /// obtain `file` from.  It is used in error messages to provide
+    /// context to the user.
+    ///
+    /// While this is slightly less convenient than
+    /// [`Self::with_cookie`], it allows one to inspect or manipulate
+    /// the [`fs::File`] object before handing it off.  For example,
+    /// one can inspect the metadata.
+    pub fn new_with_cookie<P: AsRef<Path>>(file: fs::File, path: P, cookie: C)
+                                           -> io::Result<Self> {
         let path = path.as_ref();
 
         // As fallback, we use a generic reader.
@@ -114,8 +138,6 @@ impl<'a, C: fmt::Debug + Sync + Send> File<'a, C> {
                     Generic::with_cookie(file, None, cookie)),
                 path.into()))
         };
-
-        let file = fs::File::open(path).map_err(|e| FileError::new(path, e))?;
 
         // For testing and benchmarking purposes, we use the variable
         // SEQUOIA_DONT_MMAP to turn off mmapping.
@@ -157,6 +179,13 @@ impl<'a, C: fmt::Debug + Sync + Send> File<'a, C> {
             },
             path.into(),
         ))
+    }
+
+    /// Like [`Self::open`], but sets a cookie.
+    pub fn with_cookie<P: AsRef<Path>>(path: P, cookie: C) -> io::Result<Self> {
+        let path = path.as_ref();
+        let file = fs::File::open(path).map_err(|e| FileError::new(path, e))?;
+        Self::new_with_cookie(file, path, cookie)
     }
 }
 
