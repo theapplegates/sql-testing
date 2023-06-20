@@ -108,7 +108,7 @@ win-crypto-ng = { version = ">=0.4, <0.6", features = ["rand", "block-cipher"], 
 winapi = { version = "0.3.8", default-features = false, features = ["bcrypt"], optional = true }
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
-chrono = { version = "0.4.10", default-features = false, features = ["std", "wasmbind"] }
+chrono = { version = "0.4.10", default-features = false, features = ["std", "wasmbind", "clock"] }
 getrandom = { version = "0.2", features = ["js"] }
 rand07 = { package = "rand", version = "0.7", features = ["wasm-bindgen"] }
 
