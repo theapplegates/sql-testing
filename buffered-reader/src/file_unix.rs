@@ -155,10 +155,10 @@ impl<'a, C: fmt::Debug + Sync + Send> File<'a, C> {
         }
 
         // Be nice to 32 bit systems.
-        if length > usize::max_value() as u64 {
-            return generic(file, cookie);
-        }
-        let length = length as usize;
+        let length: usize = match length.try_into() {
+            Ok(v) => v,
+            Err(_) => return generic(file, cookie),
+        };
 
         let fd = file.as_raw_fd();
         let addr = unsafe {
