@@ -30,6 +30,7 @@ pub use self::nettle::*;
           not(all(feature = "__implicit-crypto-backend-for-tests",
                   any(feature = "crypto-openssl",
                       feature = "crypto-botan",
+                      feature = "crypto-botan2",
                       feature = "crypto-rust")))))]
 pub use self::nettle::Backend;
 
@@ -62,6 +63,7 @@ pub use self::cng::*;
                   any(feature = "crypto-nettle",
                       feature = "crypto-openssl",
                       feature = "crypto-botan",
+                      feature = "crypto-botan2",
                       feature = "crypto-rust")))))]
 pub use self::cng::Backend;
 
