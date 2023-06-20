@@ -41,10 +41,10 @@ impl<'a> Memory<'a, ()> {
 }
 
 impl<'a, C: fmt::Debug + Sync + Send> Memory<'a, C> {
-    /// Like `new()`, but sets a cookie.
+    /// Like [`Self::new`], but sets a cookie.
     ///
-    /// The cookie can be retrieved using the `cookie_ref` and
-    /// `cookie_mut` methods, and set using the `cookie_set` method.
+    /// The cookie can be retrieved using the [`BufferedReader::cookie_ref`] and
+    /// [`BufferedReader::cookie_mut`] methods, and set using the [`BufferedReader::cookie_set`] method.
     pub fn with_cookie(buffer: &'a [u8], cookie: C) -> Self {
         Memory {
             buffer,

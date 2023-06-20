@@ -1,6 +1,6 @@
-//! A `BufferedReader` is a super-powered `Read`er.
+//! A [`BufferedReader`] is a super-powered `Read`er.
 //!
-//! Like the [`BufRead`] trait, the `BufferedReader` trait has an
+//! Like the [`BufRead`] trait, the [`BufferedReader`] trait has an
 //! internal buffer that is directly exposed to the user.  This design
 //! enables two performance optimizations.  First, the use of an
 //! internal buffer amortizes system calls.  Second, exposing the
@@ -16,13 +16,13 @@
 //! the [`BufRead`] object provides such a mechanism---which is a
 //! layering violation, or the parser has to fallback to buffering if
 //! the internal buffer is too small, which eliminates most of the
-//! advantages of the [`BufRead`] abstraction.  The `BufferedReader`
+//! advantages of the [`BufRead`] abstraction.  The [`BufferedReader`]
 //! trait addresses this shortcoming by allowing the user to control
 //! the size of the internal buffer.
 //!
-//! The `BufferedReader` trait also has some functionality,
+//! The [`BufferedReader`] trait also has some functionality,
 //! specifically, a generic interface to work with a stack of
-//! `BufferedReader` objects, that simplifies using multiple parsers
+//! [`BufferedReader`] objects, that simplifies using multiple parsers
 //! simultaneously.  This is helpful when one parser deals with
 //! framing (e.g., something like [HTTP's chunk transfer encoding]),
 //! and another decodes the actual objects.  It is also useful when
@@ -54,7 +54,7 @@
 //! complexity, and the latter approach is contrary to the
 //! [`BufRead`]'s goal of reducing unnecessary copying.
 //!
-//! The `BufferedReader` trait solves this problem by allowing the
+//! The [`BufferedReader`] trait solves this problem by allowing the
 //! user to dynamically (i.e., at read time, not open time) ensure
 //! that the internal buffer has a certain amount of data.
 //!
@@ -66,29 +66,29 @@
 //! consumed.  Using a [`BufRead`] object, this is not possible if the
 //! amount of lookahead is larger than the internal buffer.  That is,
 //! if the amount of lookahead data is larger than the [`BufRead`]'s
-//! internal buffer, the parser first has to `BufRead::consume`() some
+//! internal buffer, the parser first has to [`std::io::BufRead::consume`] some
 //! data to be able to examine more data.  But, if the parser then
 //! decides to backtrack, it has no way to return the unused data to
 //! the [`BufRead`] object.  This forces the parser to manage a buffer
 //! of read, but unconsumed data, which significantly complicates the
 //! code.
 //!
-//! The `BufferedReader` trait also simplifies working with a stack of
-//! `BufferedReader`s in two ways.  First, the `BufferedReader` trait
+//! The [`BufferedReader`] trait also simplifies working with a stack of
+//! [`BufferedReader`]s in two ways.  First, the [`BufferedReader`] trait
 //! provides *generic* methods to access the underlying
-//! `BufferedReader`.  Thus, even when dealing with a trait object, it
-//! is still possible to recover the underlying `BufferedReader`.
-//! Second, the `BufferedReader` provides a mechanism to associate
-//! generic state with each `BufferedReader` via a cookie.  Although
+//! [`BufferedReader`].  Thus, even when dealing with a trait object, it
+//! is still possible to recover the underlying [`BufferedReader`].
+//! Second, the [`BufferedReader`] provides a mechanism to associate
+//! generic state with each [`BufferedReader`] via a cookie.  Although
 //! it is possible to realize this functionality using a custom trait
-//! that extends the `BufferedReader` trait and wraps existing
-//! `BufferedReader` implementations, this approach eliminates a lot
+//! that extends the [`BufferedReader`] trait and wraps existing
+//! [`BufferedReader`] implementations, this approach eliminates a lot
 //! of error-prone, boilerplate code.
 //!
 //! # Examples
 //!
 //! The following examples show not only how to use a
-//! `BufferedReader`, but also better illustrate the aforementioned
+//! [`BufferedReader`], but also better illustrate the aforementioned
 //! limitations of a [`BufRead`]er.
 //!
 //! Consider a file consisting of a sequence of objects, which are
@@ -102,7 +102,7 @@
 //! ```
 //!
 //! Here's how we might parse this type of file using a
-//! `BufferedReader`:
+//! [`BufferedReader`]:
 //!
 //! ```
 //! use buffered_reader;
@@ -134,41 +134,41 @@
 //! ```
 //!
 //! Note that `content` is actually a pointer to the
-//! `BufferedReader`'s internal buffer.  Thus, getting some data
+//! [`BufferedReader`]'s internal buffer.  Thus, getting some data
 //! doesn't require copying the data into a local buffer, which is
 //! often discarded immediately after the data is parsed.
 //!
-//! Further, `data`() (and the other related functions) are guaranteed
+//! Further, [`BufferedReader::data`] (and the other related functions) are guaranteed
 //! to return at least the requested amount of data.  There are two
 //! exceptions: if an error occurs, or the end of the file is reached.
 //! Thus, only the cases that actually need to be handled by the user
 //! are actually exposed; there is no need to call something like
-//! `read`() in a loop to ensure the whole object is available.
+//! [`std::io::Read::read`] in a loop to ensure the whole object is available.
 //!
 //! Because reading is separate from consuming data, it is possible to
 //! get a chunk of data, inspect it, and then consume only what is
 //! needed.  As mentioned above, this is only possible with a
 //! [`BufRead`] object if the internal buffer happens to be large
-//! enough.  Using a `BufferedReader`, this is always possible,
+//! enough.  Using a [`BufferedReader`], this is always possible,
 //! assuming the data fits in memory.
 //!
 //! In our example, we actually have two parsers: one that deals with
 //! the framing, and one for the actual objects.  The above code
 //! buffers the objects in their entirety, and then passes a slice
 //! containing the object to the object parser.  If the object parser
-//! also worked with a `BufferedReader` object, then less buffering
+//! also worked with a [`BufferedReader`] object, then less buffering
 //! will usually be needed, and the two parsers could run
 //! simultaneously.  This is particularly useful when the framing is
 //! more complicated like [HTTP's chunk transfer encoding].  Then,
 //! when the object parser reads data, the frame parser is invoked
-//! lazily.  This is done by implementing the `BufferedReader` trait
-//! for the framing parser, and stacking the `BufferedReader`s.
+//! lazily.  This is done by implementing the [`BufferedReader`] trait
+//! for the framing parser, and stacking the [`BufferedReader`]s.
 //!
 //! For our next example, we rewrite the previous code assuming that
-//! the object parser reads from a `BufferedReader` object.  Since the
+//! the object parser reads from a [`BufferedReader`] object.  Since the
 //! framing parser is really just a limit on the object's size, we
-//! don't need to implement a special `BufferedReader`, but can use a
-//! `Limitor` to impose an upper limit on the amount
+//! don't need to implement a special [`BufferedReader`], but can use a
+//! [`Limitor`] to impose an upper limit on the amount
 //! that it can read.  After the object parser has finished, we drain
 //! the object reader.  This pattern is particularly helpful when
 //! individual objects that contain errors should be skipped.
@@ -210,13 +210,13 @@
 //! ```
 //!
 //! Of particular note is the generic functionality for dealing with
-//! stacked `BufferedReader`s: the `into_inner`() method is not bound
+//! stacked [`BufferedReader`]s: the [`BufferedReader::into_inner`] method is not bound
 //! to the implementation, which is often not be available due to type
 //! erasure, but is provided by the trait.
 //!
-//! In addition to utility `BufferedReader`s like the
-//! `Limitor`, this crate also includes a few
-//! general-purpose parsers, like the `Zip`
+//! In addition to utility [`BufferedReader`]s like the
+//! [`Limitor`], this crate also includes a few
+//! general-purpose parsers, like the [`Zlib`]
 //! decompressor.
 //!
 //! [`BufRead`]: std::io::BufRead
@@ -380,20 +380,20 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     /// Errors are returned only when the internal buffer is empty.
     ///
     /// This function does not advance the cursor.  To advance the
-    /// cursor, use `consume()`.
+    /// cursor, use [`BufferedReader::consume`].
     ///
     /// Note: If the internal buffer already contains at least
-    /// `amount` bytes of data, then `BufferedReader` implementations
-    /// are guaranteed to simply return the internal buffer.  As such,
-    /// multiple calls to `data` for the same `amount` will return the
-    /// same slice.
+    /// `amount` bytes of data, then [`BufferedReader`]
+    /// implementations are guaranteed to simply return the internal
+    /// buffer.  As such, multiple calls to [`BufferedReader::data`]
+    /// for the same `amount` will return the same slice.
     ///
-    /// Further, `BufferedReader` implementations are guaranteed to
+    /// Further, [`BufferedReader`] implementations are guaranteed to
     /// not shrink the internal buffer.  Thus, once some data has been
     /// returned, it will always be returned until it is consumed.
     /// As such, the following must hold:
     ///
-    /// If `BufferedReader` receives `EINTR` when `read`ing, it will
+    /// If [`BufferedReader`] receives `EINTR` when `read`ing, it will
     /// automatically retry reading.
     ///
     /// ```
@@ -412,13 +412,13 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     /// ```
     fn data(&mut self, amount: usize) -> Result<&[u8], io::Error>;
 
-    /// Like `data()`, but returns an error if there is not at least
+    /// Like [`BufferedReader::data`], but returns an error if there is not at least
     /// `amount` bytes available.
     ///
-    /// `data_hard()` is a variant of `data()` that returns at least
-    /// `amount` bytes of data or an error.  Thus, unlike `data()`,
+    /// [`BufferedReader::data_hard`] is a variant of [`BufferedReader::data`] that returns at least
+    /// `amount` bytes of data or an error.  Thus, unlike [`BufferedReader::data`],
     /// which will return less than `amount` bytes of data if EOF is
-    /// encountered, `data_hard()` returns an error, specifically,
+    /// encountered, [`BufferedReader::data_hard`] returns an error, specifically,
     /// `io::ErrorKind::UnexpectedEof`.
     ///
     /// # Examples
@@ -447,7 +447,7 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
         result
     }
 
-    /// Returns all of the data until EOF.  Like `data()`, this does not
+    /// Returns all of the data until EOF.  Like [`BufferedReader::data`], this does not
     /// actually consume the data that is read.
     ///
     /// In general, you shouldn't use this function as it can cause an
@@ -521,14 +521,14 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     ///
     /// This advances the internal cursor by `amount`.  It is an error
     /// to call this function to consume data that hasn't been
-    /// returned by `data()` or a related function.
+    /// returned by [`BufferedReader::data`] or a related function.
     ///
     /// Note: It is safe to call this function to consume more data
-    /// than requested in a previous call to `data()`, but only if
-    /// `data()` also returned that data.
+    /// than requested in a previous call to [`BufferedReader::data`], but only if
+    /// [`BufferedReader::data`] also returned that data.
     ///
     /// This function returns the internal buffer *including* the
-    /// consumed data.  Thus, the `BufferedReader` implementation must
+    /// consumed data.  Thus, the [`BufferedReader`] implementation must
     /// continue to buffer the consumed data until the reference goes
     /// out of scope.
     ///
@@ -556,15 +556,15 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     /// ```
     fn consume(&mut self, amount: usize) -> &[u8];
 
-    /// A convenience function that combines `data()` and `consume()`.
+    /// A convenience function that combines [`BufferedReader::data`] and [`BufferedReader::consume`].
     ///
     /// If less than `amount` bytes are available, this function
     /// consumes what is available.
     ///
     /// Note: Due to lifetime issues, it is not possible to call
-    /// `data()`, work with the returned buffer, and then call
-    /// `consume()` in the same scope, because both `data()` and
-    /// `consume()` take a mutable reference to the `BufferedReader`.
+    /// [`BufferedReader::data`], work with the returned buffer, and then call
+    /// [`BufferedReader::consume`] in the same scope, because both [`BufferedReader::data`] and
+    /// [`BufferedReader::consume`] take a mutable reference to the [`BufferedReader`].
     /// This function makes this common pattern easier.
     ///
     /// # Examples
@@ -577,7 +577,7 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     /// let orig = b"0123456789";
     /// let mut br = buffered_reader::Memory::new(&orig[..]);
     ///
-    /// // We need a new scope for each call to `data_consume()`, because
+    /// // We need a new scope for each call to [`BufferedReader::data_consume`], because
     /// // the `buffer` reference locks `br`.
     /// {
     ///     let buffer = br.data_consume(3)?;
@@ -590,7 +590,7 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     ///     assert_eq!(buffer, &orig[3..3 + buffer.len()]);
     /// }
     ///
-    /// // Like `data()`, `data_consume()` may return and consume less
+    /// // Like [`BufferedReader::data`], [`BufferedReader::data_consume`] may return and consume less
     /// // than requested if there is no more data available.
     /// {
     ///     let buffer = br.data_consume(10)?;
@@ -612,11 +612,11 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
         Ok(buffer)
     }
 
-    /// A convenience function that effectively combines `data_hard()`
-    /// and `consume()`.
+    /// A convenience function that effectively combines [`BufferedReader::data_hard`]
+    /// and [`BufferedReader::consume`].
     ///
-    /// This function is identical to `data_consume()`, but internally
-    /// uses `data_hard()` instead of `data()`.
+    /// This function is identical to [`BufferedReader::data_consume`], but internally
+    /// uses [`BufferedReader::data_hard`] instead of [`BufferedReader::data`].
     fn data_consume_hard(&mut self, amount: usize)
         -> Result<&[u8], io::Error>
     {
@@ -687,7 +687,7 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     ///     assert_eq!(s, b"0123");
     /// }
     ///
-    /// // `read_to()` doesn't consume the data.
+    /// // [`BufferedReader::read_to`] doesn't consume the data.
     /// {
     ///     let s = br.read_to(b'5')?;
     ///     assert_eq!(s, b"012345");
@@ -816,10 +816,10 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
         }
     }
 
-    /// Like `data_consume_hard()`, but returns the data in a
+    /// Like [`BufferedReader::data_consume_hard`], but returns the data in a
     /// caller-owned buffer.
     ///
-    /// `BufferedReader` implementations may optimize this to avoid a
+    /// [`BufferedReader`] implementations may optimize this to avoid a
     /// copy by directly returning the internal buffer.
     fn steal(&mut self, amount: usize) -> Result<Vec<u8>, std::io::Error> {
         let mut data = self.data_consume_hard(amount)?;
@@ -830,7 +830,7 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
         Ok(data.to_vec())
     }
 
-    /// Like `steal()`, but instead of stealing a fixed number of
+    /// Like [`BufferedReader::steal`], but instead of stealing a fixed number of
     /// bytes, steals all of the data until the end of file.
     fn steal_eof(&mut self) -> Result<Vec<u8>, std::io::Error> {
         let len = self.data_eof()?.len();
@@ -838,13 +838,13 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
         Ok(data)
     }
 
-    /// Like `steal_eof()`, but instead of returning the data, the
+    /// Like [`BufferedReader::steal_eof`], but instead of returning the data, the
     /// data is discarded.
     ///
     /// On success, returns whether any data (i.e., at least one byte)
     /// was discarded.
     ///
-    /// Note: whereas `steal_eof()` needs to buffer all of the data,
+    /// Note: whereas [`BufferedReader::steal_eof`] needs to buffer all of the data,
     /// this function reads the data a chunk at a time, and then
     /// discards it.  A consequence of this is that an error may occur
     /// after we have consumed some of the data.
@@ -932,7 +932,7 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
 
     /// Returns the underlying reader, if any.
     ///
-    /// To allow this to work with `BufferedReader` traits, it is
+    /// To allow this to work with [`BufferedReader`] traits, it is
     /// necessary for `Self` to be boxed.
     ///
     /// This can lead to the following unusual code:
@@ -943,38 +943,38 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     fn into_inner<'a>(self: Box<Self>) -> Option<Box<dyn BufferedReader<C> + 'a>>
         where Self: 'a;
 
-    /// Returns a mutable reference to the inner `BufferedReader`, if
+    /// Returns a mutable reference to the inner [`BufferedReader`], if
     /// any.
     ///
     /// It is a very bad idea to read any data from the inner
-    /// `BufferedReader`, because this `BufferedReader` may have some
+    /// [`BufferedReader`], because this [`BufferedReader`] may have some
     /// data buffered.  However, this function can be useful to get
     /// the cookie.
     fn get_mut(&mut self) -> Option<&mut dyn BufferedReader<C>>;
 
-    /// Returns a reference to the inner `BufferedReader`, if any.
+    /// Returns a reference to the inner [`BufferedReader`], if any.
     fn get_ref(&self) -> Option<&dyn BufferedReader<C>>;
 
-    /// Sets the `BufferedReader`'s cookie and returns the old value.
+    /// Sets the [`BufferedReader`]'s cookie and returns the old value.
     fn cookie_set(&mut self, cookie: C) -> C;
 
-    /// Returns a reference to the `BufferedReader`'s cookie.
+    /// Returns a reference to the [`BufferedReader`]'s cookie.
     fn cookie_ref(&self) -> &C;
 
-    /// Returns a mutable reference to the `BufferedReader`'s cookie.
+    /// Returns a mutable reference to the [`BufferedReader`]'s cookie.
     fn cookie_mut(&mut self) -> &mut C;
 }
 
 /// A generic implementation of `std::io::Read::read` appropriate for
-/// any `BufferedReader` implementation.
+/// any [`BufferedReader`] implementation.
 ///
 /// This function implements the `std::io::Read::read` method in terms
 /// of the `data_consume` method.  We can't use the `io::std::Read`
-/// interface, because the `BufferedReader` may have buffered some
+/// interface, because the [`BufferedReader`] may have buffered some
 /// data internally (in which case a read will not return the buffered
 /// data, but the following data).
 ///
-/// This implementation is generic.  When deriving a `BufferedReader`,
+/// This implementation is generic.  When deriving a [`BufferedReader`],
 /// you can include the following:
 ///
 /// ```text

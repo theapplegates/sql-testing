@@ -69,9 +69,9 @@ impl<T: io::Read + Send + Sync> Generic<T, ()> {
 }
 
 impl<T: io::Read + Send + Sync, C: fmt::Debug + Sync + Send> Generic<T, C> {
-    /// Like `new()`, but sets a cookie, which can be retrieved using
-    /// the `cookie_ref` and `cookie_mut` methods, and set using
-    /// the `cookie_set` method.
+    /// Like [`Self::new`], but sets a cookie, which can be retrieved using
+    /// the [`BufferedReader::cookie_ref`] and [`BufferedReader::cookie_mut`] methods, and set using
+    /// the [`BufferedReader::cookie_set`] method.
     pub fn with_cookie(
            reader: T, preferred_chunk_size: Option<usize>, cookie: C)
            -> Self {

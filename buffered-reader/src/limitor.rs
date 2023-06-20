@@ -35,10 +35,10 @@ impl<T: BufferedReader<()>> Limitor<T, ()> {
 }
 
 impl<T: BufferedReader<C>, C: fmt::Debug + Sync + Send> Limitor<T, C> {
-    /// Like `new()`, but sets a cookie.
+    /// Like [`Self::new`], but sets a cookie.
     ///
-    /// The cookie can be retrieved using the `cookie_ref` and
-    /// `cookie_mut` methods, and set using the `cookie_set` method.
+    /// The cookie can be retrieved using the [`BufferedReader::cookie_ref`] and
+    /// [`BufferedReader::cookie_mut`] methods, and set using the [`BufferedReader::cookie_set`] method.
     pub fn with_cookie(reader: T, limit: u64, cookie: C)
             -> Limitor<T, C> {
         Limitor {

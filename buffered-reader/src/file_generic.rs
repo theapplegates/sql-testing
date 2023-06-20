@@ -38,7 +38,7 @@ impl File<()> {
 }
 
 impl<C: fmt::Debug + Sync + Send> File<C> {
-    /// Like `open()`, but sets a cookie.
+    /// Like [`Self::open`], but sets a cookie.
     pub fn with_cookie<P: AsRef<Path>>(path: P, cookie: C) -> io::Result<Self> {
         let path = path.as_ref();
         let file = fs::File::open(path).map_err(|e| FileError::new(path, e))?;

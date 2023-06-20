@@ -43,10 +43,10 @@ impl<T: BufferedReader<()>> Dup<T, ()> {
 }
 
 impl<T: BufferedReader<C>, C: fmt::Debug + Sync + Send> Dup<T, C> {
-    /// Like `new()`, but uses a cookie.
+    /// Like [`Self::new`], but uses a cookie.
     ///
-    /// The cookie can be retrieved using the `cookie_ref` and
-    /// `cookie_mut` methods, and set using the `cookie_set` method.
+    /// The cookie can be retrieved using the [`BufferedReader::cookie_ref`] and
+    /// [`BufferedReader::cookie_mut`] methods, and set using the [`BufferedReader::cookie_set`] method.
     pub fn with_cookie(reader: T, cookie: C) -> Self {
         Dup {
             reader,
