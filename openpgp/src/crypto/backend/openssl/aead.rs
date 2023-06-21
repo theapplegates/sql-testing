@@ -63,6 +63,7 @@ impl AEADAlgorithm {
         op: CipherOp,
     ) -> Result<Box<dyn Aead>> {
         match self {
+            #[cfg(not(osslconf = "OPENSSL_NO_OCB"))]
             AEADAlgorithm::OCB => {
                 let cipher = match sym_algo {
                     SymmetricAlgorithm::AES128 => Cipher::aes_128_ocb(),

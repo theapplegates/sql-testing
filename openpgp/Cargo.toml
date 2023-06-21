@@ -45,13 +45,13 @@ regex-syntax = "0.6"
 sha1collisiondetection = { version = "0.2.3", default-features = false, features = ["std"] }
 thiserror = "1.0.2"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
-# At least 0.10.46 is needed due `no-cast` check:
+# At least 0.10.55 is needed due `no-ocb` check:
 # https://github.com/sfackler/rust-openssl/blob/master/openssl/CHANGELOG.md
-openssl = { version = "0.10.47", optional = true }
+openssl = { version = "0.10.55", optional = true }
 # We need to directly depend on the sys crate so that the metadata produced
 # in its build script is passed to sequoia-openpgp's build script
 # see: https://doc.rust-lang.org/cargo/reference/build-scripts.html#the-links-manifest-key
-openssl-sys = { version = "0.9.82", optional = true }
+openssl-sys = { version = "0.9.90", optional = true }
 
 # Botan.
 botan = { version = "0.10", optional = true }

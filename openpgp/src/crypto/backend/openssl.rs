@@ -28,13 +28,17 @@ impl AEADAlgorithm {
     /// algorithm and the most performing one, but fall back to any
     /// supported algorithm.
     pub(crate) const fn const_default() -> AEADAlgorithm {
-        AEADAlgorithm::OCB
+        if cfg!(not(osslconf = "OPENSSL_NO_OCB")) {
+            AEADAlgorithm::OCB
+        } else {
+            AEADAlgorithm::GCM
+        }
     }
 
     pub(crate) fn is_supported_by_backend(&self) -> bool {
         match self {
             AEADAlgorithm::EAX => false,
-            AEADAlgorithm::OCB => true,
+            AEADAlgorithm::OCB => cfg!(not(osslconf = "OPENSSL_NO_OCB")),
             AEADAlgorithm::GCM => true,
             AEADAlgorithm::Private(_) |
             AEADAlgorithm::Unknown(_) => false,
