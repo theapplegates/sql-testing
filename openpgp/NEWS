@@ -21,6 +21,8 @@
    - Fingerprint::V6
    - KeyID::Long
    - S2K::Argon2
+   - HashAlgorithm::SHA3_256
+   - HashAlgorithm::SHA3_512
 
 ** Notable fixes
 
