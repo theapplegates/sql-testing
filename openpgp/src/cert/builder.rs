@@ -1352,7 +1352,9 @@ impl CertBuilder<'_> {
         // Generate & self-sign primary key.
         let (primary, sig, mut signer) = self.primary_key(creation_time)?;
 
-        let mut cert = Cert::try_from(vec![
+        // Construct a skeleton cert.  We need this to bind the new
+        // components to.
+        let cert = Cert::try_from(vec![
             Packet::SecretKey({
                 let mut primary = primary.clone();
                 if let Some(ref password) = self.password {
@@ -1360,8 +1362,13 @@ impl CertBuilder<'_> {
                 }
                 primary
             }),
-            sig.into(),
         ])?;
+        // We will, however, collect any signatures and components in
+        // a separate vector, and only add them in the end, so that we
+        // canonicalize the new certificate just once.
+        let mut acc = vec![
+            Packet::from(sig),
+        ];
 
         // We want to mark exactly one User ID or Attribute as primary.
         // First, figure out whether one of the binding signature
@@ -1402,8 +1409,8 @@ impl CertBuilder<'_> {
             }
 
             let signature = uid.bind(&mut signer, &cert, sig)?;
-            cert = cert.insert_packets(
-                vec![Packet::from(uid), signature.into()])?;
+            acc.push(uid.into());
+            acc.push(signature.into());
         }
 
         // Sign UserAttributes.
@@ -1432,8 +1439,8 @@ impl CertBuilder<'_> {
             }
 
             let signature = ua.bind(&mut signer, &cert, sig)?;
-            cert = cert.insert_packets(
-                vec![Packet::from(ua), signature.into()])?;
+            acc.push(ua.into());
+            acc.push(signature.into());
         }
 
         // Sign subkeys.
@@ -1469,9 +1476,12 @@ impl CertBuilder<'_> {
             if let Some(ref password) = self.password {
                 subkey.secret_mut().encrypt_in_place(password)?;
             }
-            cert = cert.insert_packets(vec![Packet::SecretSubkey(subkey),
-                                           signature.into()])?;
+            acc.push(subkey.into());
+            acc.push(signature.into());
         }
+
+        // Now add the new components and canonicalize once.
+        let cert = cert.insert_packets(acc)?;
 
         let revocation = CertRevocationBuilder::new()
             .set_signature_creation_time(creation_time)?
