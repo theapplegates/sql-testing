@@ -102,7 +102,13 @@ pub struct KeyAmalgamationIter<'a, P, R>
     // secret.
     unencrypted_secret: Option<bool>,
 
-    // Only return keys in this set.
+    /// Only return keys in this set.
+    // XXX: Once KeyAmalgamationIter::key_handles is replaced by
+    // KeyAmalgamationIter::key_handles2, turn this into a
+    // Vec<KeyHandle> instead.  This will simplify the code quite a
+    // bit, and remove the corner case that lead to the problematic
+    // behavior in the first place (having two values of "none": None,
+    // and Some(vec![])).
     key_handles: Option<Vec<KeyHandle>>,
 
     // If not None, filters by whether we support the key's asymmetric
@@ -413,6 +419,9 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
     /// Changes the iterator to only return a key if it matches one of
     /// the specified `KeyHandle`s.
     ///
+    /// If the given `handles` iterator is empty, the set of returned
+    /// keys is not constrained.
+    ///
     /// This function is cumulative.  If you call this function (or
     /// [`key_handle`]) multiple times, then the iterator returns a key
     /// if it matches *any* of the specified [`KeyHandle`s].
@@ -432,7 +441,7 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
     /// #         .generate()?;
     /// # let key_handles = &[cert.primary_key().key_handle()][..];
     /// # let mut i = 0;
-    /// for ka in cert.keys().key_handles(key_handles.iter()) {
+    /// for ka in cert.keys().key_handles2(key_handles) {
     ///     // Use it.
     /// #   i += 1;
     /// }
@@ -444,6 +453,47 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
     /// [`KeyHandle`s]: super::super::super::KeyHandle
     /// [`key_handle`]: KeyAmalgamationIter::key_handle()
     /// [`KeyHandle::aliases`]: super::super::super::KeyHandle::aliases()
+    pub fn key_handles2<H, K>(mut self, handles: H) -> Self
+    where
+        H: IntoIterator<Item=K>,
+        K: Borrow<KeyHandle>,
+    {
+        let mut handles = handles.into_iter()
+            .map(|h| h.borrow().clone())
+            .collect::<Vec<_>>();
+
+        if ! handles.is_empty() {
+            if self.key_handles.is_none() {
+                self.key_handles = Some(handles);
+            } else {
+                self.key_handles.as_mut().unwrap().append(&mut handles);
+            }
+        }
+
+        self
+    }
+
+    /// Changes the iterator to only return a key if it matches one of
+    /// the specified `KeyHandle`s.
+    ///
+    /// This function is cumulative.  If you call this function (or
+    /// [`key_handle`]) multiple times, then the iterator returns a key
+    /// if it matches *any* of the specified [`KeyHandle`s].
+    ///
+    /// This function uses [`KeyHandle::aliases`] to compare key
+    /// handles.
+    ///
+    /// Note: This function has a bug.  Consider an iterator over
+    /// handles `h`.  Now, `h.for_each(|h| iter = iter.key_handle(h))`
+    /// and `iter.key_handles(h)` should be the same, but they differ
+    /// when `h` is the empty iterator.  Then, the former iterator
+    /// will produce all keys, and the latter will produce no keys.
+    /// Use `key_handles2` instead, which behaves consistently.
+    ///
+    /// [`KeyHandle`s]: super::super::super::KeyHandle
+    /// [`key_handle`]: KeyAmalgamationIter::key_handle()
+    /// [`KeyHandle::aliases`]: super::super::super::KeyHandle::aliases()
+    #[deprecated(note = "Use key_handles2 instead")]
     pub fn key_handles<'b>(mut self, h: impl Iterator<Item=&'b KeyHandle>)
         -> Self
         where 'a: 'b
@@ -697,7 +747,13 @@ pub struct ValidKeyAmalgamationIter<'a, P, R>
     // secret.
     unencrypted_secret: Option<bool>,
 
-    // Only return keys in this set.
+    /// Only return keys in this set.
+    // XXX: Once ValidKeyAmalgamationIter::key_handles is replaced by
+    // ValidKeyAmalgamationIter::key_handles2, turn this into a
+    // Vec<KeyHandle> instead.  This will simplify the code quite a
+    // bit, and remove the corner case that lead to the problematic
+    // behavior in the first place (having two values of "none": None,
+    // and Some(vec![])).
     key_handles: Option<Vec<KeyHandle>>,
 
     // If not None, filters by whether we support the key's asymmetric
@@ -1541,6 +1597,9 @@ impl<'a, P, R> ValidKeyAmalgamationIter<'a, P, R>
     /// Changes the iterator to only return a key if it matches one of
     /// the specified `KeyHandle`s.
     ///
+    /// If the given `handles` iterator is empty, the set of returned
+    /// keys is not constrained.
+    ///
     /// This function is cumulative.  If you call this function (or
     /// [`key_handle`]) multiple times, then the iterator returns a key
     /// if it matches *any* of the specified [`KeyHandle`s].
@@ -1564,7 +1623,7 @@ impl<'a, P, R> ValidKeyAmalgamationIter<'a, P, R>
     /// #         .generate()?;
     /// # let key_handles = &[cert.primary_key().key_handle()][..];
     /// # let mut i = 0;
-    /// for ka in cert.keys().with_policy(p, None).key_handles(key_handles.iter()) {
+    /// for ka in cert.keys().with_policy(p, None).key_handles2(key_handles) {
     ///     // Use it.
     /// #   i += 1;
     /// }
@@ -1574,8 +1633,49 @@ impl<'a, P, R> ValidKeyAmalgamationIter<'a, P, R>
     /// ```
     ///
     /// [`KeyHandle`s]: super::super::super::KeyHandle
+    /// [`key_handle`]: KeyAmalgamationIter::key_handle()
+    /// [`KeyHandle::aliases`]: super::super::super::KeyHandle::aliases()
+    pub fn key_handles2<H, K>(mut self, handles: H) -> Self
+    where
+        H: IntoIterator<Item=K>,
+        K: Borrow<KeyHandle>,
+    {
+        let mut handles = handles.into_iter()
+            .map(|h| h.borrow().clone())
+            .collect::<Vec<_>>();
+
+        if ! handles.is_empty() {
+            if self.key_handles.is_none() {
+                self.key_handles = Some(handles);
+            } else {
+                self.key_handles.as_mut().unwrap().append(&mut handles);
+            }
+        }
+
+        self
+    }
+
+    /// Changes the iterator to only return a key if it matches one of
+    /// the specified `KeyHandle`s.
+    ///
+    /// This function is cumulative.  If you call this function (or
+    /// [`key_handle`]) multiple times, then the iterator returns a key
+    /// if it matches *any* of the specified [`KeyHandle`s].
+    ///
+    /// This function uses [`KeyHandle::aliases`] to compare key
+    /// handles.
+    ///
+    /// Note: This function has a bug.  Consider an iterator over
+    /// handles `h`.  Now, `h.for_each(|h| iter = iter.key_handle(h))`
+    /// and `iter.key_handles(h)` should be the same, but they differ
+    /// when `h` is the empty iterator.  Then, the former iterator
+    /// will produce all keys, and the latter will produce no keys.
+    /// Use `key_handles2` instead, which behaves consistently.
+    ///
+    /// [`KeyHandle`s]: super::super::super::KeyHandle
     /// [`key_handle`]: ValidKeyAmalgamationIter::key_handle()
     /// [`KeyHandle::aliases`]: super::super::super::KeyHandle::aliases()
+    #[deprecated(note = "Use key_handles2 instead")]
     pub fn key_handles<'b>(mut self, h: impl Iterator<Item=&'b KeyHandle>)
         -> Self
         where 'a: 'b
@@ -1819,17 +1919,17 @@ mod test {
                 assert_eq!(keyids.len(), i);
 
                 check(
-                    &cert.keys().key_handles(keyids.iter())
+                    &cert.keys().key_handles2(keyids.iter())
                         .map(|ka| ka.key().key_handle())
                         .collect::<Vec<KeyHandle>>(),
                     &keyids);
                 check(
-                    &cert.keys().with_policy(p, None).key_handles(keyids.iter())
+                    &cert.keys().with_policy(p, None).key_handles2(keyids.iter())
                         .map(|ka| ka.key().key_handle())
                         .collect::<Vec<KeyHandle>>(),
                     &keyids);
                 check(
-                    &cert.keys().key_handles(keyids.iter()).with_policy(p, None)
+                    &cert.keys().key_handles2(keyids.iter()).with_policy(p, None)
                         .map(|ka| ka.key().key_handle())
                         .collect::<Vec<KeyHandle>>(),
                     &keyids);

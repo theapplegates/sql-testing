@@ -78,12 +78,16 @@
    - Packet::Padding
    - Padding
    - Tag::Padding
+   - KeyAmalgamationIter::key_handles2
+   - ValidKeyAmalgamationIter::key_handles2
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms
    - SubpacketValue::PreferredAEADAlgorithms
    - SubpacketAreas::preferred_aead_algorithms
    - SignatureBuilder::set_preferred_aead_algorithms
+   - KeyAmalgamationIter::key_handles
+   - ValidKeyAmalgamationIter::key_handles
 
 ** Notable fixes
 
