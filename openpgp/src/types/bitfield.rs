@@ -75,7 +75,7 @@ impl Bitfield {
         &self.raw
     }
 
-    /// Returns a slice containing the raw values.
+    /// Returns a mutable slice containing the raw values.
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         &mut self.raw
     }

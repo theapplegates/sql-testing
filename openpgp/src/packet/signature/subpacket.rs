@@ -1386,7 +1386,7 @@ impl NotationDataFlags {
         assert_eq!(self.0.as_bytes().len(), 4);
         let byte = bit / 8;
         if byte < 4 {
-            self.0.as_bytes_mut()[byte] |= 1 << (bit % 8);
+            self.0.set(bit);
             Ok(self)
         } else {
             Err(Error::InvalidArgument(
@@ -1416,7 +1416,7 @@ impl NotationDataFlags {
         assert_eq!(self.0.as_bytes().len(), 4);
         let byte = bit / 8;
         if byte < 4 {
-            self.0.as_bytes_mut()[byte] &= !(1 << (bit % 8));
+            self.0.clear(bit);
             Ok(self)
         } else {
             Err(Error::InvalidArgument(
