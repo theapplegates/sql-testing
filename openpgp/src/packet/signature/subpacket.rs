@@ -1340,11 +1340,6 @@ impl NotationDataFlags {
         &self.0
     }
 
-    /// Returns a slice containing the raw values.
-    pub(crate) fn as_slice(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
-
     /// Returns whether the specified notation data flag is set.
     ///
     /// # Examples

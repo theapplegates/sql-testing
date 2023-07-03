@@ -108,11 +108,6 @@ impl KeyServerPreferences {
         &mut self.0
     }
 
-    /// Returns a slice containing the raw values.
-    pub(crate) fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
-
     /// Compares two key server preference sets for semantic equality.
     ///
     /// `KeyServerPreferences`' implementation of `PartialEq` compares
@@ -311,7 +306,7 @@ mod tests {
 
     quickcheck! {
         fn roundtrip(val: KeyServerPreferences) -> bool {
-            let mut q_bytes = val.as_bytes().to_vec();
+            let mut q_bytes = val.as_bitfield().as_bytes().to_vec();
             let q = KeyServerPreferences::new(&q_bytes);
             assert_eq!(val, q);
             assert!(val.normalized_eq(&q));

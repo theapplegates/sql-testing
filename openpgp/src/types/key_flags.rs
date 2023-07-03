@@ -108,8 +108,8 @@ impl BitAnd for &KeyFlags {
     type Output = KeyFlags;
 
     fn bitand(self, rhs: Self) -> KeyFlags {
-        let l = self.as_bytes();
-        let r = rhs.as_bytes();
+        let l = self.as_bitfield().as_bytes();
+        let r = rhs.as_bitfield().as_bytes();
 
         let mut c = Vec::with_capacity(std::cmp::min(l.len(), r.len()));
         for (l, r) in l.iter().zip(r.iter()) {
@@ -124,8 +124,8 @@ impl BitOr for &KeyFlags {
     type Output = KeyFlags;
 
     fn bitor(self, rhs: Self) -> KeyFlags {
-        let l = self.as_bytes();
-        let r = rhs.as_bytes();
+        let l = self.as_bitfield().as_bytes();
+        let r = rhs.as_bitfield().as_bytes();
 
         // Make l the longer one.
         let (l, r) = if l.len() > r.len() {
@@ -168,11 +168,6 @@ impl KeyFlags {
     /// Returns a mutable reference to the underlying [`Bitfield`].
     pub fn as_bitfield_mut(&mut self) -> &mut Bitfield {
         &mut self.0
-    }
-
-    /// Returns a slice containing the raw values.
-    pub(crate) fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
     }
 
     /// Compares two key flag sets for semantic equality.
@@ -456,7 +451,7 @@ impl KeyFlags {
 
     /// Returns whether no flags are set.
     pub fn is_empty(&self) -> bool {
-        self.as_bytes().iter().all(|b| *b == 0)
+        self.as_bitfield().as_bytes().iter().all(|b| *b == 0)
     }
 }
 
@@ -496,7 +491,7 @@ mod tests {
 
     quickcheck! {
         fn roundtrip(val: KeyFlags) -> bool {
-            let mut q_bytes = val.as_bytes().to_vec();
+            let mut q_bytes = val.as_bitfield().as_bytes().to_vec();
             let q = KeyFlags::new(&q_bytes);
             assert_eq!(val, q);
             assert!(val.normalized_eq(&q));
