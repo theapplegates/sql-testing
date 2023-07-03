@@ -995,6 +995,10 @@ struct PacketParserSettings {
 
     // Whether or not to create a map.
     map: bool,
+
+    // Whether to implicitly start hashing upon parsing OnePassSig
+    // packets.
+    automatic_hashing: bool,
 }
 
 // The default `PacketParser` settings.
@@ -1005,6 +1009,7 @@ impl Default for PacketParserSettings {
             max_packet_size: DEFAULT_MAX_PACKET_SIZE,
             buffer_unread_content: false,
             map: false,
+            automatic_hashing: true,
         }
     }
 }
@@ -1949,7 +1954,7 @@ impl OnePassSig3 {
 
         // Walk up the reader chain to see if there is already a
         // hashed reader on level recursion_depth - 1.
-        let done = {
+        let done = ! php.state.settings.automatic_hashing || {
             let mut done = false;
             let mut reader : Option<&mut dyn BufferedReader<Cookie>>
                 = Some(&mut php.reader);

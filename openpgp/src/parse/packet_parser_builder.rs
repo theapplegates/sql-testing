@@ -364,6 +364,32 @@ impl<'a> PacketParserBuilder<'a> {
         self
     }
 
+    /// Controls automatic hashing.
+    ///
+    /// When encountering a [`OnePassSig`] packet, the packet parser
+    /// will, by default, start hashing later packets using the hash
+    /// algorithm specified in the packet.  In some cases, this is not
+    /// needed, and hashing will incur a non-trivial overhead.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # fn main() -> sequoia_openpgp::Result<()> {
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::parse::{Parse, PacketParserBuilder};
+    /// #
+    /// let message_data = b"\xcb\x12t\x00\x00\x00\x00\x00Hello world.";
+    /// let pp = PacketParserBuilder::from_bytes(message_data)?
+    ///     .automatic_hashing(false) // Disable automatic hashing.
+    ///     .build()?
+    ///     .expect("One packet, not EOF");
+    /// # Ok(()) }
+    /// ```
+    pub fn automatic_hashing(mut self, enable: bool) -> Self {
+        self.settings.automatic_hashing = enable;
+        self
+    }
+
     /// Controls transparent transformation of messages using the
     /// cleartext signature framework into signed messages.
     ///
