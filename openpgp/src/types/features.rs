@@ -116,6 +116,16 @@ impl Features {
         Self::new(&v[..]).set_mdc()
     }
 
+    /// Returns a reference to the underlying [`Bitfield`].
+    pub fn as_bitfield(&self) -> &Bitfield {
+        &self.0
+    }
+
+    /// Returns a mutable reference to the underlying [`Bitfield`].
+    pub fn as_bitfield_mut(&mut self) -> &mut Bitfield {
+        &mut self.0
+    }
+
     /// Compares two feature sets for semantic equality.
     ///
     /// `Features`' implementation of `PartialEq` compares two feature

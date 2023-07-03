@@ -160,6 +160,16 @@ impl KeyFlags {
         KeyFlags::new(&[])
     }
 
+    /// Returns a reference to the underlying [`Bitfield`].
+    pub fn as_bitfield(&self) -> &Bitfield {
+        &self.0
+    }
+
+    /// Returns a mutable reference to the underlying [`Bitfield`].
+    pub fn as_bitfield_mut(&mut self) -> &mut Bitfield {
+        &mut self.0
+    }
+
     /// Returns a slice containing the raw values.
     pub(crate) fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()

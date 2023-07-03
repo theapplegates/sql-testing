@@ -34,6 +34,9 @@
    - parse::PacketParserBuilder::automatic_hashing
    - types::AEADAlgorithm::GCM
    - types::Bitfield
+   - types::Features::as_bitfield
+   - types::KeyFlags::as_bitfield
+   - types::KeyServerPreferences::as_bitfield
 ** Deprecated functionality
    - cert::Preferences::preferred_aead_algorithms
    - packet::signature::SignatureBuilder::set_preferred_aead_algorithms

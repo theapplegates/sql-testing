@@ -1334,6 +1334,12 @@ impl NotationDataFlags {
         Self::new(&[0, 0, 0, 0]).unwrap()
     }
 
+    /// Returns a reference to the underlying
+    /// [`Bitfield`](crate::types::Bitfield).
+    pub fn as_bitfield(&self) -> &crate::types::Bitfield {
+        &self.0
+    }
+
     /// Returns a slice containing the raw values.
     pub(crate) fn as_slice(&self) -> &[u8] {
         self.0.as_bytes()
