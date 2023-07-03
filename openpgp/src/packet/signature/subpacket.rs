@@ -1666,6 +1666,7 @@ pub enum SubpacketValue {
     /// See [Section 5.2.3.8 of RFC 4880bis] for details.
     ///
     ///  [Section 5.2.3.8 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#section-5.2.3.8
+    #[deprecated]
     PreferredAEADAlgorithms(Vec<AEADAlgorithm>),
     /// Who the signed message was intended for (proposed).
     ///
@@ -1694,6 +1695,7 @@ impl ArbitraryBounded for SubpacketValue {
         use crate::arbitrary_helper::gen_arbitrary_from_range;
 
         loop {
+            #[allow(deprecated)]
             break match gen_arbitrary_from_range(0..26, g) {
                 0 => SignatureCreationTime(Arbitrary::arbitrary(g)),
                 1 => SignatureExpirationTime(Arbitrary::arbitrary(g)),
@@ -6881,6 +6883,7 @@ impl signature::SignatureBuilder {
                                          preferences: Vec<AEADAlgorithm>)
         -> Result<Self>
     {
+        #[allow(deprecated)]
         self.hashed_area.replace(Subpacket::new(
             SubpacketValue::PreferredAEADAlgorithms(preferences),
             false)?)?;
