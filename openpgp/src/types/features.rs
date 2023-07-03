@@ -85,8 +85,7 @@ impl fmt::Debug for Features {
         }
 
         // Mention any padding, as equality is sensitive to this.
-        let padding = self.0.padding_len();
-        if padding > 0 {
+        if let Some(padding) = self.0.padding_bytes() {
             if need_comma { f.write_str(", ")?; }
             write!(f, "+padding({} bytes)", padding)?;
         }

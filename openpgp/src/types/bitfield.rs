@@ -35,16 +35,10 @@ impl Bitfield {
             .filter_map(|(i, v)| if v { Some(i) } else { None })
     }
 
-    pub fn padding_len(&self) -> usize {
-        let mut padding = 0;
-        for i in (0..self.raw.len()).rev() {
-            if self.raw[i] == 0 {
-                padding += 1;
-            } else {
-                break;
-            }
-        }
-        padding
+    /// Returns the number of trailing zero bytes.
+    pub fn padding_bytes(&self) -> Option<std::num::NonZeroUsize> {
+        std::num::NonZeroUsize::new(
+            self.raw.iter().rev().take_while(|b| **b == 0).count())
     }
 
     /// Compares two feature sets for semantic equality.
