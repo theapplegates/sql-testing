@@ -59,12 +59,12 @@ impl Bitfield {
     }
 
     /// Returns a slice containing the raw values.
-    pub(crate) fn as_slice(&self) -> &[u8] {
+    pub fn as_bytes(&self) -> &[u8] {
         &self.raw
     }
 
     /// Returns a slice containing the raw values.
-    pub(crate) fn as_slice_mut(&mut self) -> &mut [u8] {
+    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         &mut self.raw
     }
 

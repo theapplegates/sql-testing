@@ -145,8 +145,8 @@ impl Features {
     }
 
     /// Returns a slice containing the raw values.
-    pub(crate) fn as_slice(&self) -> &[u8] {
-        self.0.as_slice()
+    pub(crate) fn as_bytes(&self) -> &[u8] {
+        self.0.as_bytes()
     }
 
     /// Returns whether the specified feature flag is set.
@@ -369,7 +369,7 @@ mod tests {
 
     quickcheck! {
         fn roundtrip(val: Features) -> bool {
-            let mut q_bytes = val.as_slice().to_vec();
+            let mut q_bytes = val.as_bytes().to_vec();
             let q = Features::new(&q_bytes);
             assert_eq!(val, q);
             assert!(val.normalized_eq(&q));

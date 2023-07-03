@@ -1336,7 +1336,7 @@ impl NotationDataFlags {
 
     /// Returns a slice containing the raw values.
     pub(crate) fn as_slice(&self) -> &[u8] {
-        self.0.as_slice()
+        self.0.as_bytes()
     }
 
     /// Returns whether the specified notation data flag is set.
@@ -1383,10 +1383,10 @@ impl NotationDataFlags {
     /// # Ok(()) }
     /// ```
     pub fn set(mut self, bit: usize) -> Result<Self> {
-        assert_eq!(self.0.as_slice().len(), 4);
+        assert_eq!(self.0.as_bytes().len(), 4);
         let byte = bit / 8;
         if byte < 4 {
-            self.0.as_slice_mut()[byte] |= 1 << (bit % 8);
+            self.0.as_bytes_mut()[byte] |= 1 << (bit % 8);
             Ok(self)
         } else {
             Err(Error::InvalidArgument(
@@ -1413,10 +1413,10 @@ impl NotationDataFlags {
     /// # Ok(()) }
     /// ```
     pub fn clear(mut self, bit: usize) -> Result<Self> {
-        assert_eq!(self.0.as_slice().len(), 4);
+        assert_eq!(self.0.as_bytes().len(), 4);
         let byte = bit / 8;
         if byte < 4 {
-            self.0.as_slice_mut()[byte] &= !(1 << (bit % 8));
+            self.0.as_bytes_mut()[byte] &= !(1 << (bit % 8));
             Ok(self)
         } else {
             Err(Error::InvalidArgument(

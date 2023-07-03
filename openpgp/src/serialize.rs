@@ -1466,7 +1466,7 @@ impl Marshal for SubpacketValue {
                     o.write_all(&[(*a).into()])?;
                 },
             KeyServerPreferences(ref p) =>
-                o.write_all(p.as_slice())?,
+                o.write_all(p.as_bytes())?,
             PreferredKeyServer(ref p) =>
                 o.write_all(p)?,
             PrimaryUserID(p) =>
@@ -1474,7 +1474,7 @@ impl Marshal for SubpacketValue {
             PolicyURI(ref p) =>
                 o.write_all(p)?,
             KeyFlags(ref f) =>
-                o.write_all(f.as_slice())?,
+                o.write_all(f.as_bytes())?,
             SignersUserID(ref uid) =>
                 o.write_all(uid)?,
             ReasonForRevocation { ref code, ref reason } => {
@@ -1482,7 +1482,7 @@ impl Marshal for SubpacketValue {
                 o.write_all(reason)?;
             },
             Features(ref f) =>
-                o.write_all(f.as_slice())?,
+                o.write_all(f.as_bytes())?,
             SignatureTarget { pk_algo, hash_algo, ref digest } => {
                 o.write_all(&[(*pk_algo).into(), (*hash_algo).into()])?;
                 o.write_all(digest)?;
@@ -1546,14 +1546,14 @@ impl MarshalInto for SubpacketValue {
             NotationData(nd) => 4 + 2 + 2 + nd.name().len() + nd.value().len(),
             PreferredHashAlgorithms(ref p) => p.len(),
             PreferredCompressionAlgorithms(ref p) => p.len(),
-            KeyServerPreferences(ref p) => p.as_slice().len(),
+            KeyServerPreferences(ref p) => p.as_bytes().len(),
             PreferredKeyServer(ref p) => p.len(),
             PrimaryUserID(_) => 1,
             PolicyURI(ref p) => p.len(),
-            KeyFlags(ref f) => f.as_slice().len(),
+            KeyFlags(ref f) => f.as_bytes().len(),
             SignersUserID(ref uid) => uid.len(),
             ReasonForRevocation { ref reason, .. } => 1 + reason.len(),
-            Features(ref f) => f.as_slice().len(),
+            Features(ref f) => f.as_bytes().len(),
             SignatureTarget { ref digest, .. } => 2 + digest.len(),
             EmbeddedSignature(sig) => sig.serialized_len(),
             IssuerFingerprint(ref fp) =>
