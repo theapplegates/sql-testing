@@ -72,7 +72,7 @@ impl fmt::Debug for Features {
         }
 
         // Now print any unknown features.
-        for i in self.0.iter() {
+        for i in self.0.iter_set() {
             match i {
                 FEATURE_FLAG_MDC => (),
                 FEATURE_FLAG_AEAD => (),

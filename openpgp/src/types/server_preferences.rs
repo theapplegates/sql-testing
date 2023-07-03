@@ -66,7 +66,7 @@ impl fmt::Debug for KeyServerPreferences {
             need_comma = true;
         }
 
-        for i in self.0.iter() {
+        for i in self.0.iter_set() {
             match i {
                 KEYSERVER_PREFERENCE_NO_MODIFY => (),
                 i => {

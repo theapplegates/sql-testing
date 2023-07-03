@@ -23,7 +23,9 @@ impl AsMut<[u8]> for Bitfield {
 }
 
 impl Bitfield {
-    pub fn iter(&self) -> impl Iterator<Item = usize> + Send + Sync + '_
+    /// Returns all bits that are set starting from bit 0, the
+    /// least-significant bit in the left-most byte.
+    pub fn iter_set(&self) -> impl Iterator<Item = usize> + Send + Sync + '_
     {
         self.raw.iter()
             .flat_map(|b| {

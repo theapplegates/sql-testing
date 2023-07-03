@@ -1297,7 +1297,7 @@ impl fmt::Debug for NotationDataFlags {
             need_comma = true;
         }
 
-        for i in self.0.iter() {
+        for i in self.0.iter_set() {
             match i {
                 NOTATION_DATA_FLAG_HUMAN_READABLE => (),
                 i => {

@@ -76,7 +76,7 @@ impl fmt::Debug for KeyFlags {
         }
 
         let mut need_comma = false;
-        for i in self.0.iter() {
+        for i in self.0.iter_set() {
             match i {
                 KEY_FLAG_CERTIFY
                     | KEY_FLAG_SIGN
