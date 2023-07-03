@@ -14,6 +14,7 @@
 ** Deprecated functionality
    - cert::Preferences::preferred_aead_algorithms
    - packet::signature::subpacket::SubpacketAreas::preferred_aead_algorithms
+   - packet::signature::subpacket::SubpacketTag::PreferredAEADAlgorithms
    - types::Curve::len, use types::Curve::bits instead
 * Changes in 1.16.0
 ** New functionality

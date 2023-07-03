@@ -306,6 +306,7 @@ pub enum SubpacketTag {
     /// See [Section 5.2.3.8 of RFC 4880bis] for details.
     ///
     ///  [Section 5.2.3.8 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#section-5.2.3.8
+    #[deprecated]
     PreferredAEADAlgorithms,
     /// Who the signed message was intended for (proposed).
     ///
@@ -344,6 +345,7 @@ impl fmt::Display for SubpacketTag {
 
 impl From<u8> for SubpacketTag {
     fn from(u: u8) -> Self {
+        #[allow(deprecated)]
         match u {
             2 => SubpacketTag::SignatureCreationTime,
             3 => SubpacketTag::SignatureExpirationTime,
@@ -382,6 +384,7 @@ impl From<u8> for SubpacketTag {
 
 impl From<SubpacketTag> for u8 {
     fn from(t: SubpacketTag) -> Self {
+        #[allow(deprecated)]
         match t {
             SubpacketTag::SignatureCreationTime => 2,
             SubpacketTag::SignatureExpirationTime => 3,
@@ -418,6 +421,7 @@ impl From<SubpacketTag> for u8 {
     }
 }
 
+#[allow(deprecated)]
 const SUBPACKET_TAG_VARIANTS: [SubpacketTag; 28] = [
     SubpacketTag::SignatureCreationTime,
     SubpacketTag::SignatureExpirationTime,
@@ -1742,6 +1746,7 @@ impl SubpacketValue {
     /// Returns the subpacket tag for this value.
     pub fn tag(&self) -> SubpacketTag {
         use self::SubpacketValue::*;
+        #[allow(deprecated)]
         match &self {
             SignatureCreationTime(_) => SubpacketTag::SignatureCreationTime,
             SignatureExpirationTime(_) =>
@@ -3287,6 +3292,7 @@ impl SubpacketAreas {
     pub fn preferred_aead_algorithms(&self)
                                      -> Option<&[AEADAlgorithm]> {
         // array of one-octet values
+        #[allow(deprecated)]
         if let Some(sb)
                 = self.subpacket(
                     SubpacketTag::PreferredAEADAlgorithms) {

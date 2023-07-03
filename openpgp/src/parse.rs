@@ -1621,6 +1621,7 @@ impl Subpacket {
         // Then clear it from the type and convert it.
         let tag: SubpacketTag = (tag & !(1 << 7)).into();
 
+        #[allow(deprecated)]
         let value = match tag {
             SubpacketTag::SignatureCreationTime =>
                 SubpacketValue::SignatureCreationTime(
