@@ -238,7 +238,7 @@ impl KeyFlags {
     /// # Ok(()) }
     /// ```
     pub fn set(self, bit: usize) -> Self {
-        Self(self.0.set(bit))
+        Self(self.0.set(bit).canonicalize())
     }
 
     /// Clears the specified key flag.
@@ -262,7 +262,7 @@ impl KeyFlags {
     /// # Ok(()) }
     /// ```
     pub fn clear(self, bit: usize) -> Self {
-        Self(self.0.clear(bit))
+        Self(self.0.clear(bit).canonicalize())
     }
 
     /// This key may be used to certify other keys.

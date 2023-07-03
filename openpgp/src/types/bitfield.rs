@@ -92,8 +92,8 @@ impl Bitfield {
         }
     }
 
-    /// Remove any trailing padding.
-    fn clear_padding(mut self) -> Self {
+    /// Canonicalize by removing any trailing zero bytes.
+    pub fn canonicalize(mut self) -> Self {
         while !self.raw.is_empty() && self.raw[self.raw.len() - 1] == 0 {
             self.raw.truncate(self.raw.len() - 1);
         }
@@ -102,27 +102,24 @@ impl Bitfield {
     }
 
     /// Sets the specified flag.
-    ///
-    /// This also clears any padding (trailing NUL bytes).
     pub fn set(mut self, bit: usize) -> Self {
         let byte = bit / 8;
         while self.raw.len() <= byte {
             self.raw.push(0);
         }
         self.raw[byte] |= 1 << (bit % 8);
-
-        self.clear_padding()
+        self
     }
 
     /// Clears the specified flag.
     ///
-    /// This also clears any padding (trailing NUL bytes).
+    /// Note: This does not implicitly canonicalize the bit field.  To
+    /// do that, invoke [`Bitfield::canonicalize`].
     pub fn clear(mut self, bit: usize) -> Self {
         let byte = bit / 8;
         if byte < self.raw.len() {
             self.raw[byte] &= !(1 << (bit % 8));
         }
-
-        self.clear_padding()
+        self
     }
 }

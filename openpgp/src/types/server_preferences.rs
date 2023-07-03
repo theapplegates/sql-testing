@@ -176,7 +176,7 @@ impl KeyServerPreferences {
     /// # Ok(()) }
     /// ```
     pub fn set(self, bit: usize) -> Self {
-        Self(self.0.set(bit))
+        Self(self.0.set(bit).canonicalize())
     }
 
     /// Clears the specified keyserver preference flag.
@@ -200,7 +200,7 @@ impl KeyServerPreferences {
     /// # Ok(()) }
     /// ```
     pub fn clear(self, bit: usize) -> Self {
-        Self(self.0.clear(bit))
+        Self(self.0.clear(bit).canonicalize())
     }
 
     /// Returns whether the certificate's owner requests that the

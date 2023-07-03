@@ -199,7 +199,7 @@ impl Features {
     /// # Ok(()) }
     /// ```
     pub fn set(self, bit: usize) -> Self {
-        Self(self.0.set(bit))
+        Self(self.0.set(bit).canonicalize())
     }
 
     /// Clears the specified feature flag.
@@ -225,7 +225,7 @@ impl Features {
     /// # Ok(()) }
     /// ```
     pub fn clear(self, bit: usize) -> Self {
-        Self(self.0.clear(bit))
+        Self(self.0.clear(bit).canonicalize())
     }
 
     /// Returns whether the MDC feature flag is set.
