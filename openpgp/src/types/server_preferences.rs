@@ -298,16 +298,19 @@ mod tests {
 
     quickcheck! {
         fn roundtrip(val: KeyServerPreferences) -> bool {
-            let mut q = KeyServerPreferences::new(val.as_slice());
+            let mut q_bytes = val.as_slice().to_vec();
+            let q = KeyServerPreferences::new(&q_bytes);
             assert_eq!(val, q);
             assert!(val.normalized_eq(&q));
 
             // Add some padding to q.  Make sure they are still equal.
-            q.0.raw.push(0);
+            q_bytes.push(0);
+            let q = KeyServerPreferences::new(&q_bytes);
             assert!(val != q);
             assert!(val.normalized_eq(&q));
 
-            q.0.raw.push(0);
+            q_bytes.push(0);
+            let q = KeyServerPreferences::new(&q_bytes);
             assert!(val != q);
             assert!(val.normalized_eq(&q));
 

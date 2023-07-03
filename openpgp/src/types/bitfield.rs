@@ -1,7 +1,7 @@
 /// A bitfield.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct Bitfield {
-    pub(crate) raw: Vec<u8>,
+    raw: Vec<u8>,
 }
 
 impl From<Vec<u8>> for Bitfield {
@@ -61,6 +61,11 @@ impl Bitfield {
     /// Returns a slice containing the raw values.
     pub(crate) fn as_slice(&self) -> &[u8] {
         &self.raw
+    }
+
+    /// Returns a slice containing the raw values.
+    pub(crate) fn as_slice_mut(&mut self) -> &mut [u8] {
+        &mut self.raw
     }
 
     /// Returns whether the specified flag is set.
