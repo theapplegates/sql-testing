@@ -33,6 +33,7 @@
    - parse::PacketParser::start_hashing
    - parse::PacketParserBuilder::automatic_hashing
    - types::AEADAlgorithm::GCM
+   - types::Bitfield
 ** Deprecated functionality
    - cert::Preferences::preferred_aead_algorithms
    - packet::signature::SignatureBuilder::set_preferred_aead_algorithms
