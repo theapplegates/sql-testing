@@ -6876,6 +6876,7 @@ impl signature::SignatureBuilder {
     /// # Ok(())
     /// # }
     /// ```
+    #[deprecated]
     pub fn set_preferred_aead_algorithms(mut self,
                                          preferences: Vec<AEADAlgorithm>)
         -> Result<Self>
@@ -7319,7 +7320,9 @@ fn accessors() {
 
     let pref = vec![AEADAlgorithm::EAX,
                     AEADAlgorithm::OCB];
-    sig = sig.set_preferred_aead_algorithms(pref.clone()).unwrap();
+    #[allow(deprecated)] {
+        sig = sig.set_preferred_aead_algorithms(pref.clone()).unwrap();
+    }
     let sig_ =
         sig.clone().sign_hash(&mut keypair, hash.clone()).unwrap();
     #[allow(deprecated)] {

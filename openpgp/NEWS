@@ -13,6 +13,7 @@
    - types::AEADAlgorithm::GCM
 ** Deprecated functionality
    - cert::Preferences::preferred_aead_algorithms
+   - packet::signature::SignatureBuilder::set_preferred_aead_algorithms
    - packet::signature::subpacket::SubpacketAreas::preferred_aead_algorithms
    - packet::signature::subpacket::SubpacketTag::PreferredAEADAlgorithms
    - types::Curve::len, use types::Curve::bits instead
