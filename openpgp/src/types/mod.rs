@@ -460,6 +460,40 @@ impl Curve {
 impl fmt::Display for Curve {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::Curve::*;
+
+        struct DotEncoded<'o>(&'o [u8]);
+        impl fmt::Display for DotEncoded<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                let mut oid = self.0;
+                if oid.is_empty() {
+                    write!(f, "[invalid]")?;
+                    return Ok(());
+                }
+
+                // The first octet encodes two values.
+                let first = oid[0] / 40;
+                let second = oid[0] % 40;
+                oid = &oid[1..];
+                write!(f, "{}.{}", first, second)?;
+
+                let mut acc: usize = 0;
+                for b in oid {
+                    if b & 0x80 > 0 {
+                        acc *= 0x80;
+                        acc += (b & 0x7f) as usize;
+                    } else {
+                        acc *= 0x80;
+                        acc += (b & 0x7f) as usize;
+                        write!(f, ".{}", acc)?;
+                        acc = 0;
+                    }
+                }
+
+                Ok(())
+            }
+        }
+
+
         if f.alternate() {
             match *self {
                 NistP256 => f.write_str("NIST curve P-256"),
@@ -474,7 +508,7 @@ impl fmt::Display for Curve {
                 Cv25519
                     => f.write_str("Elliptic curve Diffie-Hellman using D.J. Bernstein's Curve25519"),
                 Unknown(ref oid)
-                    => write!(f, "Unknown curve (OID: {:?})", oid),
+                    => write!(f, "Unknown curve (OID: {})", DotEncoded(oid)),
             }
         } else {
             match *self {
@@ -490,7 +524,7 @@ impl fmt::Display for Curve {
                 Cv25519
                     => f.write_str("Curve25519"),
                 Unknown(ref oid)
-                    => write!(f, "Unknown curve {:?}", oid),
+                    => write!(f, "Unknown curve {}", DotEncoded(oid)),
             }
         }
     }
