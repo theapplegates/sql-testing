@@ -3283,6 +3283,7 @@ impl SubpacketAreas {
     /// Note: if the signature contains multiple instances of this
     /// subpacket in the hashed subpacket area, the last one is
     /// returned.
+    #[deprecated]
     pub fn preferred_aead_algorithms(&self)
                                      -> Option<&[AEADAlgorithm]> {
         // array of one-octet values
@@ -7315,7 +7316,9 @@ fn accessors() {
     sig = sig.set_preferred_aead_algorithms(pref.clone()).unwrap();
     let sig_ =
         sig.clone().sign_hash(&mut keypair, hash.clone()).unwrap();
-    assert_eq!(sig_.preferred_aead_algorithms(), Some(&pref[..]));
+    #[allow(deprecated)] {
+        assert_eq!(sig_.preferred_aead_algorithms(), Some(&pref[..]));
+    }
 
     let fps = vec![
         Fingerprint::from_bytes(b"aaaaaaaaaaaaaaaaaaaa"),
