@@ -93,33 +93,29 @@ impl Bitfield {
     }
 
     /// Canonicalize by removing any trailing zero bytes.
-    pub fn canonicalize(mut self) -> Self {
+    pub fn canonicalize(&mut self) {
         while !self.raw.is_empty() && self.raw[self.raw.len() - 1] == 0 {
             self.raw.truncate(self.raw.len() - 1);
         }
-
-        self
     }
 
     /// Sets the specified flag.
-    pub fn set(mut self, bit: usize) -> Self {
+    pub fn set(&mut self, bit: usize) {
         let byte = bit / 8;
         while self.raw.len() <= byte {
             self.raw.push(0);
         }
         self.raw[byte] |= 1 << (bit % 8);
-        self
     }
 
     /// Clears the specified flag.
     ///
     /// Note: This does not implicitly canonicalize the bit field.  To
     /// do that, invoke [`Bitfield::canonicalize`].
-    pub fn clear(mut self, bit: usize) -> Self {
+    pub fn clear(&mut self, bit: usize) {
         let byte = bit / 8;
         if byte < self.raw.len() {
             self.raw[byte] &= !(1 << (bit % 8));
         }
-        self
     }
 }

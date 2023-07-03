@@ -237,8 +237,10 @@ impl KeyFlags {
     /// # assert!(kf.for_certification());
     /// # Ok(()) }
     /// ```
-    pub fn set(self, bit: usize) -> Self {
-        Self(self.0.set(bit).canonicalize())
+    pub fn set(mut self, bit: usize) -> Self {
+        self.0.set(bit);
+        self.0.canonicalize();
+        self
     }
 
     /// Clears the specified key flag.
@@ -261,8 +263,10 @@ impl KeyFlags {
     /// # assert!(kf.for_certification());
     /// # Ok(()) }
     /// ```
-    pub fn clear(self, bit: usize) -> Self {
-        Self(self.0.clear(bit).canonicalize())
+    pub fn clear(mut self, bit: usize) -> Self {
+        self.0.clear(bit);
+        self.0.canonicalize();
+        self
     }
 
     /// This key may be used to certify other keys.

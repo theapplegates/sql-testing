@@ -198,8 +198,10 @@ impl Features {
     /// # assert!(! f.supports_aead());
     /// # Ok(()) }
     /// ```
-    pub fn set(self, bit: usize) -> Self {
-        Self(self.0.set(bit).canonicalize())
+    pub fn set(mut self, bit: usize) -> Self {
+        self.0.set(bit);
+        self.0.canonicalize();
+        self
     }
 
     /// Clears the specified feature flag.
@@ -224,8 +226,10 @@ impl Features {
     /// # assert!(! f.supports_aead());
     /// # Ok(()) }
     /// ```
-    pub fn clear(self, bit: usize) -> Self {
-        Self(self.0.clear(bit).canonicalize())
+    pub fn clear(mut self, bit: usize) -> Self {
+        self.0.clear(bit);
+        self.0.canonicalize();
+        self
     }
 
     /// Returns whether the MDC feature flag is set.

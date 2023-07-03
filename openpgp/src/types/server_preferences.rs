@@ -175,8 +175,10 @@ impl KeyServerPreferences {
     /// # assert!(! ksp.no_modify());
     /// # Ok(()) }
     /// ```
-    pub fn set(self, bit: usize) -> Self {
-        Self(self.0.set(bit).canonicalize())
+    pub fn set(mut self, bit: usize) -> Self {
+        self.0.set(bit);
+        self.0.canonicalize();
+        self
     }
 
     /// Clears the specified keyserver preference flag.
@@ -199,8 +201,10 @@ impl KeyServerPreferences {
     /// # assert!(! ksp.no_modify());
     /// # Ok(()) }
     /// ```
-    pub fn clear(self, bit: usize) -> Self {
-        Self(self.0.clear(bit).canonicalize())
+    pub fn clear(mut self, bit: usize) -> Self {
+        self.0.clear(bit);
+        self.0.canonicalize();
+        self
     }
 
     /// Returns whether the certificate's owner requests that the
