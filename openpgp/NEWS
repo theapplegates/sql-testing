@@ -12,6 +12,7 @@
    - crypto::SessionKey::as_protected
    - types::AEADAlgorithm::GCM
 ** Deprecated functionality
+   - cert::Preferences::preferred_aead_algorithms
    - types::Curve::len, use types::Curve::bits instead
 * Changes in 1.16.0
 ** New functionality

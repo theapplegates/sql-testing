@@ -474,6 +474,7 @@ pub trait Preferences<'a>: seal::Sealed {
     ///
     /// The algorithms are ordered according by the certificate holder's
     /// preference.
+    #[deprecated]
     fn preferred_aead_algorithms(&self) -> Option<&'a [AEADAlgorithm]>;
 
     /// Returns the certificate holder's keyserver preferences.
@@ -4227,6 +4228,7 @@ impl<'a> ValidCert<'a> {
 
 macro_rules! impl_pref {
     ($subpacket:ident, $rt:ty) => {
+        #[allow(deprecated)]
         fn $subpacket(&self) -> Option<$rt>
         {
             // When addressed by the fingerprint or keyid, we first
@@ -6537,7 +6539,9 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
             assert_eq!(userid.preferred_compression_algorithms(),
                        Some(&[ Zlib, BZip2, Zip ][..]));
 
-            assert_eq!(userid.preferred_aead_algorithms(), None);
+            #[allow(deprecated)] {
+                assert_eq!(userid.preferred_aead_algorithms(), None);
+            }
 
             // assert_eq!(userid.key_server_preferences(),
             //            Some(KeyServerPreferences::new(&[])));
@@ -6566,7 +6570,9 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
             assert_eq!(userid.preferred_compression_algorithms(),
                        Some(&[ Zlib, BZip2, Zip ][..]));
 
-            assert_eq!(userid.preferred_aead_algorithms(), None);
+            #[allow(deprecated)] {
+                assert_eq!(userid.preferred_aead_algorithms(), None);
+            }
 
             assert_eq!(userid.key_server_preferences(),
                        Some(KeyServerPreferences::new(&[0x80])));
@@ -6584,8 +6590,10 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
                        cert.preferred_hash_algorithms());
             assert_eq!(userid.preferred_compression_algorithms(),
                        cert.preferred_compression_algorithms());
-            assert_eq!(userid.preferred_aead_algorithms(),
-                       cert.preferred_aead_algorithms());
+            #[allow(deprecated)] {
+                assert_eq!(userid.preferred_aead_algorithms(),
+                           cert.preferred_aead_algorithms());
+            }
             assert_eq!(userid.key_server_preferences(),
                        cert.key_server_preferences());
             assert_eq!(userid.features(),
@@ -6612,7 +6620,9 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
             assert_eq!(userid.preferred_compression_algorithms(),
                        Some(&[ BZip2, Zlib, Zip ][..]));
 
-            assert_eq!(userid.preferred_aead_algorithms(), None);
+            #[allow(deprecated)] {
+                assert_eq!(userid.preferred_aead_algorithms(), None);
+            }
 
             assert_eq!(userid.key_server_preferences(),
                        Some(KeyServerPreferences::new(&[0x80])));
