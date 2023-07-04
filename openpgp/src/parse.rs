@@ -527,35 +527,19 @@ impl<'a> PacketHeaderParser<'a> {
     fn ok(mut self, packet: Packet) -> Result<PacketParser<'a>> {
         let total_out = self.reader.total_out();
 
-        let mut reader = if self.state.settings.map {
-            // Read the body for the map.  Note that
-            // `total_out` does not account for the body.
-            //
-            // XXX avoid the extra copy.
+        if self.state.settings.map {
+            // Steal the body for the map.
+            self.reader.rewind();
             let body = self.reader.steal_eof()?;
             if !body.is_empty() {
                 self.field("body", body.len());
             }
+            self.map.as_mut().unwrap().finalize(body);
+        }
 
-            // This is a buffered_reader::Dup, so this always has an
-            // inner.
-            let inner = Box::new(self.reader).into_inner().unwrap();
-
-            // Combine the header with the body for the map.
-            let mut data = Vec::with_capacity(total_out + body.len());
-            // We know that the inner reader must have at least
-            // `total_out` bytes buffered, otherwise we could never
-            // have read that much from the `buffered_reader::Dup`.
-            data.extend_from_slice(&inner.buffer()[..total_out]);
-            data.extend(body);
-            self.map.as_mut().unwrap().finalize(data);
-
-            inner
-        } else {
-            // This is a buffered_reader::Dup, so this always has an
-            // inner.
-            Box::new(self.reader).into_inner().unwrap()
-        };
+        // This is a buffered_reader::Dup, so this always has an
+        // inner.
+        let mut reader = Box::new(self.reader).into_inner().unwrap();
 
         if total_out > 0 {
             // We know the data has been read, so this cannot fail.
