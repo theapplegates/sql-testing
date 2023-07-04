@@ -177,6 +177,10 @@ impl<'a> Field<'a> {
     /// assert_eq!(map.iter().nth(0).unwrap().name(), "CTB");
     /// assert_eq!(map.iter().nth(1).unwrap().name(), "length");
     /// assert_eq!(map.iter().nth(2).unwrap().name(), "format");
+    /// assert_eq!(map.iter().nth(3).unwrap().name(), "filename_len");
+    /// assert_eq!(map.iter().nth(4).unwrap().name(), "date");
+    /// assert_eq!(map.iter().nth(5).unwrap().name(), "body");
+    /// assert!(map.iter().nth(6).is_none());
     /// # Ok(()) }
     /// ```
     pub fn name(&self) -> &'a str {
@@ -202,6 +206,10 @@ impl<'a> Field<'a> {
     /// assert_eq!(map.iter().nth(0).unwrap().offset(), 0);
     /// assert_eq!(map.iter().nth(1).unwrap().offset(), 1);
     /// assert_eq!(map.iter().nth(2).unwrap().offset(), 2);
+    /// assert_eq!(map.iter().nth(3).unwrap().offset(), 3);
+    /// assert_eq!(map.iter().nth(4).unwrap().offset(), 4);
+    /// assert_eq!(map.iter().nth(5).unwrap().offset(), 8);
+    /// assert!(map.iter().nth(6).is_none());
     /// # Ok(()) }
     /// ```
     pub fn offset(&self) -> usize {
@@ -227,6 +235,12 @@ impl<'a> Field<'a> {
     /// assert_eq!(map.iter().nth(0).unwrap().as_bytes(), &[0xcb]);
     /// assert_eq!(map.iter().nth(1).unwrap().as_bytes(), &[0x12]);
     /// assert_eq!(map.iter().nth(2).unwrap().as_bytes(), "t".as_bytes());
+    /// assert_eq!(map.iter().nth(3).unwrap().as_bytes(), &[0x00]);
+    /// assert_eq!(map.iter().nth(4).unwrap().as_bytes(),
+    ///            &[0x00, 0x00, 0x00, 0x00]);
+    /// assert_eq!(map.iter().nth(5).unwrap().as_bytes(),
+    ///            "Hello world.".as_bytes());
+    /// assert!(map.iter().nth(6).is_none());
     /// # Ok(()) }
     /// ```
     pub fn as_bytes(&self) -> &'a [u8] {
