@@ -531,8 +531,8 @@ impl<'a> PacketHeaderParser<'a> {
             // Steal the body for the map.
             self.reader.rewind();
             let body = self.reader.steal_eof()?;
-            if !body.is_empty() {
-                self.field("body", body.len());
+            if body.len() > total_out {
+                self.field("body", body.len() - total_out);
             }
             self.map.as_mut().unwrap().finalize(body);
         }
