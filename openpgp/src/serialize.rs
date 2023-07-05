@@ -756,6 +756,23 @@ impl BodyLength {
         o.write_all(&buffer)?;
         Ok(())
     }
+
+    /// Computes the length of the length encoded for use with
+    /// old-style CTBs.
+    fn old_serialized_len(&self) -> usize {
+        // Assume an optimal encoding is desired.
+        match self {
+            BodyLength::Full(l) => {
+                match *l {
+                    0 ..= 0xFF => 1,
+                    0x1_00 ..= 0xFF_FF => 2,
+                    _ => 4,
+                }
+            },
+            BodyLength::Indeterminate => 0,
+            BodyLength::Partial(_) => 0,
+        }
+    }
 }
 
 impl seal::Sealed for CTBNew {}
@@ -816,19 +833,36 @@ impl seal::Sealed for Header {}
 impl Marshal for Header {
     fn serialize(&self, o: &mut dyn std::io::Write) -> Result<()> {
         self.ctb().serialize(o)?;
-        self.length().serialize(o)?;
+        match self.ctb() {
+            CTB::New(_) => self.length().serialize(o)?,
+            CTB::Old(_) => self.length().serialize_old(o)?,
+        }
         Ok(())
     }
 }
 
 impl MarshalInto for Header {
     fn serialized_len(&self) -> usize {
-        self.ctb().serialized_len() + self.length().serialized_len()
+        self.ctb().serialized_len()
+            + match self.ctb() {
+                CTB::New(_) => self.length().serialized_len(),
+                CTB::Old(_) => self.length().old_serialized_len(),
+            }
     }
 
     fn serialize_into(&self, buf: &mut [u8]) -> Result<usize> {
         generic_serialize_into(self, MarshalInto::serialized_len(self), buf)
     }
+}
+
+#[test]
+fn legacy_header() -> Result<()> {
+    use crate::serialize::MarshalInto;
+    let len = BodyLength::Indeterminate;
+    let ctb = CTB::Old(CTBOld::new(Tag::Literal, len)?);
+    assert_eq!(&ctb.to_vec()?[..], &[0b1_0_1011_11]);
+    // Bit encoding: OpenPGP_Legacy_Literal_Indeterminate
+    Ok(())
 }
 
 impl Serialize for KeyID {}
