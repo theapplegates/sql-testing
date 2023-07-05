@@ -371,6 +371,12 @@ impl<'a> PacketParserBuilder<'a> {
     /// algorithm specified in the packet.  In some cases, this is not
     /// needed, and hashing will incur a non-trivial overhead.
     ///
+    /// If automatic hashing is disabled, then hashing may be
+    /// explicitly enabled using [`PacketParser::start_hashing`] while
+    /// parsing each [`OnePassSig`] packet.
+    ///
+    ///   [`OnePassSig`]: crate::packet::OnePassSig
+    ///
     /// # Examples
     ///
     /// ```

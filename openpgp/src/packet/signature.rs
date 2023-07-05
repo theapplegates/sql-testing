@@ -3494,7 +3494,7 @@ mod test {
     use crate::KeyID;
     use crate::cert::prelude::*;
     use crate::crypto;
-    use crate::parse::Parse;
+    use crate::parse::{Parse, PacketParserBuilder};
     use crate::packet::Key;
     use crate::packet::key::Key4;
     use crate::types::Curve;
@@ -3634,6 +3634,42 @@ mod test {
             }
 
             assert_eq!(good, test.good, "Signature verification failed.");
+
+            // Again, this time with explicit hashing.
+            let mut good = 0;
+            let mut ppr = PacketParserBuilder::from_bytes(
+                crate::tests::message(test.data)).unwrap()
+                .automatic_hashing(false)
+                .build().unwrap();
+            while let PacketParserResult::Some(mut pp) = ppr {
+                if let Packet::OnePassSig(_) = &pp.packet {
+                    pp.start_hashing().unwrap();
+                }
+
+                if let Packet::Signature(sig) = &mut pp.packet {
+                    let result = sig.verify(cert.primary_key().key()).is_ok();
+                    eprintln!("  Primary {:?}: {:?}",
+                              cert.fingerprint(), result);
+                    if result {
+                        good += 1;
+                    }
+
+                    for sk in cert.subkeys() {
+                        let result = sig.verify(sk.key()).is_ok();
+                        eprintln!("   Subkey {:?}: {:?}",
+                                  sk.key().fingerprint(), result);
+                        if result {
+                            good += 1;
+                        }
+                    }
+                }
+
+                // Get the next packet.
+                ppr = pp.recurse().unwrap().1;
+            }
+
+            assert_eq!(good, test.good, "Signature verification with \
+                                         explicit hashing failed.");
         }
     }
 

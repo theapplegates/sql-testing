@@ -1954,7 +1954,7 @@ impl OnePassSig3 {
 
         // Walk up the reader chain to see if there is already a
         // hashed reader on level recursion_depth - 1.
-        let done = ! php.state.settings.automatic_hashing || {
+        let done = {
             let mut done = false;
             let mut reader : Option<&mut dyn BufferedReader<Cookie>>
                 = Some(&mut php.reader);
@@ -1977,7 +1977,8 @@ impl OnePassSig3 {
 
                                 // Make sure that it uses the required
                                 // hash algorithm.
-                                if ! cookie.sig_group().hashes.iter()
+                                if php.state.settings.automatic_hashing
+                                    && ! cookie.sig_group().hashes.iter()
                                     .any(|mode| {
                                         mode.map(|ctx| ctx.algo()) == need_hash
                                     })
@@ -2015,9 +2016,11 @@ impl OnePassSig3 {
 
         // We create an empty hashed reader even if we don't support
         // the hash algorithm so that we have something to match
-        // against when we get to the Signature packet.
+        // against when we get to the Signature packet.  Or, automatic
+        // hashing may be disabled, and we want to be able to enable
+        // it explicitly.
         let mut algos = Vec::new();
-        if hash_algo.is_supported() {
+        if pp.state.settings.automatic_hashing && hash_algo.is_supported() {
             algos.push(need_hash);
         }
 
@@ -2061,6 +2064,103 @@ impl OnePassSig3 {
         pp.reader = Box::new(reader);
 
         Ok(pp)
+    }
+}
+
+impl PacketParser<'_> {
+    /// Starts hashing for the current [`OnePassSig`] packet.
+    ///
+    /// If automatic hashing is disabled using
+    /// [`PacketParserBuilder::automatic_hashing`], then hashing can
+    /// be explicitly enabled while parsing a [`OnePassSig`] packet.
+    ///
+    /// If this function is called on a packet other than a
+    /// [`OnePassSig`] packet, it returns [`Error::InvalidOperation`].
+    ///
+    ///   [`Error::InvalidOperation`]: crate::Error::InvalidOperation
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # fn main() -> sequoia_openpgp::Result<()> {
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::{Cert, Packet};
+    /// # use openpgp::parse::{Parse, PacketParserResult, PacketParserBuilder};
+    /// // Parse a signed message, verify using the signer's key.
+    /// let message_data: &[u8] = // ...
+    /// #    include_bytes!("../tests/data/messages/signed-1-sha256-testy.gpg");
+    /// # let cert: Cert = // ...
+    /// #    Cert::from_bytes(include_bytes!("../tests/data/keys/testy.pgp"))?;
+    /// let signer = // ...
+    /// #    cert.primary_key().key();
+    /// let mut good = false;
+    /// let mut ppr = PacketParserBuilder::from_bytes(message_data)?
+    ///     .automatic_hashing(false)
+    ///     .build()?;
+    /// while let PacketParserResult::Some(mut pp) = ppr {
+    ///     if let Packet::OnePassSig(_) = &pp.packet {
+    ///         pp.start_hashing()?;
+    ///     }
+    ///     if let Packet::Signature(sig) = &mut pp.packet {
+    ///         good |= sig.verify(signer).is_ok();
+    ///     }
+    ///     // Start parsing the next packet, recursing.
+    ///     ppr = pp.recurse()?.1;
+    /// }
+    /// assert!(good);
+    /// # Ok(()) }
+    /// ```
+    pub fn start_hashing(&mut self) -> Result<()> {
+        let ops: &OnePassSig = self.packet.downcast_ref()
+            .ok_or_else(|| Error::InvalidOperation(
+                "Must only be invoked on one-pass-signature packets".into())
+            )?;
+
+        let hash_algo = ops.hash_algo();
+        let typ = ops.typ();
+        let need_hash = HashingMode::for_signature(hash_algo, typ);
+        let recursion_depth = self.recursion_depth();
+        let want_hashes_for = if Cookie::processing_csf_message(&self.reader) {
+            HashesFor::CleartextSignature
+        } else {
+            HashesFor::Signature
+        };
+
+        // Walk up the reader chain to find the hashed reader on level
+        // recursion_depth - 1.
+        let mut reader : Option<&mut dyn BufferedReader<Cookie>>
+            = Some(&mut self.reader);
+        while let Some(r) = reader {
+            {
+                let cookie = r.cookie_mut();
+                if let Some(br_level) = cookie.level {
+                    if br_level < recursion_depth - 1 {
+                        break;
+                    }
+                    if br_level == recursion_depth - 1
+                        && cookie.hashes_for == want_hashes_for {
+                            // We found a suitable hashed reader.
+                            // Make sure that it uses the required
+                            // hash algorithm.
+                            if ! cookie.sig_group().hashes.iter()
+                                .any(|mode| {
+                                    mode.map(|ctx| ctx.algo()) == need_hash
+                                })
+                            {
+                                cookie.sig_group_mut().hashes.push(
+                                    HashingMode::for_signature(
+                                        Box::new(hash_algo.context()?), typ));
+                            }
+                            break;
+                        }
+                } else {
+                    break;
+                }
+            }
+            reader = r.get_mut();
+        }
+
+        Ok(())
     }
 }
 

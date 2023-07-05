@@ -29,6 +29,7 @@
      key's role and public key algorithm.
 ** New functionality
    - crypto::SessionKey::as_protected
+   - parse::PacketParser::start_hashing
    - parse::PacketParserBuilder::automatic_hashing
    - types::AEADAlgorithm::GCM
 ** Deprecated functionality
