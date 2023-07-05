@@ -14,6 +14,7 @@
 //! let message_data = b"\xcb\x12t\x00\x00\x00\x00\x00Hello world.";
 //! let pp = PacketParserBuilder::from_bytes(message_data)?
 //!     .map(true) // Enable mapping.
+//!     .buffer_unread_content() // For the packet body.
 //!     .build()?
 //!     .expect("One packet, not EOF");
 //! let map = pp.map().expect("Mapping is enabled");
@@ -83,6 +84,7 @@ impl Map {
     /// let message_data = b"\xcb\x12t\x00\x00\x00\x00\x00Hello world.";
     /// let pp = PacketParserBuilder::from_bytes(message_data)?
     ///     .map(true) // Enable mapping.
+    ///     .buffer_unread_content() // For the packet body.
     ///     .build()?
     ///     .expect("One packet, not EOF");
     /// let map = pp.map().expect("Mapping is enabled");
@@ -170,6 +172,7 @@ impl<'a> Field<'a> {
     /// let message_data = b"\xcb\x12t\x00\x00\x00\x00\x00Hello world.";
     /// let pp = PacketParserBuilder::from_bytes(message_data)?
     ///     .map(true) // Enable mapping.
+    ///     .buffer_unread_content() // For the packet body.
     ///     .build()?
     ///     .expect("One packet, not EOF");
     /// let map = pp.map().expect("Mapping is enabled");
@@ -199,6 +202,7 @@ impl<'a> Field<'a> {
     /// let message_data = b"\xcb\x12t\x00\x00\x00\x00\x00Hello world.";
     /// let pp = PacketParserBuilder::from_bytes(message_data)?
     ///     .map(true) // Enable mapping.
+    ///     .buffer_unread_content() // For the packet body.
     ///     .build()?
     ///     .expect("One packet, not EOF");
     /// let map = pp.map().expect("Mapping is enabled");
@@ -228,6 +232,7 @@ impl<'a> Field<'a> {
     /// let message_data = b"\xcb\x12t\x00\x00\x00\x00\x00Hello world.";
     /// let pp = PacketParserBuilder::from_bytes(message_data)?
     ///     .map(true) // Enable mapping.
+    ///     .buffer_unread_content() // For the packet body.
     ///     .build()?
     ///     .expect("One packet, not EOF");
     /// let map = pp.map().expect("Mapping is enabled");

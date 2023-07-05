@@ -530,7 +530,11 @@ impl<'a> PacketHeaderParser<'a> {
         if self.state.settings.map {
             // Steal the body for the map.
             self.reader.rewind();
-            let body = self.reader.steal_eof()?;
+            let body = if self.state.settings.buffer_unread_content {
+                self.reader.steal_eof()?
+            } else {
+                self.reader.steal(total_out)?
+            };
             if body.len() > total_out {
                 self.field("body", body.len() - total_out);
             }

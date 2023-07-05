@@ -8,6 +8,19 @@
    - Sequoia now ignores some formatting errors when reading secret
      keys.  Being lenient in this case helps the user recover their
      valuable key material.
+   - Previously, Sequoia would buffer packet bodies when mapping is
+     enabled in the parser, even if the packet parser is not
+     configured to buffer the bodies.  This adds considerable
+     overhead.
+
+     Starting with this version, Sequoia no longer includes the packet
+     bodies in the maps unless the parser is configured to buffer any
+     unread content.
+
+     This makes parsing packets faster if you don't rely on the packet
+     body in the map, but changes the default behavior.  If you need
+     the old behavior, please do adjust your code to buffer unread
+     content.
 ** New functionality
    - crypto::SessionKey::as_protected
    - types::AEADAlgorithm::GCM
