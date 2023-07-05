@@ -3610,8 +3610,7 @@ mod test {
                 crate::tests::message(test.data)).unwrap();
             while let PacketParserResult::Some(mut pp) = ppr {
                 if let Packet::Signature(sig) = &mut pp.packet {
-                    let result = sig.verify(cert.primary_key().key())
-                        .map(|_| true).unwrap_or(false);
+                    let result = sig.verify(cert.primary_key().key()).is_ok();
                     eprintln!("  Primary {:?}: {:?}",
                               cert.fingerprint(), result);
                     if result {
@@ -3619,8 +3618,7 @@ mod test {
                     }
 
                     for sk in cert.subkeys() {
-                        let result = sig.verify(sk.key())
-                            .map(|_| true).unwrap_or(false);
+                        let result = sig.verify(sk.key()).is_ok();
                         eprintln!("   Subkey {:?}: {:?}",
                                   sk.key().fingerprint(), result);
                         if result {
