@@ -2013,7 +2013,7 @@ impl OnePassSig3 {
         // against when we get to the Signature packet.
         let mut algos = Vec::new();
         if hash_algo.is_supported() {
-            algos.push(HashingMode::for_signature(hash_algo, typ));
+            algos.push(need_hash);
         }
 
         // We can't push the HashedReader on the BufferedReader stack:
