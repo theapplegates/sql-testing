@@ -727,7 +727,7 @@ impl BodyLength {
     ///
     /// [`Error::InvalidArgument`]: Error::InvalidArgument
     /// [`serialize(..)`]: Serialize
-    pub fn serialize_old<W: io::Write>(&self, o: &mut W) -> Result<()> {
+    pub fn serialize_old<W: io::Write + ?Sized>(&self, o: &mut W) -> Result<()> {
         // Assume an optimal encoding is desired.
         let mut buffer = Vec::with_capacity(4);
         match self {
