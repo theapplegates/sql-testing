@@ -265,9 +265,10 @@ impl Cookie {
             assert!(ngroups > 1);
             for h in self.sig_groups[ngroups-2].hashes.iter_mut()
             {
-                t!("({:?}): group {} {:?} hashing {} stashed bytes.",
+                t!("({:?}): group {} {:?} hashing {} stashed bytes: {}",
                    hashes_for, ngroups-2, h.map(|ctx| ctx.algo()),
-                   data.len());
+                   stashed_data.len(),
+                   crate::fmt::hex::encode_pretty(&stashed_data));
 
                 h.update(&stashed_data);
             }
