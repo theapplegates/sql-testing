@@ -414,9 +414,21 @@ impl Drop for String_ {
     }
 }
 
+impl From<std::string::String> for String_ {
+    fn from(b: std::string::String) -> Self {
+        Self::new(b.into_bytes())
+    }
+}
+
 impl From<&str> for String_ {
     fn from(b: &str) -> Self {
         Self::new(b.as_bytes().to_vec())
+    }
+}
+
+impl From<Vec<u8>> for String_ {
+    fn from(b: Vec<u8>) -> Self {
+        Self::new(b.into_boxed_slice())
     }
 }
 
