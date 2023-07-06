@@ -420,18 +420,28 @@ impl Hash for Signature {
 
 impl Hash for Signature3 {
     fn hash(&self, hash: &mut dyn Digest) {
+        Self::hash_signature(self, hash);
+    }
+}
+
+impl Signature3 {
+    /// Hashes this signature.
+    ///
+    /// Because we need to call this from SignatureFields::hash, we
+    /// provide this as associated method.
+    fn hash_signature(f: &signature::SignatureFields, hash: &mut dyn Digest) {
         // XXX: Annoyingly, we have no proper way of handling errors
         // here.
 
         let mut buffer = [0u8; 5];
 
         // Signature type.
-        buffer[0] = u8::from(self.typ());
+        buffer[0] = u8::from(f.typ());
 
         // Creation time.
         let creation_time: u32 =
             Timestamp::try_from(
-                self.signature_creation_time()
+                f.signature_creation_time()
                     .unwrap_or(std::time::UNIX_EPOCH))
             .unwrap_or_else(|_| Timestamp::from(0))
             .into();
@@ -447,17 +457,21 @@ impl Hash for Signature3 {
 
 impl Hash for Signature4 {
     fn hash(&self, hash: &mut dyn Digest) {
-        self.fields.hash(hash);
+        Self::hash_signature(self, hash);
     }
 }
 
-impl Hash for signature::SignatureFields {
-    fn hash(&self, hash: &mut dyn Digest) {
+impl Signature4 {
+    /// Hashes this signature.
+    ///
+    /// Because we need to call this from SignatureFields::hash, we
+    /// provide this as associated method.
+    fn hash_signature(f: &signature::SignatureFields, hash: &mut dyn Digest) {
         use crate::serialize::MarshalInto;
 
         // XXX: Annoyingly, we have no proper way of handling errors
         // here.
-        let hashed_area = self.hashed_area().to_vec()
+        let hashed_area = f.hashed_area().to_vec()
             .unwrap_or_else(|_| Vec::new());
 
         // A version 4 signature packet is laid out as follows:
@@ -474,9 +488,9 @@ impl Hash for signature::SignatureFields {
 
         // Version.
         header[0] = 4;
-        header[1] = self.typ().into();
-        header[2] = self.pk_algo().into();
-        header[3] = self.hash_algo().into();
+        header[1] = f.typ().into();
+        header[2] = f.pk_algo().into();
+        header[3] = f.hash_algo().into();
 
         // The length of the hashed area, as a 16-bit big endian number.
         let len = hashed_area.len() as u16;
@@ -506,6 +520,16 @@ impl Hash for signature::SignatureFields {
         trailer[2..6].copy_from_slice(&len.to_be_bytes());
 
         hash.update(&trailer[..]);
+    }
+}
+
+impl Hash for signature::SignatureFields {
+    fn hash(&self, hash: &mut dyn Digest) {
+        match self.version() {
+            3 => Signature3::hash_signature(self, hash),
+            4 => Signature4::hash_signature(self, hash),
+            _ => (),
+        }
     }
 }
 

@@ -7247,4 +7247,32 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
 
         Ok(())
     }
+
+    /// Tests v3 binding signatures.
+    #[test]
+    fn v3_binding_signature() -> Result<()> {
+        if ! crate::types::PublicKeyAlgorithm::DSA.is_supported() {
+            eprintln!("Skipping because DSA is not supported");
+            return Ok(());
+        }
+
+        let c = Cert::from_bytes(
+            crate::tests::key("pgp5-dsa-elg-v3-subkey-binding.pgp"))?;
+        assert_eq!(c.bad_signatures().count(), 0);
+
+        let np = crate::policy::NullPolicy::new();
+
+        // The subkey is interesting because it is bound using a v3
+        // signature.
+        let vcert = c.with_policy(&np, None)?;
+        assert_eq!(vcert.keys().subkeys().count(), 1);
+
+        // XXX: Unfortunately, it being a v3 signature, the subkey has
+        // no keyflags, limiting its usefulness for now.
+
+        // The subkey is interesting because it is bound using a v3
+        // signature.
+        assert_eq!(c.keys().subkeys().with_policy(&np, None).count(), 1);
+        Ok(())
+    }
 }
