@@ -369,12 +369,12 @@ impl Agent {
                 | assuan::Response::Comment { .. }
                 | assuan::Response::Status { .. } =>
                     (), // Ignore.
+                assuan::Response::Inquire { .. } =>
+                    acknowledge_inquiry(self).await?,
                 assuan::Response::Error { ref message, .. } =>
                     return assuan::operation_failed(self, message).await,
                 assuan::Response::Data { ref partial } =>
                     data.extend_from_slice(partial),
-                r =>
-                    return assuan::protocol_error(&r),
             }
         }
 
@@ -399,9 +399,12 @@ impl Agent {
         self.send("PKDECRYPT")?;
         while let Some(r) = self.next().await {
             match r? {
-                assuan::Response::Inquire { ref keyword, .. }
-                if keyword == "CIPHERTEXT" =>
-                    (), // What we expect.
+                assuan::Response::Inquire { ref keyword, .. } =>
+                if keyword == "CIPHERTEXT" {
+                    // What we expect.
+                } else {
+                    acknowledge_inquiry(self).await?;
+                },
                 assuan::Response::Comment { .. }
                 | assuan::Response::Status { .. } =>
                     (), // Ignore.
@@ -422,6 +425,8 @@ impl Agent {
                 assuan::Response::Ok { .. }
                 | assuan::Response::Comment { .. } =>
                     (), // Ignore.
+                assuan::Response::Inquire { .. } =>
+                    acknowledge_inquiry(self).await?,
                 assuan::Response::Status { ref keyword, ref message } =>
                     if keyword == "PADDING" {
                         padding = message != "0";
@@ -430,8 +435,6 @@ impl Agent {
                     return assuan::operation_failed(self, message).await,
                 assuan::Response::Data { ref partial } =>
                     data.extend_from_slice(partial),
-                r =>
-                    return assuan::protocol_error(&r),
             }
         }
 
@@ -722,6 +725,16 @@ impl crypto::Decryptor for KeyPair {
 fn map_panic(_: Box<dyn std::any::Any + std::marker::Send>) -> anyhow::Error
 {
     anyhow::anyhow!("worker thread panicked")
+}
+
+/// Helper function to respond to inquiries.
+///
+/// This function doesn't do something useful, but it ends the current
+/// inquiry.
+async fn acknowledge_inquiry(agent: &mut Agent) -> Result<()> {
+    agent.send("END")?;
+    agent.next().await; // Dummy read to send END.
+    Ok(())
 }
 
 #[derive(thiserror::Error, Debug)]
