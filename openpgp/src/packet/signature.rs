@@ -2454,6 +2454,11 @@ impl crate::packet::Signature {
             return Ok(());
         }
 
+        if self.version() == 3 {
+            return Err(Error::InvalidOperation(
+                "cannot add information to v3 signature".into()).into());
+        }
+
         /// Makes an authenticated subpacket.
         fn authenticated_subpacket(v: SubpacketValue) -> Result<Subpacket> {
             let mut p = Subpacket::new(v, false)?;
