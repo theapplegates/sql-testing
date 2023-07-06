@@ -800,7 +800,7 @@ impl<'a, P, R> ValidKeyAmalgamationIter<'a, P, R>
             if let Some(flags) = self.flags.as_ref() {
                 if !ka.has_any_key_flag(flags) {
                     t!("Have flags: {:?}, want flags: {:?}... skipping.",
-                      flags, flags);
+                       ka.key_flags(), flags);
                     continue;
                 }
             }
