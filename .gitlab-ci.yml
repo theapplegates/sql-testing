@@ -145,7 +145,7 @@ benchmarks:
       - schedules
   before_script:
     - *before_script_start
-    - cargo install critcmp
+    - cargo install --locked critcmp
     - *before_script_end
   script:
     - cargo bench -- --color always --save-baseline $CI_COMMIT_SHA
