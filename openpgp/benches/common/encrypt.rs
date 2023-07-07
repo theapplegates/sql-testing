@@ -2,7 +2,7 @@ use sequoia_openpgp as openpgp;
 use openpgp::cert::Cert;
 use openpgp::policy::StandardPolicy;
 use openpgp::serialize::stream::{
-    padding::Padder, Armorer, Encryptor, LiteralWriter, Message, Signer,
+    Armorer, Encryptor, LiteralWriter, Message, Signer,
 };
 
 use std::io::Write;
@@ -100,7 +100,6 @@ pub fn encrypt_to_cert_and_sign(
     let message = Message::new(&mut sink);
     let message = Armorer::new(message).build()?;
     let message = Encryptor::for_recipients(message, recipients).build()?;
-    let message = Padder::new(message).build()?;
     let message = Signer::new(message, signing_keypair)
         //.add_intended_recipient(&recipient)
         .build()?;
