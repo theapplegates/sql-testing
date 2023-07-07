@@ -8,6 +8,7 @@
    - Sequoia now ignores some formatting errors when reading secret
      keys.  Being lenient in this case helps the user recover their
      valuable key material.
+
    - Previously, Sequoia would buffer packet bodies when mapping is
      enabled in the parser, even if the packet parser is not
      configured to buffer the bodies.  This adds considerable
@@ -21,6 +22,11 @@
      body in the map, but changes the default behavior.  If you need
      the old behavior, please do adjust your code to buffer unread
      content.
+
+   - To increase compatibility with early v4 certificates, if there is
+     no key flags subpacket on either the active binding signature or
+     the active direct key signature, we infer the key flags from the
+     key's role and public key algorithm.
 ** New functionality
    - crypto::SessionKey::as_protected
    - types::AEADAlgorithm::GCM
