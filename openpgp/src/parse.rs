@@ -5693,6 +5693,57 @@ mod test {
                 (Tag::MDC, &[ 1, 1 ]),
             ],
         },
+
+        // Created using:
+        //
+        //     gpg --compression-algo none \
+        //         --s2k-digest-algo sha256 \
+        //         --cipher-algo camellia256 \
+        //         --s2k-cipher-algo camellia256 \
+        //         --encrypt --symmetric \
+        //         -o encrypted-camellia256-password-123.gpg \
+        //         a-cypherpunks-manifesto.txt
+        DecryptTest {
+            filename: "encrypted-camellia256-password-123.gpg",
+            algo: SymmetricAlgorithm::Camellia256,
+            aead_algo: None,
+            key_hex: "FC9644B500B9D0540880CB44B40F8C89\
+                      A7D817F2EF7EF9DA0D34A574377E300A",
+            plaintext: Data::File("a-cypherpunks-manifesto.txt"),
+            paths: &[
+                (Tag::SKESK, &[ 0 ]),
+                (Tag::SEIP, &[ 1 ]),
+                (Tag::Literal, &[ 1, 0 ]),
+                (Tag::MDC, &[ 1, 1 ]),
+            ],
+        },
+        DecryptTest {
+            filename: "encrypted-camellia192-password-123.gpg",
+            algo: SymmetricAlgorithm::Camellia192,
+            aead_algo: None,
+            key_hex: "EC941DB1C5F4D3605E3F3C10B30888DA3287256E55CC978B",
+            plaintext: Data::File("a-cypherpunks-manifesto.txt"),
+            paths: &[
+                (Tag::SKESK, &[ 0 ]),
+                (Tag::SEIP, &[ 1 ]),
+                (Tag::Literal, &[ 1, 0 ]),
+                (Tag::MDC, &[ 1, 1 ]),
+            ],
+        },
+        DecryptTest {
+            filename: "encrypted-camellia128-password-123.gpg",
+            algo: SymmetricAlgorithm::Camellia128,
+            aead_algo: None,
+            key_hex: "E1CF87BF2E030CC89CBC0F03EC2B7DF5",
+            plaintext: Data::File("a-cypherpunks-manifesto.txt"),
+            paths: &[
+                (Tag::SKESK, &[ 0 ]),
+                (Tag::SEIP, &[ 1 ]),
+                (Tag::Literal, &[ 1, 0 ]),
+                (Tag::MDC, &[ 1, 1 ]),
+            ],
+        },
+
         DecryptTest {
             filename: "encrypted-twofish-password-red-fish-blue-fish.gpg",
             algo: SymmetricAlgorithm::Twofish,
