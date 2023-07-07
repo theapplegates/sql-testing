@@ -6017,7 +6017,7 @@ mod test {
             // Make sure we actually decrypted...
             let mut saw_literal = false;
             while let PacketParserResult::Some(mut pp) = ppr {
-                assert!(pp.possible_message().is_ok());
+                pp.possible_message().unwrap();
 
                 match pp.packet {
                     Packet::SEIP(_) | Packet::AED(_) => {
@@ -6036,7 +6036,7 @@ mod test {
             }
             assert!(saw_literal);
             if let PacketParserResult::EOF(eof) = ppr {
-                assert!(eof.is_message().is_ok());
+                eof.is_message().unwrap();
             } else {
                 unreachable!();
             }
