@@ -2698,6 +2698,17 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                     self.push_sig(p)?;
                 }
 
+                // If we finished parsing, validate the message structure.
+                if let PacketParserResult::EOF(eof) = ppr {
+                    // If we parse a signed message synthesized from a
+                    // cleartext signature framework message, we don't
+                    // quite get the structure right, so relax the
+                    // requirement in this case.
+                    if ! self.processing_csf_message.expect("set by now") {
+                        eof.is_message()?;
+                    }
+                }
+
                 self.verify_signatures()
             } else {
                 t!("Didn't hit EOF.");
@@ -3002,7 +3013,7 @@ pub mod test {
         crypto::Password,
     };
 
-    #[derive(PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct VHelper {
         good: usize,
         unknown: usize,
@@ -3972,6 +3983,43 @@ xHUDBRY0WIQ+50WENDPP";
         h.error_out = false;
         let _ = VerifierBuilder::from_bytes(m)?
             .with_policy(&p, None, h);
+        Ok(())
+    }
+
+    /// Tests that the message structure is checked at the end of
+    /// parsing the packet stream.
+    #[test]
+    fn message_grammar_check() -> Result<()> {
+        let p = P::new();
+        let certs = vec![Cert::from_bytes(crate::tests::key("neal.pgp"))?];
+        let helper = VHelper::new(1, 0, 0, 0, certs.clone());
+
+        let pp = crate::PacketPile::from_bytes(
+            crate::tests::message("signed-1-notarized-by-ed25519.pgp"))?;
+        let mut buf = Vec::new();
+        assert_eq!(pp.children().count(), 5);
+        // Drop the last signature packet!  Now the OPS and Signature
+        // packets no longer bracket.
+        pp.children().take(4).for_each(|p| p.serialize(&mut buf).unwrap());
+
+        // Test verifier.
+        let do_it = || -> Result<()> {
+            let v = VerifierBuilder::from_bytes(&buf)?
+                .with_policy(&p, crate::frozen_time(), helper.clone())?;
+            assert!(v.message_processed());
+            Ok(())
+        };
+        assert!(do_it().is_err());
+
+        // Test decryptor.
+        let do_it = || -> Result<()> {
+            let v = DecryptorBuilder::from_bytes(&buf)?
+                .with_policy(&p, crate::frozen_time(), helper)?;
+            assert!(v.message_processed());
+            Ok(())
+        };
+        assert!(do_it().is_err());
+
         Ok(())
     }
 }
