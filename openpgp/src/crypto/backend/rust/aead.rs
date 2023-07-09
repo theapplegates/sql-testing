@@ -204,14 +204,65 @@ impl AEADAlgorithm {
                         Ok(Box::new(ctx))
                     },
                 },
+                SymmetricAlgorithm::Camellia128 => match op {
+                    CipherOp::Encrypt => {
+                        let mut ctx =
+                            Eax::<camellia::Camellia128, Encrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                    CipherOp::Decrypt => {
+                        let mut ctx =
+                            Eax::<camellia::Camellia128, Decrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                },
+                SymmetricAlgorithm::Camellia192 => match op {
+                    CipherOp::Encrypt => {
+                        let mut ctx =
+                            Eax::<camellia::Camellia192, Encrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                    CipherOp::Decrypt => {
+                        let mut ctx =
+                            Eax::<camellia::Camellia192, Decrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                },
+                SymmetricAlgorithm::Camellia256 => match op {
+                    CipherOp::Encrypt => {
+                        let mut ctx =
+                            Eax::<camellia::Camellia256, Encrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                    CipherOp::Decrypt => {
+                        let mut ctx =
+                            Eax::<camellia::Camellia256, Decrypt>::with_key_and_nonce(
+                                GenericArray::try_from_slice(key)?,
+                                GenericArray::try_from_slice(nonce)?);
+                        ctx.update_assoc(aad);
+                        Ok(Box::new(ctx))
+                    },
+                },
                 | SymmetricAlgorithm::IDEA
                 | SymmetricAlgorithm::TripleDES
                 | SymmetricAlgorithm::CAST5
                 | SymmetricAlgorithm::Blowfish
                 | SymmetricAlgorithm::Twofish
-                | SymmetricAlgorithm::Camellia128
-                | SymmetricAlgorithm::Camellia192
-                | SymmetricAlgorithm::Camellia256
                 | SymmetricAlgorithm::Private(_)
                 | SymmetricAlgorithm::Unknown(_)
                 | SymmetricAlgorithm::Unencrypted =>

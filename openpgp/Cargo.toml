@@ -61,6 +61,7 @@ aes = { version = "0.8", optional = true }
 aes-gcm = { version = "0.10", optional = true, features = ["std"] }
 block-padding = { version = "0.3", optional = true }
 blowfish = { version = "0.9", optional = true }
+camellia = { version = "0.1", optional = true }
 cast5 = { version = "0.11", optional = true }
 cipher = { version = "0.4", optional = true, features = ["std"] }
 cfb-mode = { version = "0.8", optional = true }
@@ -126,7 +127,7 @@ default = ["compression", "crypto-nettle"]
 # TODO(#333): Allow for/implement more backends
 crypto-nettle = ["nettle"]
 crypto-rust = [
-    "aes", "block-padding", "blowfish", "cast5", "cfb-mode", "cipher", "des",
+    "aes", "block-padding", "blowfish", "camellia", "cast5", "cfb-mode", "cipher", "des",
     "digest", "eax", "ecb", "ed25519", "ed25519-dalek", "generic-array", "idea",
     "md-5", "num-bigint-dig", "rand", "rand07", "ripemd", "rsa", "sha-1", "sha2",
     "twofish", "typenum", "x25519-dalek-ng", "p256",

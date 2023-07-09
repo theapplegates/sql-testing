@@ -21,9 +21,9 @@ enum CfbEncrypt {
     Aes192(cfb_mode::Encryptor<aes::Aes192>),
     Aes256(cfb_mode::Encryptor<aes::Aes256>),
     Twofish(cfb_mode::Encryptor<twofish::Twofish>),
-    //Camellia128
-    //Camellia192
-    //Camellia256
+    Camellia128(cfb_mode::Encryptor<camellia::Camellia128>),
+    Camellia192(cfb_mode::Encryptor<camellia::Camellia192>),
+    Camellia256(cfb_mode::Encryptor<camellia::Camellia256>),
 }
 
 enum CfbDecrypt {
@@ -35,9 +35,9 @@ enum CfbDecrypt {
     Aes192(cfb_mode::Decryptor<aes::Aes192>),
     Aes256(cfb_mode::Decryptor<aes::Aes256>),
     Twofish(cfb_mode::Decryptor<twofish::Twofish>),
-    //Camellia128
-    //Camellia192
-    //Camellia256
+    Camellia128(cfb_mode::Decryptor<camellia::Camellia128>),
+    Camellia192(cfb_mode::Decryptor<camellia::Camellia192>),
+    Camellia256(cfb_mode::Decryptor<camellia::Camellia256>),
 }
 
 enum EcbEncrypt {
@@ -49,9 +49,9 @@ enum EcbEncrypt {
     Aes192(ecb::Encryptor<aes::Aes192>),
     Aes256(ecb::Encryptor<aes::Aes256>),
     Twofish(ecb::Encryptor<twofish::Twofish>),
-    //Camellia128
-    //Camellia192
-    //Camellia256
+    Camellia128(ecb::Encryptor<camellia::Camellia128>),
+    Camellia192(ecb::Encryptor<camellia::Camellia192>),
+    Camellia256(ecb::Encryptor<camellia::Camellia256>),
 }
 
 enum EcbDecrypt {
@@ -63,9 +63,9 @@ enum EcbDecrypt {
     Aes192(ecb::Decryptor<aes::Aes192>),
     Aes256(ecb::Decryptor<aes::Aes256>),
     Twofish(ecb::Decryptor<twofish::Twofish>),
-    //Camellia128
-    //Camellia192
-    //Camellia256
+    Camellia128(ecb::Decryptor<camellia::Camellia128>),
+    Camellia192(ecb::Decryptor<camellia::Camellia192>),
+    Camellia256(ecb::Decryptor<camellia::Camellia256>),
 }
 
 macro_rules! impl_block_size {
@@ -88,6 +88,12 @@ macro_rules! impl_block_size {
                     <aes::Aes256 as cipher::BlockSizeUser>::block_size(),
                 $mode::Twofish(_) =>
                     <twofish::Twofish as cipher::BlockSizeUser>::block_size(),
+                $mode::Camellia128(_) =>
+                    <camellia::Camellia128 as cipher::BlockSizeUser>::block_size(),
+                $mode::Camellia192(_) =>
+                    <camellia::Camellia192 as cipher::BlockSizeUser>::block_size(),
+                $mode::Camellia256(_) =>
+                    <camellia::Camellia256 as cipher::BlockSizeUser>::block_size(),
             }
         }
     }
@@ -143,6 +149,18 @@ macro_rules! impl_enc_mode {
                             let blocks = to_blocks(&mut buf);
                             m.encrypt_blocks_mut(blocks)
                         }
+                        $mode::Camellia128(m) => {
+                            let blocks = to_blocks(&mut buf);
+                            m.encrypt_blocks_mut(blocks)
+                        }
+                        $mode::Camellia192(m) => {
+                            let blocks = to_blocks(&mut buf);
+                            m.encrypt_blocks_mut(blocks)
+                        }
+                        $mode::Camellia256(m) => {
+                            let blocks = to_blocks(&mut buf);
+                            m.encrypt_blocks_mut(blocks)
+                        }
                     }
                     dst.copy_from_slice(&buf[..dst.len()]);
                 } else {
@@ -177,6 +195,18 @@ macro_rules! impl_enc_mode {
                             m.encrypt_blocks_mut(blocks)
                         }
                         $mode::Twofish(m) => {
+                            let blocks = to_blocks(dst);
+                            m.encrypt_blocks_mut(blocks)
+                        }
+                        $mode::Camellia128(m) => {
+                            let blocks = to_blocks(dst);
+                            m.encrypt_blocks_mut(blocks)
+                        }
+                        $mode::Camellia192(m) => {
+                            let blocks = to_blocks(dst);
+                            m.encrypt_blocks_mut(blocks)
+                        }
+                        $mode::Camellia256(m) => {
                             let blocks = to_blocks(dst);
                             m.encrypt_blocks_mut(blocks)
                         }
@@ -256,6 +286,18 @@ macro_rules! impl_dec_mode {
                             let blocks = to_blocks(&mut buf);
                             m.decrypt_blocks_mut(blocks)
                         }
+                        $mode::Camellia128(m) => {
+                            let blocks = to_blocks(&mut buf);
+                            m.decrypt_blocks_mut(blocks)
+                        }
+                        $mode::Camellia192(m) => {
+                            let blocks = to_blocks(&mut buf);
+                            m.decrypt_blocks_mut(blocks)
+                        }
+                        $mode::Camellia256(m) => {
+                            let blocks = to_blocks(&mut buf);
+                            m.decrypt_blocks_mut(blocks)
+                        }
                     }
                     dst.copy_from_slice(&buf[..dst.len()]);
                 } else {
@@ -290,6 +332,18 @@ macro_rules! impl_dec_mode {
                             m.decrypt_blocks_mut(blocks)
                         }
                         $mode::Twofish(m) => {
+                            let blocks = to_blocks(dst);
+                            m.decrypt_blocks_mut(blocks)
+                        }
+                        $mode::Camellia128(m) => {
+                            let blocks = to_blocks(dst);
+                            m.decrypt_blocks_mut(blocks)
+                        }
+                        $mode::Camellia192(m) => {
+                            let blocks = to_blocks(dst);
+                            m.decrypt_blocks_mut(blocks)
+                        }
+                        $mode::Camellia256(m) => {
                             let blocks = to_blocks(dst);
                             m.decrypt_blocks_mut(blocks)
                         }
@@ -382,8 +436,25 @@ macro_rules! make_mode {
                     Ok(Box::new($enum::Twofish(
                         $mode::$mode2::<twofish::Twofish>::new(key $(, $iv)?))))
                 },
-                Camellia128 | Camellia192 | Camellia256
-                    | Private(_) | Unknown(_) | Unencrypted =>
+                Camellia128 => {
+                    let key = GA::try_from_slice(&key)?;
+                    $( let $iv = &GA::try_from_slice(&$iv)?; )?
+                    Ok(Box::new($enum::Camellia128(
+                        $mode::$mode2::<camellia::Camellia128>::new(key $(, $iv)?))))
+                },
+                Camellia192 => {
+                    let key = GA::try_from_slice(&key)?;
+                    $( let $iv = &GA::try_from_slice(&$iv)?; )?
+                    Ok(Box::new($enum::Camellia192(
+                        $mode::$mode2::<camellia::Camellia192>::new(key $(, $iv)?))))
+                },
+                Camellia256 => {
+                    let key = GA::try_from_slice(&key)?;
+                    $( let $iv = &GA::try_from_slice(&$iv)?; )?
+                    Ok(Box::new($enum::Camellia256(
+                        $mode::$mode2::<camellia::Camellia256>::new(key $(, $iv)?))))
+                },
+                Private(_) | Unknown(_) | Unencrypted =>
                 {
                     Err(Error::UnsupportedSymmetricAlgorithm(self).into())
                 }
@@ -405,9 +476,9 @@ impl SymmetricAlgorithm {
             AES192 => true,
             AES256 => true,
             Twofish => true,
-            Camellia128 => false,
-            Camellia192 => false,
-            Camellia256 => false,
+            Camellia128 => true,
+            Camellia192 => true,
+            Camellia256 => true,
             Private(_) => false,
             Unknown(_) => false,
             Unencrypted => false,
@@ -444,6 +515,12 @@ mod tests {
                    <aes::Aes256 as cipher::KeySizeUser>::key_size());
         assert_eq!(SymmetricAlgorithm::Twofish.key_size()?,
                    <twofish::Twofish as cipher::KeySizeUser>::key_size());
+        assert_eq!(SymmetricAlgorithm::Camellia128.key_size()?,
+                   <camellia::Camellia128 as cipher::KeySizeUser>::key_size());
+        assert_eq!(SymmetricAlgorithm::Camellia192.key_size()?,
+                   <camellia::Camellia192 as cipher::KeySizeUser>::key_size());
+        assert_eq!(SymmetricAlgorithm::Camellia256.key_size()?,
+                   <camellia::Camellia256 as cipher::KeySizeUser>::key_size());
         Ok(())
     }
 
@@ -467,6 +544,12 @@ mod tests {
                    <aes::Aes256 as cipher::BlockSizeUser>::block_size());
         assert_eq!(SymmetricAlgorithm::Twofish.block_size()?,
                    <twofish::Twofish as cipher::BlockSizeUser>::block_size());
+        assert_eq!(SymmetricAlgorithm::Camellia128.block_size()?,
+                   <camellia::Camellia128 as cipher::BlockSizeUser>::block_size());
+        assert_eq!(SymmetricAlgorithm::Camellia192.block_size()?,
+                   <camellia::Camellia192 as cipher::BlockSizeUser>::block_size());
+        assert_eq!(SymmetricAlgorithm::Camellia256.block_size()?,
+                   <camellia::Camellia256 as cipher::BlockSizeUser>::block_size());
         Ok(())
     }
 }
