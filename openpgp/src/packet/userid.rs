@@ -1010,6 +1010,10 @@ mod tests {
              email: Option<&str>, uri: Option<&str>)
             -> bool
         {
+            assert!(email.is_none() || uri.is_none());
+            t!("userid: {}, name: {:?}, comment: {:?}, email: {:?}, uri: {:?}",
+               userid, name, comment, email, uri);
+
             match ConventionallyParsedUserID::new(userid) {
                 Ok(puid) => {
                     let good = puid.name() == name
