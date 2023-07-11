@@ -617,7 +617,7 @@ impl UserID {
                         "Validating comment ({:?})",
                         comment))),
                 Ok(p) => {
-                    if !(p.name().is_none()
+                    if !(p.name().is_some()
                          && p.comment().is_some()
                          && p.email().is_none()) {
                     return Err(Error::InvalidArgument(
@@ -776,8 +776,15 @@ impl UserID {
     /// # use openpgp::packet::UserID;
     /// assert_eq!(UserID::from_address(
     ///                "John Smith".into(),
-    ///                None, "boat@example.org")?.value(),
+    ///                None,
+    ///                "boat@example.org")?.value(),
     ///            &b"John Smith <boat@example.org>"[..]);
+    ///
+    /// assert_eq!(UserID::from_address(
+    ///                "John Smith",
+    ///                "Who is Advok?",
+    ///                "boat@example.org")?.value(),
+    ///            &b"John Smith (Who is Advok?) <boat@example.org>"[..]);
     /// # Ok(()) }
     /// ```
     pub fn from_address<O, S>(name: O, comment: O, email: S)
@@ -1256,6 +1263,39 @@ mod tests {
         if !g {
             panic!("Parse error");
         }
+    }
+
+    #[test]
+    fn compose() {
+        tracer!(true, "compose", 0);
+
+        fn c(userid: &str,
+             name: Option<&str>, comment: Option<&str>,
+             email: Option<&str>, uri: Option<&str>)
+        {
+            assert!(email.xor(uri).is_some());
+            t!("userid: {}, name: {:?}, comment: {:?}, email: {:?}, uri: {:?}",
+               userid, name, comment, email, uri);
+
+            if let Some(email) = email {
+                let uid = UserID::from_address(name, comment, email).unwrap();
+                assert_eq!(userid, String::from_utf8_lossy(uid.value()));
+            }
+
+            if let Some(uri) = uri {
+                let uid =
+                    UserID::from_unchecked_address(name, comment, uri).unwrap();
+                assert_eq!(userid, String::from_utf8_lossy(uid.value()));
+            }
+        }
+
+        // Conventional User IDs:
+        c("First Last (Comment) <name@example.org>",
+          Some("First Last"), Some("Comment"), Some("name@example.org"), None);
+        c("First Last <name@example.org>",
+          Some("First Last"), None, Some("name@example.org"), None);
+        c("name@example.org",
+          None, None, Some("name@example.org"), None);
     }
 
     // Make sure we can't parse non conventional User IDs.
