@@ -35,7 +35,7 @@ impl Asymmetric for super::Backend {
             RSAEncryptSign | RSAEncrypt | RSASign | ECDH | EdDSA | ECDSA
                 => true,
             DSA
-                => false,
+                => true,
             ElGamalEncrypt | ElGamalEncryptSign | Private(_) | Unknown(_)
                 => false,
         }
@@ -143,6 +143,30 @@ impl Asymmetric for super::Backend {
     }
 }
 
+impl From<&BigUint> for ProtectedMPI {
+    fn from(v: &BigUint) -> Self {
+        v.to_bytes_be().into()
+    }
+}
+
+impl From<&ProtectedMPI> for BigUint {
+    fn from(v: &ProtectedMPI) -> Self {
+        BigUint::from_bytes_be(v.value()).into()
+    }
+}
+
+impl From<&BigUint> for MPI {
+    fn from(v: &BigUint) -> Self {
+        v.to_bytes_be().into()
+    }
+}
+
+impl From<&MPI> for BigUint {
+    fn from(v: &MPI) -> Self {
+        BigUint::from_bytes_be(v.value()).into()
+    }
+}
+
 fn pkcs1_padding(hash_algo: HashAlgorithm) -> Result<Pkcs1v15Sign> {
     let hash = match hash_algo {
         HashAlgorithm::MD5 => Pkcs1v15Sign::new::<md5::Md5>(),
@@ -201,9 +225,20 @@ impl KeyPair {
             },
 
             (PublicKeyAlgorithm::DSA,
-             mpi:: PublicKey::DSA { .. },
-             mpi::SecretKeyMaterial::DSA { .. }) => {
-                Err(Error::UnsupportedPublicKeyAlgorithm(PublicKeyAlgorithm::DSA).into())
+             mpi::PublicKey::DSA { p, q, g, y },
+             mpi::SecretKeyMaterial::DSA { x }) => {
+                use dsa::signature::hazmat::PrehashSigner;
+                let c = dsa::Components::from_components(
+                    p.into(), q.into(), g.into())?;
+                let public =
+                    dsa::VerifyingKey::from_components(c, y.into())?;
+                let secret =
+                    dsa::SigningKey::from_components(public, x.into())?;
+                let sig = secret.sign_prehash(digest)?;
+                Ok(mpi::Signature::DSA {
+                    r: sig.r().into(),
+                    s: sig.s().into(),
+                })
             },
 
             (PublicKeyAlgorithm::ECDSA,
@@ -362,9 +397,15 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                 key.verify(padding, digest, &s.value_padded(key.size())?)?;
                 Ok(())
             }
-            (mpi::PublicKey::DSA { .. },
-             mpi::Signature::DSA { .. }) => {
-                Err(Error::UnsupportedPublicKeyAlgorithm(PublicKeyAlgorithm::DSA).into())
+            (mpi::PublicKey::DSA { p, q, g, y },
+             mpi::Signature::DSA { r, s }) => {
+                use dsa::signature::hazmat::PrehashVerifier;
+                let c = dsa::Components::from_components(
+                    p.into(), q.into(), g.into())?;
+                let public = dsa::VerifyingKey::from_components(c, y.into())?;
+                let sig = dsa::Signature::from_components(r.into(), s.into())?;
+                public.verify_prehash(digest, &sig)?;
+                Ok(())
             },
             (mpi::PublicKey::ECDSA { curve, q },
              mpi::Signature::ECDSA { r, s }) => match curve

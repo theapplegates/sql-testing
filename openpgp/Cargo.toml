@@ -67,6 +67,7 @@ cipher = { version = "0.4", optional = true, features = ["std"] }
 cfb-mode = { version = "0.8", optional = true }
 des = { version = "0.8", optional = true }
 digest = { version = "0.10", optional = true }
+dsa = { version = "0.5", optional = true }
 eax = { version = "0.5", optional = true }
 ecb = { version = "0.1", optional = true }
 ecdsa = { version = "0.16", optional = true, features = ["hazmat", "arithmetic"] } # XXX
@@ -131,7 +132,7 @@ crypto-rust = [
     "digest", "eax", "ecb", "ed25519", "ed25519-dalek", "generic-array", "idea",
     "md-5", "num-bigint-dig", "rand", "rand07", "ripemd", "rsa", "sha-1", "sha2",
     "twofish", "typenum", "x25519-dalek-ng", "p256",
-    "rand_core", "rand_core/getrandom", "ecdsa", "aes-gcm"
+    "rand_core", "rand_core/getrandom", "ecdsa", "aes-gcm", "dsa"
 ]
 crypto-cng = [
     "cipher", "eax", "winapi", "win-crypto-ng", "ed25519", "ed25519-dalek",
