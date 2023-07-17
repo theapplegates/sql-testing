@@ -458,7 +458,7 @@ impl<R> Key4<SecretParts, R>
             public, secret.into())
     }
 
-    /// Generates a new RSA key with a public modulos of size `bits`.
+    /// Generates a new RSA key with a public modulus of size `bits`.
     pub fn generate_rsa(bits: usize) -> Result<Self> {
         let mut rng = RandomNumberGenerator::new_userspace()?;
         let secret = Privkey::create("RSA", &format!("{}", bits), &mut rng)?;

@@ -458,7 +458,7 @@ impl<R> Key4<SecretParts, R>
         )
     }
 
-    /// Generates a new RSA key with a public modulos of size `bits`.
+    /// Generates a new RSA key with a public modulus of size `bits`.
     pub fn generate_rsa(bits: usize) -> Result<Self> {
         let key = RsaPrivateKey::new(&mut rsa::rand_core::OsRng, bits)?;
         let (p, q) = match key.primes() {

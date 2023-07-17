@@ -481,7 +481,7 @@ where
         )
     }
 
-    /// Generates a new RSA key with a public modulos of size `bits`.
+    /// Generates a new RSA key with a public modulus of size `bits`.
     #[allow(clippy::many_single_char_names)]
     pub fn generate_rsa(bits: usize) -> Result<Self> {
         let key = Rsa::generate(bits.try_into()?)?;

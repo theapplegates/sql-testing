@@ -373,7 +373,7 @@ impl<R> Key4<SecretParts, R>
             }.into())
     }
 
-    /// Generates a new RSA key with a public modulos of size `bits`.
+    /// Generates a new RSA key with a public modulus of size `bits`.
     pub fn generate_rsa(bits: usize) -> Result<Self> {
         let mut rng = Yarrow::default();
 

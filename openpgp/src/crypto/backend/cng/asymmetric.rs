@@ -784,7 +784,7 @@ where
         )
     }
 
-    /// Generates a new RSA key with a public modulos of size `bits`.
+    /// Generates a new RSA key with a public modulus of size `bits`.
     pub fn generate_rsa(bits: usize) -> Result<Self> {
         use win_crypto_ng::asymmetric::{AsymmetricKey, Rsa};
 
