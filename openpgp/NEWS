@@ -30,6 +30,7 @@
 ** New functionality
    - The RustCrypto backend now supports DSA.
    - crypto::SessionKey::as_protected
+   - packet::Key::generate_dsa
    - parse::PacketParser::start_hashing
    - parse::PacketParserBuilder::automatic_hashing
    - types::AEADAlgorithm::GCM

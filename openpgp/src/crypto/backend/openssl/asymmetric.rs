@@ -104,6 +104,15 @@ impl Asymmetric for super::Backend {
         let mut verifier = Verifier::new_without_digest(&key)?;
         Ok(verifier.verify_oneshot(signature, digest)?)
     }
+
+    fn dsa_generate_key(p_bits: usize)
+                        -> Result<(MPI, MPI, MPI, MPI, ProtectedMPI)>
+    {
+        use openssl::dsa::*;
+        let key = Dsa::<openssl::pkey::Private>::generate(p_bits.try_into()?)?;
+        Ok((key.p().into(), key.q().into(), key.g().into(),
+            key.pub_key().into(), key.priv_key().into()))
+    }
 }
 
 impl TryFrom<&ProtectedMPI> for BigNum {

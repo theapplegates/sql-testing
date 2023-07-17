@@ -56,6 +56,18 @@ impl From<Vec<u8>> for MPI {
     }
 }
 
+impl From<Box<[u8]>> for MPI {
+    fn from(v: Box<[u8]>) -> Self {
+        // XXX: This will leak secrets in v into the heap.  But,
+        // eagerly clearing the memory may have a very high overhead,
+        // after all, most MPIs that we encounter will not contain
+        // secrets.  I think it is better to avoid creating MPIs that
+        // contain secrets in the first place.  In 2.0, we can remove
+        // the impl From<MPI> for ProtectedMPI.
+        Self::new(&v)
+    }
+}
+
 impl MPI {
     /// Trims leading zero octets.
     fn trim_leading_zeros(v: &[u8]) -> &[u8] {

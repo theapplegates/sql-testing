@@ -141,6 +141,29 @@ impl Asymmetric for super::Backend {
         let signature = Signature::from_bytes(&signature.clone())?;
         Ok(public.verify(digest, &signature).is_ok())
     }
+
+    fn dsa_generate_key(p_bits: usize)
+                        -> Result<(MPI, MPI, MPI, MPI, ProtectedMPI)>
+    {
+        #[allow(deprecated)]
+        let size = match p_bits {
+            1024 => dsa::KeySize::DSA_1024_160,
+            2048 => dsa::KeySize::DSA_2048_256,
+            3072 => dsa::KeySize::DSA_3072_256,
+            n => return Err(Error::InvalidArgument(
+                format!("Key size {} is not supported", n)).into()),
+        };
+
+        let mut rng = rand_core::OsRng;
+        let components = dsa::Components::generate(&mut rng, size);
+        let p = components.p().into();
+        let q = components.q().into();
+        let g = components.g().into();
+        let secret = dsa::SigningKey::generate(&mut rng, components);
+        let public = secret.verifying_key();
+
+        Ok((p, q, g, public.y().into(), secret.x().into()))
+    }
 }
 
 impl From<&BigUint> for ProtectedMPI {

@@ -1196,6 +1196,25 @@ impl<R> Key4<SecretParts, R>
                 scalar: private_key.into(),
             }.into())
     }
+
+    /// Generates a new DSA key with a public modulus of size `p_bits`.
+    ///
+    /// Note: In order to comply with FIPS 186-4, and to increase
+    /// compatibility with implementations, you SHOULD only generate
+    /// keys with moduli of size `2048` or `3072` bits.
+    pub fn generate_dsa(p_bits: usize) -> Result<Self> {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+
+        let (p, q, g, y, x) = Backend::dsa_generate_key(p_bits)?;
+        let public_mpis = mpi::PublicKey::DSA { p, q, g, y };
+        let private_mpis = mpi::SecretKeyMaterial::DSA { x };
+
+        Self::with_secret(
+            crate::now(),
+            PublicKeyAlgorithm::DSA,
+            public_mpis,
+            private_mpis.into())
+    }
 }
 
 impl<P, R> Key4<P, R>
@@ -2115,6 +2134,8 @@ mod tests {
                 Key4::generate_ecc(true, cv).ok()
             }).chain(vec![1024, 2048, 3072, 4096].into_iter().filter_map(|b| {
                 Key4::generate_rsa(b).ok()
+            })).chain(vec![1024, 2048, 3072].into_iter().filter_map(|b| {
+                Key4::generate_dsa(b).ok()
             }));
 
         for key in keys.into_iter() {

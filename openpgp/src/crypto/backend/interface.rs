@@ -2,7 +2,10 @@
 
 use crate::{
     Result,
-    crypto::mem::Protected,
+    crypto::{
+        mem::Protected,
+        mpi::{MPI, ProtectedMPI},
+    },
     types::{Curve, PublicKeyAlgorithm},
 };
 
@@ -69,4 +72,12 @@ pub trait Asymmetric {
     /// Verifies an Ed25519 signature.
     fn ed25519_verify(public: &[u8; 32], digest: &[u8], signature: &[u8; 64])
                       -> Result<bool>;
+
+    /// Generates a DSA key pair.
+    ///
+    /// `p_bits` denotes the desired size of the parameter `p`.
+    /// Returns a tuple containing the parameters `p`, `q`, `g`, the
+    /// public key `y`, and the secret key `x`.
+    fn dsa_generate_key(p_bits: usize)
+                        -> Result<(MPI, MPI, MPI, MPI, ProtectedMPI)>;
 }

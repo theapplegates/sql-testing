@@ -208,18 +208,18 @@ dependencies = [
 
 [[package]]
 name = "botan"
-version = "0.10.2"
+version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "066638d2456fe30d12c06c35ee0eb4f050c97ed3b68db0bff9b762da1976d169"
+checksum = "04675b6a2db12d8af38d5725134459b6972641165122bb72ee1d19c793b08bb1"
 dependencies = [
  "botan-sys",
 ]
 
 [[package]]
 name = "botan-sys"
-version = "0.10.2"
+version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc0393ee6e938f1d845b0b7163b66f8ac93383a8a20aa64731ce04e5f59319fe"
+checksum = "9f49dde1b8ebd2996cc41c55c39f6ef8b54e38148d8973aeba0792b87b1621ca"
 
 [[package]]
 name = "buffered-reader"

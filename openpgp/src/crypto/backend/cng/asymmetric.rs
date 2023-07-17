@@ -9,7 +9,7 @@ use crate::{Error, Result};
 use crate::crypto::asymmetric::KeyPair;
 use crate::crypto::backend::interface::Asymmetric;
 use crate::crypto::mem::Protected;
-use crate::crypto::mpi;
+use crate::crypto::mpi::{self, MPI, ProtectedMPI};
 use crate::crypto::SessionKey;
 use crate::crypto::{pad, pad_at_least, pad_truncating};
 use crate::packet::key::{Key4, SecretParts};
@@ -149,6 +149,17 @@ impl Asymmetric for super::Backend {
         })?;
         let signature = Signature::from_bytes(&signature.clone())?;
         Ok(public.verify(digest, &signature).is_ok())
+    }
+
+    fn dsa_generate_key(p_bits: usize)
+                        -> Result<(MPI, MPI, MPI, MPI, ProtectedMPI)>
+    {
+        // XXX: DSA key generation needs fixes upstream, or at least I
+        // didn't figure out how to do that properly, see
+        // https://github.com/emgre/win-crypto-ng/issues/47
+        let _ = p_bits;
+        Err(Error::UnsupportedPublicKeyAlgorithm(
+            PublicKeyAlgorithm::ElGamalEncrypt).into())
     }
 }
 

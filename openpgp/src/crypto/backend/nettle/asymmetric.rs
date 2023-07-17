@@ -11,7 +11,7 @@ use crate::{Error, Result};
 use crate::packet::{key, Key};
 use crate::crypto::asymmetric::KeyPair;
 use crate::crypto::backend::interface::Asymmetric;
-use crate::crypto::mpi::{self, MPI, PublicKey};
+use crate::crypto::mpi::{self, MPI, ProtectedMPI, PublicKey};
 use crate::crypto::SessionKey;
 use crate::types::{Curve, HashAlgorithm};
 
@@ -92,6 +92,19 @@ impl Asymmetric for super::Backend {
         debug_assert_eq!(ed25519::ED25519_KEY_SIZE, 32);
         debug_assert_eq!(ed25519::ED25519_SIGNATURE_SIZE, 64);
         Ok(ed25519::verify(public, digest, signature)?)
+    }
+
+    fn dsa_generate_key(p_bits: usize)
+                        -> Result<(MPI, MPI, MPI, MPI, ProtectedMPI)>
+    {
+        let mut rng = Yarrow::default();
+        let q_bits = if p_bits <= 1024 { 160 } else { 256 };
+        let params = dsa::Params::generate(&mut rng, p_bits, q_bits)?;
+        let (p, q) = params.primes();
+        let g = params.g();
+        let (y, x) = dsa::generate_keypair(&params, &mut rng);
+        Ok((p.into(), q.into(), g.into(), y.as_bytes().into(),
+            x.as_bytes().into()))
     }
 }
 

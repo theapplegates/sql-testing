@@ -113,6 +113,20 @@ impl Asymmetric for super::Backend {
         let pk = Pubkey::load_ed25519(public)?;
         Ok(pk.verify(digest, signature, "")?)
     }
+
+    fn dsa_generate_key(p_bits: usize)
+                        -> Result<(MPI, MPI, MPI, MPI, ProtectedMPI)>
+    {
+        let mut rng = RandomNumberGenerator::new_userspace()?;
+        let q_bits = if p_bits <= 1024 { 160 } else { 256 };
+        let secret = Privkey::create_dsa(p_bits, q_bits, &mut rng)?;
+        let public = secret.pubkey()?;
+        Ok((public.get_field("p")?.try_into()?,
+            public.get_field("q")?.try_into()?,
+            public.get_field("g")?.try_into()?,
+            public.get_field("y")?.try_into()?,
+            secret.get_field("x")?.try_into()?))
+    }
 }
 
 // CONFIDENTIALITY: Botan clears the MPIs after use.
