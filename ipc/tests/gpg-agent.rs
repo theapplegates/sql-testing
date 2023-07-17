@@ -36,6 +36,10 @@ macro_rules! make_context {
                 return Ok(());
             },
         };
+
+        std::fs::write(ctx.homedir().unwrap().join("gpg-agent.conf"),
+                       "allow-loopback-pinentry\n").unwrap();
+
         match ctx.start("gpg-agent") {
             Ok(_) => (),
             Err(e) => {
@@ -71,6 +75,7 @@ async fn help() -> openpgp::Result<()>  {
 }
 
 const MESSAGE: &str = "дружба";
+const PASSWORD: &str = "streng geheim";
 
 fn gpg_import(ctx: &Context, what: &[u8]) -> openpgp::Result<()> {
     use std::process::{Command, Stdio};
@@ -80,6 +85,7 @@ fn gpg_import(ctx: &Context, what: &[u8]) -> openpgp::Result<()> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .arg("--homedir").arg(ctx.homedir().unwrap())
+        .arg("--batch")
         .arg("--import")
         .spawn()
         .context("failed to start gpg")?;
@@ -126,21 +132,27 @@ fn sign() -> openpgp::Result<()> {
     let ctx = make_context!();
 
     for cs in &[RSA2k, Cv25519, P521] {
+      for password in vec![None, Some(PASSWORD.into())] {
         let (cert, _) = CertBuilder::new()
             .set_cipher_suite(*cs)
             .add_userid("someone@example.org")
             .add_signing_subkey()
+            .set_password(password.clone())
             .generate().unwrap();
 
         let mut buf = Vec::new();
         cert.as_tsk().serialize(&mut buf).unwrap();
         gpg_import(&ctx, &buf)?;
 
-        let keypair = KeyPair::new(
+        let mut keypair = KeyPair::new(
             &ctx,
             cert.keys().with_policy(p, None).alive().revoked(false)
                 .for_signing().take(1).next().unwrap().key())
             .unwrap();
+
+        if let Some(p) = password.clone() {
+            keypair = keypair.with_password(p);
+        }
 
         let mut message = Vec::new();
         {
@@ -222,6 +234,7 @@ fn sign() -> openpgp::Result<()> {
                 Err(anyhow::anyhow!("Signature verification failed"))
             }
         }
+      }
     }
     Ok(())
 }
@@ -252,12 +265,14 @@ fn decrypt(also_try_explicit_async: bool) -> openpgp::Result<()> {
         .generate()?;
 
     for cs in &[RSA2k, Cv25519, P521] {
+      for password in vec![None, Some(PASSWORD.into())] {
         let ctx = make_context!();
 
         let (cert, _) = CertBuilder::new()
             .set_cipher_suite(*cs)
             .add_userid("someone@example.org")
             .add_transport_encryption_subkey()
+            .set_password(password.clone())
             .generate().unwrap();
 
         let mut buf = Vec::new();
@@ -320,11 +335,15 @@ fn decrypt(also_try_explicit_async: bool) -> openpgp::Result<()> {
                 .is_err());
 
         // Now try "our" key.
-        let keypair = KeyPair::new(
+        let mut keypair = KeyPair::new(
             &ctx,
             cert.keys().with_policy(p, None)
                 .for_storage_encryption().for_transport_encryption()
                 .take(1).next().unwrap().key())?;
+        if let Some(p) = password.clone() {
+            keypair = keypair.with_password(p);
+        }
+
         assert!(rt.block_on(agent.decrypt(&keypair, pkesk_0.esk()))
                 .is_ok());
 
@@ -334,7 +353,10 @@ fn decrypt(also_try_explicit_async: bool) -> openpgp::Result<()> {
 
         // Make a helper that that feeds the recipient's secret key to the
         // decryptor.
-        let helper = Helper { policy: p, ctx: &ctx, cert: &cert, other: &other};
+        let helper = Helper {
+            policy: p, ctx: &ctx, cert: &cert, other: &other,
+            password: &password,
+        };
 
         // Now, create a decryptor with a helper using the given Certs.
         let mut decryptor = DecryptorBuilder::from_bytes(&message).unwrap()
@@ -350,6 +372,7 @@ fn decrypt(also_try_explicit_async: bool) -> openpgp::Result<()> {
             ctx: &'a Context,
             cert: &'a openpgp::Cert,
             other: &'a openpgp::Cert,
+            password: &'a Option<openpgp::crypto::Password>,
         }
 
         impl<'a> VerificationHelper for Helper<'a> {
@@ -396,6 +419,10 @@ fn decrypt(also_try_explicit_async: bool) -> openpgp::Result<()> {
                         .take(1).next().unwrap().key())
                     .unwrap();
 
+                if let Some(p) = self.password.clone() {
+                    keypair = keypair.with_password(p);
+                }
+
                 for pkesk in pkesks {
                     if *pkesk.recipient() != keypair.public().keyid() {
                         continue;
@@ -412,6 +439,7 @@ fn decrypt(also_try_explicit_async: bool) -> openpgp::Result<()> {
                 Ok(None)
             }
         }
+      }
     }
     Ok(())
 }

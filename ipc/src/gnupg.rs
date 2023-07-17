@@ -351,6 +351,10 @@ impl Agent {
             self.send_simple(option).await?;
         }
 
+        if key.password.is_some() {
+            self.send_simple("OPTION pinentry-mode=loopback").await?;
+        }
+
         let grip = Keygrip::of(key.public.mpis())?;
         self.send_simple(format!("SIGKEY {}", grip)).await?;
         self.send_simple(
@@ -369,8 +373,15 @@ impl Agent {
                 | assuan::Response::Comment { .. }
                 | assuan::Response::Status { .. } =>
                     (), // Ignore.
-                assuan::Response::Inquire { .. } =>
-                    acknowledge_inquiry(self).await?,
+                assuan::Response::Inquire { keyword, .. } =>
+                    match (keyword.as_str(), &key.password) {
+                        ("PASSPHRASE", Some(p)) => {
+                            p.map(|p| self.data(p))?;
+                            // Dummy read to send the data.
+                            self.next().await;
+                        },
+                        _ => acknowledge_inquiry(self).await?,
+                    },
                 assuan::Response::Error { ref message, .. } =>
                     return assuan::operation_failed(self, message).await,
                 assuan::Response::Data { ref partial } =>
@@ -392,41 +403,38 @@ impl Agent {
             self.send_simple(option).await?;
         }
 
+        if key.password.is_some() {
+            self.send_simple("OPTION pinentry-mode=loopback").await?;
+        }
+
         let grip = Keygrip::of(key.public.mpis())?;
         self.send_simple(format!("SETKEY {}", grip)).await?;
         self.send_simple(format!("SETKEYDESC {}",
                                   assuan::escape(&key.password_prompt))).await?;
         self.send("PKDECRYPT")?;
-        while let Some(r) = self.next().await {
-            match r? {
-                assuan::Response::Inquire { ref keyword, .. } =>
-                if keyword == "CIPHERTEXT" {
-                    // What we expect.
-                } else {
-                    acknowledge_inquiry(self).await?;
-                },
-                assuan::Response::Comment { .. }
-                | assuan::Response::Status { .. } =>
-                    (), // Ignore.
-                assuan::Response::Error { ref message, .. } =>
-                    return assuan::operation_failed(self, message).await,
-                r =>
-                    return assuan::protocol_error(&r),
-            }
-        }
-
-        let mut buf = Vec::new();
-        Sexp::try_from(ciphertext)?.serialize(&mut buf)?;
-        self.data(&buf)?;
         let mut padding = true;
         let mut data = Vec::new();
         while let Some(r) = self.next().await {
             match r? {
-                assuan::Response::Ok { .. }
-                | assuan::Response::Comment { .. } =>
+                assuan::Response::Ok { .. } |
+                assuan::Response::Comment { .. } =>
                     (), // Ignore.
-                assuan::Response::Inquire { .. } =>
-                    acknowledge_inquiry(self).await?,
+                assuan::Response::Inquire { ref keyword, .. } =>
+                    match (keyword.as_str(), &key.password) {
+                        ("PASSPHRASE", Some(p)) => {
+                            p.map(|p| self.data(p))?;
+                            // Dummy read to send the data.
+                            self.next().await;
+                        },
+                        ("CIPHERTEXT", _) => {
+                            let mut buf = Vec::new();
+                            Sexp::try_from(ciphertext)?.serialize(&mut buf)?;
+                            self.data(&buf)?;
+                            // Dummy read to send the data.
+                            self.next().await;
+                        },
+                        _ => acknowledge_inquiry(self).await?,
+                    },
                 assuan::Response::Status { ref keyword, ref message } =>
                     if keyword == "PADDING" {
                         padding = message != "0";
@@ -504,6 +512,7 @@ impl Agent {
 pub struct KeyPair {
     public: Key<key::PublicParts, key::UnspecifiedRole>,
     agent_socket: PathBuf,
+    password: Option<crypto::Password>,
     password_prompt: String,
 }
 
@@ -518,6 +527,7 @@ impl KeyPair {
         where R: key::KeyRole
     {
         Ok(KeyPair {
+            password: None,
             password_prompt: format!(
                 "Please enter the passphrase to \
                  unlock the OpenPGP secret key:\n\
@@ -585,6 +595,21 @@ impl KeyPair {
             ),
         };
         self.with_password_prompt(prompt)
+    }
+
+    /// Supplies a password to unlock the secret key.
+    ///
+    /// This will be used when the secret key operation is performed,
+    /// e.g. when signing or decrypting a message.
+    ///
+    /// Note: This is the equivalent of GnuPG's
+    /// `--pinentry-mode=loopback` and requires explicit opt-in in the
+    /// gpg-agent configuration using the `allow-loopback-pinentry`
+    /// option.  If this is not enabled in the agent, the secret key
+    /// operation will fail.  It is likely only useful during testing.
+    pub fn with_password(mut self, password: crypto::Password) -> Self {
+        self.password = Some(password);
+        self
     }
 
     /// Changes the password prompt.
