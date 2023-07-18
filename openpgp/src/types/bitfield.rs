@@ -10,6 +10,18 @@ impl From<Vec<u8>> for Bitfield {
     }
 }
 
+impl AsRef<[u8]> for Bitfield {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl AsMut<[u8]> for Bitfield {
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.as_bytes_mut()
+    }
+}
+
 impl Bitfield {
     pub fn iter(&self) -> impl Iterator<Item = usize> + Send + Sync + '_
     {
