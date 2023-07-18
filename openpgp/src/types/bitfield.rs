@@ -1,5 +1,5 @@
 /// A bitfield.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct Bitfield {
     raw: Vec<u8>,
 }
