@@ -1,6 +1,7 @@
 //! The crypto-backend abstraction.
 
 use crate::{
+    Error,
     Result,
     crypto::{
         mem::Protected,
@@ -80,4 +81,16 @@ pub trait Asymmetric {
     /// public key `y`, and the secret key `x`.
     fn dsa_generate_key(p_bits: usize)
                         -> Result<(MPI, MPI, MPI, MPI, ProtectedMPI)>;
+
+    /// Generates an ElGamal key pair.
+    ///
+    /// `p_bits` denotes the desired size of the parameter `p`.
+    /// Returns a tuple containing the parameters `p`, `g`, the public
+    /// key `y`, and the secret key `x`.
+    fn elgamal_generate_key(p_bits: usize)
+                            -> Result<(MPI, MPI, MPI, ProtectedMPI)> {
+        let _ = p_bits;
+        Err(Error::UnsupportedPublicKeyAlgorithm(
+            PublicKeyAlgorithm::ElGamalEncrypt).into())
+    }
 }

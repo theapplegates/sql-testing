@@ -1215,6 +1215,24 @@ impl<R> Key4<SecretParts, R>
             public_mpis,
             private_mpis.into())
     }
+
+    /// Generates a new ElGamal key with a public modulus of size `p_bits`.
+    ///
+    /// Note: ElGamal is no longer well supported in cryptographic
+    /// libraries and should be avoided.
+    pub fn generate_elgamal(p_bits: usize) -> Result<Self> {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+
+        let (p, g, y, x) = Backend::elgamal_generate_key(p_bits)?;
+        let public_mpis = mpi::PublicKey::ElGamal { p, g, y };
+        let private_mpis = mpi::SecretKeyMaterial::ElGamal { x };
+
+        Self::with_secret(
+            crate::now(),
+            PublicKeyAlgorithm::ElGamalEncrypt,
+            public_mpis,
+            private_mpis.into())
+    }
 }
 
 impl<P, R> Key4<P, R>
@@ -2102,6 +2120,8 @@ mod tests {
                 Key4::generate_ecc(false, cv).ok()
             }).chain(vec![1024, 2048, 3072, 4096].into_iter().filter_map(|b| {
                 Key4::generate_rsa(b).ok()
+            })).chain(vec![1024, 2048, 3072, 4096].into_iter().filter_map(|b| {
+                Key4::generate_elgamal(b).ok()
             }));
 
         for key in keys.into_iter() {
