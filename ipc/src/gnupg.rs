@@ -260,7 +260,7 @@ impl Context {
 
     /// Starts a GnuPG component.
     pub fn start(&self, component: &str) -> Result<()> {
-        self.create_socket_dir()?;
+        let _ = self.create_socket_dir(); // Best effort.
         Self::gpgconf(&self.homedir, &["--launch", component], 1)?;
         Ok(())
     }
