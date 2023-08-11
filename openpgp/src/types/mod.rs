@@ -1260,7 +1260,7 @@ impl fmt::Display for CompressionAlgorithm {
             CompressionAlgorithm::Private(u) =>
                 f.write_fmt(format_args!("Private/Experimental compression algorithm {}", u)),
             CompressionAlgorithm::Unknown(u) =>
-                f.write_fmt(format_args!("Unknown comppression algorithm {}", u)),
+                f.write_fmt(format_args!("Unknown compression algorithm {}", u)),
         }
     }
 }
