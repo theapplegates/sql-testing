@@ -2106,10 +2106,10 @@ pub trait DecryptionHelper {
     /// If the message is decrypted using a [`PKESK`] packet, then the
     /// fingerprint of the certificate containing the encryption
     /// subkey should be returned.  This is used in conjunction with
-    /// the intended recipient subpacket (see [Section 5.2.3.29 of RFC
-    /// 4880bis]) to prevent [*Surreptitious Forwarding*].
+    /// the intended recipient subpacket (see [Intended Recipient
+    /// Fingerprint]) to prevent [*Surreptitious Forwarding*].
     ///
-    ///   [Section 5.2.3.29 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-08#section-5.2.3.29
+    ///   [Intended Recipient Fingerprint]: https://www.rfc-editor.org/rfc/rfc9580.html#name-intended-recipient-fingerpr
     ///   [*Surreptitious Forwarding*]: http://world.std.com/~dtd/sign_encrypt/sign_encrypt7.html
     ///
     /// This method will be called once per encryption layer.

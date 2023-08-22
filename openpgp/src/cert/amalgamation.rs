@@ -217,7 +217,7 @@
 //! [MD5 collisions]: https://en.wikipedia.org/wiki/MD5
 //! [`Policy`]: crate::policy::Policy
 //! [streaming verifier]: crate::parse::stream
-//! [Intended Recipients]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#name-intended-recipient-fingerpr
+//! [Intended Recipients]: https://www.rfc-editor.org/rfc/rfc9580.html#intended-recipient-fingerprint
 //! [signature expirations]: https://tools.ietf.org/html/rfc4880#section-5.2.3.10
 //! [`Deref` trait]: std::ops::Deref
 //! [`ComponentAmalgamation::component`]: ComponentAmalgamation::component()

@@ -77,10 +77,11 @@ impl AEADAlgorithm {
     pub fn digest_size(&self) -> Result<usize> {
         use self::AEADAlgorithm::*;
         match self {
-            // According to RFC4880bis, Section 5.16.1.
+            // See https://www.rfc-editor.org/rfc/rfc9580.html#name-eax-mode
             EAX => Ok(16),
-            // According to RFC4880bis, Section 5.16.2.
+            // See https://www.rfc-editor.org/rfc/rfc9580.html#name-ocb-mode
             OCB => Ok(16),
+            // See https://www.rfc-editor.org/rfc/rfc9580.html#name-gcm-mode
             GCM => Ok(16),
             _ => Err(Error::UnsupportedAEADAlgorithm(*self).into()),
         }
@@ -90,12 +91,11 @@ impl AEADAlgorithm {
     pub fn nonce_size(&self) -> Result<usize> {
         use self::AEADAlgorithm::*;
         match self {
-            // According to RFC4880bis, Section 5.16.1.
+            // See https://www.rfc-editor.org/rfc/rfc9580.html#name-eax-mode
             EAX => Ok(16),
-            // According to RFC4880bis, Section 5.16.2, the IV is "at
-            // least 15 octets long".  GnuPG hardcodes 15 in
-            // openpgp_aead_algo_info.
+            // See https://www.rfc-editor.org/rfc/rfc9580.html#name-ocb-mode
             OCB => Ok(15),
+            // See https://www.rfc-editor.org/rfc/rfc9580.html#name-gcm-mode
             GCM => Ok(12),
             _ => Err(Error::UnsupportedAEADAlgorithm(*self).into()),
         }
