@@ -32,6 +32,12 @@
    - SignatureBuilder::set_preferred_aead_ciphersuites
    - Preferences::preferred_aead_ciphersuites
 
+** Deprecated functionality
+   - SubpacketTag::PreferredAEADAlgorithms
+   - SubpacketValue::PreferredAEADAlgorithms
+   - SubpacketAreas::preferred_aead_algorithms
+   - SignatureBuilder::set_preferred_aead_algorithms
+
 ** Notable fixes
 
 * Changes in 1.22.0
