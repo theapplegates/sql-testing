@@ -375,7 +375,7 @@ impl From<u8> for SubpacketTag {
             34 => SubpacketTag::PreferredAEADAlgorithms,
             35 => SubpacketTag::IntendedRecipient,
             37 => SubpacketTag::AttestedCertifications,
-            0| 1| 8| 13| 14| 15| 17| 18| 19 => SubpacketTag::Reserved(u),
+            0| 1| 8| 13| 14| 15| 17| 18| 19 | 38 => SubpacketTag::Reserved(u),
             100..=110 => SubpacketTag::Private(u),
             _ => SubpacketTag::Unknown(u),
         }
@@ -488,7 +488,8 @@ mod tests {
                 SubpacketTag::Reserved(u) =>
                     (u == 0 || u == 1 || u == 8
                      || u == 13 || u == 14 || u == 15
-                     || u == 17 || u == 18 || u == 19),
+                     || u == 17 || u == 18 || u == 19
+                     || u == 38),
                 SubpacketTag::Private(u) => (100..=110).contains(&u),
                 SubpacketTag::Unknown(u) => (u > 33 && u < 100) || u > 110,
                 _ => true
