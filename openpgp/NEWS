@@ -23,6 +23,9 @@
    - S2K::Argon2
    - HashAlgorithm::SHA3_256
    - HashAlgorithm::SHA3_512
+   - types::Features::clear_seipdv2
+   - types::Features::set_seipdv2
+   - types::Features::supports_seipdv2
 
 ** Notable fixes
 
