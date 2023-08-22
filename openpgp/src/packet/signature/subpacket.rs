@@ -326,6 +326,26 @@ pub enum SubpacketTag {
     ///
     ///  [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
     AttestedCertifications,
+
+    /// The AEAD Ciphersuites that the certificate holder prefers.
+    ///
+    /// A series of paired algorithm identifiers indicating how the
+    /// keyholder prefers to receive version 2 Symmetrically Encrypted
+    /// Integrity Protected Data.  Each pair of octets indicates a
+    /// combination of a symmetric cipher and an AEAD mode that the
+    /// key holder prefers to use.
+    ///
+    /// It is assumed that only the combinations of algorithms listed
+    /// are supported by the recipient's software, with the exception
+    /// of the mandatory-to-implement combination of AES-128 and OCB.
+    /// If AES-128 and OCB are not found in the subpacket, it is
+    /// implicitly listed at the end.
+    ///
+    /// See [Section 5.2.3.15 of RFC 9580] for details.
+    ///
+    ///  [Section 5.2.3.15 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#name-preferred-aead-ciphersuites
+    PreferredAEADCiphersuites,
+
     /// Reserved subpacket tag.
     Reserved(u8),
     /// Private subpacket tag.
@@ -376,6 +396,7 @@ impl From<u8> for SubpacketTag {
             34 => SubpacketTag::PreferredAEADAlgorithms,
             35 => SubpacketTag::IntendedRecipient,
             37 => SubpacketTag::AttestedCertifications,
+            39 => SubpacketTag::PreferredAEADCiphersuites,
             0| 1| 8| 13| 14| 15| 17| 18| 19 | 38 => SubpacketTag::Reserved(u),
             100..=110 => SubpacketTag::Private(u),
             _ => SubpacketTag::Unknown(u),
@@ -415,6 +436,7 @@ impl From<SubpacketTag> for u8 {
             SubpacketTag::PreferredAEADAlgorithms => 34,
             SubpacketTag::IntendedRecipient => 35,
             SubpacketTag::AttestedCertifications => 37,
+            SubpacketTag::PreferredAEADCiphersuites => 39,
             SubpacketTag::Reserved(u) => u,
             SubpacketTag::Private(u) => u,
             SubpacketTag::Unknown(u) => u,
@@ -423,7 +445,7 @@ impl From<SubpacketTag> for u8 {
 }
 
 #[allow(deprecated)]
-const SUBPACKET_TAG_VARIANTS: [SubpacketTag; 28] = [
+const SUBPACKET_TAG_VARIANTS: [SubpacketTag; 29] = [
     SubpacketTag::SignatureCreationTime,
     SubpacketTag::SignatureExpirationTime,
     SubpacketTag::ExportableCertification,
@@ -452,6 +474,7 @@ const SUBPACKET_TAG_VARIANTS: [SubpacketTag; 28] = [
     SubpacketTag::PreferredAEADAlgorithms,
     SubpacketTag::IntendedRecipient,
     SubpacketTag::AttestedCertifications,
+    SubpacketTag::PreferredAEADCiphersuites,
 ];
 
 impl SubpacketTag {
@@ -1696,6 +1719,25 @@ pub enum SubpacketValue {
     ///
     ///  [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
     AttestedCertifications(Vec<Box<[u8]>>),
+
+    /// The AEAD Ciphersuites that the certificate holder prefers.
+    ///
+    /// A series of paired algorithm identifiers indicating how the
+    /// keyholder prefers to receive version 2 Symmetrically Encrypted
+    /// Integrity Protected Data.  Each pair of octets indicates a
+    /// combination of a symmetric cipher and an AEAD mode that the
+    /// key holder prefers to use.
+    ///
+    /// It is assumed that only the combinations of algorithms listed
+    /// are supported by the recipient's software, with the exception
+    /// of the mandatory-to-implement combination of AES-128 and OCB.
+    /// If AES-128 and OCB are not found in the subpacket, it is
+    /// implicitly listed at the end.
+    ///
+    /// See [Section 5.2.3.15 of RFC 9580] for details.
+    ///
+    ///  [Section 5.2.3.15 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#name-preferred-aead-ciphersuites
+    PreferredAEADCiphersuites(Vec<(SymmetricAlgorithm, AEADAlgorithm)>),
 }
 assert_send_and_sync!(SubpacketValue);
 
@@ -1707,7 +1749,7 @@ impl ArbitraryBounded for SubpacketValue {
 
         loop {
             #[allow(deprecated)]
-            break match gen_arbitrary_from_range(0..26, g) {
+            break match gen_arbitrary_from_range(0..27, g) {
                 0 => SignatureCreationTime(Arbitrary::arbitrary(g)),
                 1 => SignatureExpirationTime(Arbitrary::arbitrary(g)),
                 2 => ExportableCertification(Arbitrary::arbitrary(g)),
@@ -1746,6 +1788,7 @@ impl ArbitraryBounded for SubpacketValue {
                 23 => IssuerFingerprint(Arbitrary::arbitrary(g)),
                 24 => PreferredAEADAlgorithms(Arbitrary::arbitrary(g)),
                 25 => IntendedRecipient(Arbitrary::arbitrary(g)),
+                26 => PreferredAEADCiphersuites(Arbitrary::arbitrary(g)),
                 _ => unreachable!(),
             }
         }
@@ -1794,6 +1837,8 @@ impl SubpacketValue {
                 SubpacketTag::PreferredAEADAlgorithms,
             IntendedRecipient(_) => SubpacketTag::IntendedRecipient,
             AttestedCertifications(_) => SubpacketTag::AttestedCertifications,
+            PreferredAEADCiphersuites(_) =>
+                SubpacketTag::PreferredAEADCiphersuites,
             Unknown { tag, .. } => *tag,
         }
     }
@@ -3270,18 +3315,16 @@ impl SubpacketAreas {
         }
     }
 
-    /// Returns the value of the Preferred AEAD Algorithms subpacket.
+    /// Returns the value of the Preferred AEAD Ciphersuites subpacket.
     ///
-    /// The [Preferred AEAD Algorithms subpacket] indicates what AEAD
-    /// algorithms the key holder prefers ordered by preference.  If
-    /// this is set, then the AEAD feature flag should in the
+    /// The [Preferred AEAD Ciphersuites subpacket] indicates what
+    /// AEAD ciphersuites (i.e. pairs of symmetric algorithm and AEAD
+    /// algorithm) the key holder prefers ordered by preference.  If
+    /// this is set, then the SEIPDv2 feature flag should in the
     /// [Features subpacket] should also be set.
     ///
-    /// Note: because support for AEAD has not yet been standardized,
-    /// we recommend not yet advertising support for it.
-    ///
-    /// [Preferred AEAD Algorithms subpacket]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#section-5.2.3.8
-    /// [Features subpacket]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#section-5.2.3.25
+    /// [Preferred AEAD Ciphersuites subpacket]: https://www.ietf.org/archive/id/draft-ietf-openpgp-crypto-refresh-10.html#name-preferred-aead-ciphersuites
+    /// [Features subpacket]: https://www.ietf.org/archive/id/draft-ietf-openpgp-crypto-refresh-10.html#features-subpacket
     ///
     /// This subpacket is a type of preference.  When looking up a
     /// preference, an OpenPGP implementation should first look for
@@ -3305,7 +3348,25 @@ impl SubpacketAreas {
     /// Note: if the signature contains multiple instances of this
     /// subpacket in the hashed subpacket area, the last one is
     /// returned.
-    #[deprecated]
+    pub fn preferred_aead_ciphersuites(&self)
+        -> Option<&[(SymmetricAlgorithm, AEADAlgorithm)]>
+    {
+        if let Some(sb) = self.subpacket(
+            SubpacketTag::PreferredAEADCiphersuites)
+        {
+            if let SubpacketValue::PreferredAEADCiphersuites(v)
+                = &sb.value
+            {
+                Some(v)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Returns the value of the Preferred AEAD Algorithms subpacket.
     pub fn preferred_aead_algorithms(&self)
                                      -> Option<&[AEADAlgorithm]> {
         // array of one-octet values
@@ -6877,25 +6938,24 @@ impl signature::SignatureBuilder {
         Ok(self)
     }
 
-    /// Sets the Preferred AEAD Algorithms subpacket.
+    /// Sets the Preferred AEAD Ciphersuites subpacket.
     ///
-    /// Replaces any [Preferred AEAD Algorithms subpacket] in the
+    /// Replaces any [Preferred AEAD Ciphersuites subpacket] in the
     /// hashed subpacket area with a new subpacket containing the
     /// specified value.  That is, this function first removes any
-    /// Preferred AEAD Algorithms subpacket from the hashed subpacket
-    /// area, and then adds a Preferred AEAD Algorithms subpacket.
+    /// Preferred AEAD Ciphersuites subpacket from the hashed
+    /// subpacket area, and then adds a Preferred AEAD Ciphersuites
+    /// subpacket.
     ///
-    /// [Preferred AEAD Algorithms subpacket]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#section-5.2.3.8
+    /// [Preferred AEAD Ciphersuites subpacket]: https://www.rfc-editor.org/rfc/rfc9580.html#name-preferred-aead-ciphersuites
     ///
-    /// The Preferred AEAD Algorithms subpacket indicates what AEAD
-    /// algorithms the key holder prefers ordered by preference.  If
-    /// this is set, then the AEAD feature flag should in the
+    /// The Preferred AEAD Ciphersuites subpacket indicates what AEAD
+    /// ciphersuites the key holder prefers ordered by preference.  If
+    /// this is set, then the `Version 2 Symmetrically Encrypted and
+    /// Integrity Protected Data packet` feature flag should in the
     /// [Features subpacket] should also be set.
     ///
-    /// Note: because support for AEAD has not yet been standardized,
-    /// we recommend not yet advertising support for it.
-    ///
-    /// [Features subpacket]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#section-5.2.3.25
+    /// [Features subpacket]: https://www.rfc-editor.org/rfc/rfc9580.html#name-features
     ///
     /// This subpacket is a type of preference.  When looking up a
     /// preference, an OpenPGP implementation should first look for
@@ -6922,7 +6982,7 @@ impl signature::SignatureBuilder {
     /// use openpgp::cert::prelude::*;
     /// use openpgp::packet::prelude::*;
     /// use openpgp::policy::StandardPolicy;
-    /// use openpgp::types::{AEADAlgorithm, Features};
+    /// use openpgp::types::{AEADAlgorithm, Features, SymmetricAlgorithm};
     ///
     /// # fn main() -> openpgp::Result<()> {
     /// let p = &StandardPolicy::new();
@@ -6933,28 +6993,35 @@ impl signature::SignatureBuilder {
     /// let pk = cert.primary_key().key();
     /// let mut signer = pk.clone().parts_into_secret()?.into_keypair()?;
     ///
+    /// // Update the cert to advocate support for SEIPDv2 with a
+    /// // preferred AEAD cipher suite.
+    /// let symm = SymmetricAlgorithm::default();
+    /// let aead = AEADAlgorithm::default();
+    ///
     /// let mut sigs = Vec::new();
     ///
     /// let vc = cert.with_policy(p, None)?;
     ///
+    /// // Update the direct key signature.
     /// if let Ok(sig) = vc.direct_key_signature() {
     ///     sigs.push(
     ///         SignatureBuilder::from(sig.clone())
-    ///             .set_preferred_aead_algorithms(vec![ AEADAlgorithm::EAX ])?
+    ///             .set_preferred_aead_ciphersuites(vec![(symm, aead)])?
     ///             .set_features(
     ///                 sig.features().unwrap_or_else(Features::sequoia)
-    ///                     .set_aead())?
+    ///                     .set_seipdv2())?
     ///             .sign_direct_key(&mut signer, None)?);
     /// }
     ///
+    /// // Update the user ID binding signatures.
     /// for ua in vc.userids() {
     ///     let sig = ua.binding_signature();
     ///     sigs.push(
     ///         SignatureBuilder::from(sig.clone())
-    ///             .set_preferred_aead_algorithms(vec![ AEADAlgorithm::EAX ])?
+    ///             .set_preferred_aead_ciphersuites(vec![(symm, aead)])?
     ///             .set_features(
     ///                 sig.features().unwrap_or_else(Features::sequoia)
-    ///                     .set_aead())?
+    ///                     .set_seipdv2())?
     ///             .sign_userid_binding(&mut signer, pk, ua.userid())?);
     /// }
     ///
@@ -6964,7 +7031,19 @@ impl signature::SignatureBuilder {
     /// # Ok(())
     /// # }
     /// ```
-    #[deprecated]
+    pub fn set_preferred_aead_ciphersuites(
+        mut self,
+        preferences: Vec<(SymmetricAlgorithm, AEADAlgorithm)>)
+        -> Result<Self>
+    {
+        self.hashed_area.replace(Subpacket::new(
+            SubpacketValue::PreferredAEADCiphersuites(preferences),
+            false)?)?;
+
+        Ok(self)
+    }
+
+    /// Sets the Preferred AEAD Algorithms subpacket.
     pub fn set_preferred_aead_algorithms(mut self,
                                          preferences: Vec<AEADAlgorithm>)
         -> Result<Self>
@@ -7406,16 +7485,12 @@ fn accessors() {
     assert_eq!(sig_.issuer_fingerprints().collect::<Vec<_>>(),
                vec![ &fp ]);
 
-    let pref = vec![AEADAlgorithm::EAX,
-                    AEADAlgorithm::OCB];
-    #[allow(deprecated)] {
-        sig = sig.set_preferred_aead_algorithms(pref.clone()).unwrap();
-    }
+    let pref = vec![(SymmetricAlgorithm::AES128, AEADAlgorithm::EAX),
+                    (SymmetricAlgorithm::AES128, AEADAlgorithm::OCB)];
+    sig = sig.set_preferred_aead_ciphersuites(pref.clone()).unwrap();
     let sig_ =
         sig.clone().sign_hash(&mut keypair, hash.clone()).unwrap();
-    #[allow(deprecated)] {
-        assert_eq!(sig_.preferred_aead_algorithms(), Some(&pref[..]));
-    }
+    assert_eq!(sig_.preferred_aead_ciphersuites(), Some(&pref[..]));
 
     let fps = vec![
         Fingerprint::from_bytes(b"aaaaaaaaaaaaaaaaaaaa"),

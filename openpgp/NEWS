@@ -26,6 +26,11 @@
    - types::Features::clear_seipdv2
    - types::Features::set_seipdv2
    - types::Features::supports_seipdv2
+   - SubpacketTag::PreferredAEADCiphersuites
+   - SubpacketValue::PreferredAEADCiphersuites
+   - SubpacketAreas::preferred_aead_ciphersuites
+   - SignatureBuilder::set_preferred_aead_ciphersuites
+   - Preferences::preferred_aead_ciphersuites
 
 ** Notable fixes
 

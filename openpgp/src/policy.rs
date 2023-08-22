@@ -666,7 +666,7 @@ a_cutoff_list!(SecondPreImageResistantHashCutoffList, HashAlgorithm, 15,
                    ACCEPT,                   // 14. SHA3-512
                ]);
 
-a_cutoff_list!(SubpacketTagCutoffList, SubpacketTag, 38,
+a_cutoff_list!(SubpacketTagCutoffList, SubpacketTag, 40,
                [
                    REJECT,                 // 0. Reserved.
                    REJECT,                 // 1. Reserved.
@@ -709,6 +709,8 @@ a_cutoff_list!(SubpacketTagCutoffList, SubpacketTag, 38,
                    ACCEPT,                 // 35. IntendedRecipient.
                    REJECT,                 // 36. Reserved.
                    ACCEPT,                 // 37. AttestedCertifications.
+                   REJECT,                 // 38. Reserved.
+                   ACCEPT,                 // 39. PreferredAEADCiphersuites.
                ]);
 
 a_cutoff_list!(AsymmetricAlgorithmCutoffList, AsymmetricAlgorithm, 19,
