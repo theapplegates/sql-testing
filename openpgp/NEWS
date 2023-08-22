@@ -36,6 +36,9 @@
    - parse::PacketParserBuilder::automatic_hashing
    - types::AEADAlgorithm::GCM
    - types::Bitfield
+   - types::Features::clear_seipdv1
+   - types::Features::set_seipdv1
+   - types::Features::supports_seipdv1
    - types::Features::as_bitfield
    - types::KeyFlags::as_bitfield
    - types::KeyServerPreferences::as_bitfield
@@ -46,6 +49,9 @@
    - packet::signature::subpacket::SubpacketTag::PreferredAEADAlgorithms
    - packet::signature::subpacket::SubpacketValue::PreferredAEADAlgorithms
    - types::Curve::len, use types::Curve::bits instead
+   - types::Features::clear_mdc
+   - types::Features::set_mdc
+   - types::Features::supports_mdc
 * Changes in 1.16.0
 ** New functionality
    - Add KeyFlags::set_certification_to.
