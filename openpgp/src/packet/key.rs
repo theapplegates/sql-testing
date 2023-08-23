@@ -2269,7 +2269,7 @@ mod tests {
         let key = key.parts_into_public();
         let got_dek = match key.optional_secret() {
             Some(SecretKeyMaterial::Unencrypted(ref u)) => u.map(|mpis| {
-                ecdh::decrypt(&key, mpis, &ciphertext)
+                ecdh::decrypt(&key, mpis, &ciphertext, None)
                     .unwrap()
             }),
             _ => unreachable!(),

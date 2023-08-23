@@ -30,6 +30,7 @@
 ** New functionality
    - The RustCrypto backend now supports DSA.
    - crypto::SessionKey::as_protected
+   - crypto::ecdh::decrypt_unwrap2
    - packet::Key::generate_dsa
    - packet::Key::generate_elgamal
    - parse::PacketParser::start_hashing
@@ -45,6 +46,7 @@
    - types::KeyServerPreferences::as_bitfield
 ** Deprecated functionality
    - cert::Preferences::preferred_aead_algorithms
+   - crypto::ecdh::decrypt_unwrap
    - packet::signature::SignatureBuilder::set_preferred_aead_algorithms
    - packet::signature::subpacket::SubpacketAreas::preferred_aead_algorithms
    - packet::signature::subpacket::SubpacketTag::PreferredAEADAlgorithms

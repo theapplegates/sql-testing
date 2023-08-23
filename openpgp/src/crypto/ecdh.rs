@@ -116,11 +116,12 @@ pub(crate) fn encrypt_wrap<R>(recipient: &Key<key::PublicParts, R>,
 /// `recipient` is the message receiver's public key, `S` is the
 /// shared Diffie-Hellman secret used to encrypt `ciphertext`.
 #[allow(non_snake_case)]
-pub fn decrypt_unwrap<R>(recipient: &Key<key::PublicParts, R>,
-                         S: &Protected,
-                         ciphertext: &mpi::Ciphertext)
-    -> Result<SessionKey>
-    where R: key::KeyRole
+pub fn decrypt_unwrap2(recipient: &Key<key::PublicParts,
+                                       key::UnspecifiedRole>,
+                       S: &Protected,
+                       ciphertext: &mpi::Ciphertext,
+                       plaintext_len: Option<usize>)
+                       -> Result<SessionKey>
 {
     match (recipient.mpis(), ciphertext) {
         (mpi::PublicKey::ECDH { ref curve, ref hash, ref sym, ..},
@@ -135,8 +136,14 @@ pub fn decrypt_unwrap<R>(recipient: &Key<key::PublicParts, R>,
 
             // Compute m = AESKeyUnwrap( Z, C ) as per [RFC3394]
             let m = aes_key_unwrap(*sym, &Z, key)?;
-            let cipher = SymmetricAlgorithm::from(m[0]);
-            let m = pkcs5_unpad(m, 1 + cipher.key_size()? + 2)?;
+            let plaintext_len =
+                plaintext_len.ok_or_else(|| Error::InvalidOperation(
+                    "Need the plaintext length to decrypt this PKESK".into()))
+                .or_else(|_| -> Result<usize> {
+                    let cipher = SymmetricAlgorithm::from(m[0]);
+                    Ok(1 + cipher.key_size()? + 2)
+                })?;
+            let m = pkcs5_unpad(m, plaintext_len)?;
 
             Ok(m.into())
         },
@@ -145,6 +152,18 @@ pub fn decrypt_unwrap<R>(recipient: &Key<key::PublicParts, R>,
             Err(Error::InvalidArgument(
                 "Expected an ECDH key and ciphertext".into()).into()),
     }
+}
+
+/// Unwraps a session key.
+#[allow(non_snake_case)]
+#[deprecated(note = "Use decrypt_unwrap2")]
+pub fn decrypt_unwrap<R>(recipient: &Key<key::PublicParts, R>,
+                         S: &Protected,
+                         ciphertext: &mpi::Ciphertext)
+    -> Result<SessionKey>
+    where R: key::KeyRole
+{
+    decrypt_unwrap2(recipient.role_as_unspecified(), S, ciphertext, None)
 }
 
 /// Derives a secret key for session key wrapping.
