@@ -27,6 +27,9 @@
      no key flags subpacket on either the active binding signature or
      the active direct key signature, we infer the key flags from the
      key's role and public key algorithm.
+
+   - When creating an authentication-capable subkey, Sequoia now also
+     adds a primary key binding signature.
 ** New functionality
    - The RustCrypto backend now supports DSA.
    - crypto::SessionKey::as_protected

@@ -1679,7 +1679,9 @@ impl<'a, P> ValidErasedKeyAmalgamation<'a, P>
         } else {
             // To extend the validity of the subkey, create a new
             // binding signature with updated key validity period.
-            let backsig = if self.for_certification() || self.for_signing() {
+            let backsig = if self.for_certification() || self.for_signing()
+                || self.for_authentication()
+            {
                 if let Some(subkey_signer) = subkey_signer {
                     Some(signature::SignatureBuilder::new(
                         SignatureType::PrimaryKeyBinding)
