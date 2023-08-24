@@ -266,7 +266,7 @@ impl Decryptor for PksClient {
     fn decrypt(
         &mut self,
         ciphertext: &mpi::Ciphertext,
-        _plaintext_len: Option<usize>,
+        plaintext_len: Option<usize>,
     ) -> openpgp::Result<SessionKey> {
         match (ciphertext, self.public.mpis()) {
             (mpi::Ciphertext::RSA { c }, mpi::PublicKey::RSA { .. }) =>
@@ -275,7 +275,8 @@ impl Decryptor for PksClient {
             (mpi::Ciphertext::ECDH { e, .. }, mpi::PublicKey::ECDH { .. }) => {
                 #[allow(non_snake_case)]
                 let S = self.make_request(e.value().to_vec(), "application/vnd.pks.ecdh.point")?.into();
-                Ok(ecdh::decrypt_unwrap(&self.public, &S, ciphertext)?)
+                Ok(ecdh::decrypt_unwrap2(&self.public, &S, ciphertext,
+                                         plaintext_len)?)
             },
             (ciphertext, public) => Err(openpgp::Error::InvalidOperation(format!(
                 "unsupported combination of key pair {:?} \
