@@ -34,6 +34,7 @@
    - packet::Key::generate_elgamal
    - parse::PacketParser::start_hashing
    - parse::PacketParserBuilder::automatic_hashing
+   - impl Default for types::AEADAlgorithm
    - types::AEADAlgorithm::GCM
    - types::Bitfield
    - types::Features::clear_seipdv1
