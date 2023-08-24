@@ -395,8 +395,9 @@ impl Agent {
     /// Decrypts `ciphertext` using `key` with the secret bits managed
     /// by the agent.
     pub async fn decrypt<'a>(&'a mut self,
-                          key: &'a KeyPair,
-                          ciphertext: &'a crypto::mpi::Ciphertext)
+                             key: &'a KeyPair,
+                             ciphertext: &'a crypto::mpi::Ciphertext,
+                             plaintext_len: Option<usize>)
         -> Result<crypto::SessionKey>
     {
         for option in Self::options() {
@@ -456,7 +457,7 @@ impl Agent {
         }
 
         Sexp::from_bytes(&data)?.finish_decryption(
-            &key.public, ciphertext, padding)
+            &key.public, ciphertext, plaintext_len, padding)
     }
 
     /// Computes options that we want to communicate.
@@ -691,7 +692,7 @@ impl crypto::Decryptor for KeyPair {
     }
 
     fn decrypt(&mut self, ciphertext: &crypto::mpi::Ciphertext,
-               _plaintext_len: Option<usize>)
+               plaintext_len: Option<usize>)
                -> openpgp::Result<crypto::SessionKey>
     {
         use crate::openpgp::crypto::mpi::{PublicKey, Ciphertext};
@@ -707,7 +708,8 @@ impl crypto::Decryptor for KeyPair {
                     let do_it = async move {
                         let mut a =
                             Agent::connect_to(&self.agent_socket).await?;
-                        let sk = a.decrypt(self, ciphertext).await?;
+                        let sk =
+                            a.decrypt(self, ciphertext, plaintext_len).await?;
                         Ok(sk)
                     };
 

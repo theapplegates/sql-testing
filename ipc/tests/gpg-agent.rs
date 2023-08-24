@@ -331,7 +331,7 @@ fn decrypt(also_try_explicit_async: bool) -> openpgp::Result<()> {
             other.keys().with_policy(p, None)
                 .for_storage_encryption().for_transport_encryption()
                 .take(1).next().unwrap().key())?;
-        assert!(rt.block_on(agent.decrypt(&keypair, pkesk_1.esk()))
+        assert!(rt.block_on(agent.decrypt(&keypair, pkesk_1.esk(), None))
                 .is_err());
 
         // Now try "our" key.
@@ -344,7 +344,7 @@ fn decrypt(also_try_explicit_async: bool) -> openpgp::Result<()> {
             keypair = keypair.with_password(p);
         }
 
-        assert!(rt.block_on(agent.decrypt(&keypair, pkesk_0.esk()))
+        assert!(rt.block_on(agent.decrypt(&keypair, pkesk_0.esk(), None))
                 .is_ok());
 
         // Close connection.

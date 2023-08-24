@@ -53,6 +53,7 @@ impl Sexp {
                                 recipient: &openpgp::packet::Key<
                                         openpgp::packet::key::PublicParts, R>,
                                 ciphertext: &mpi::Ciphertext,
+                                plaintext_len: Option<usize>,
                                 padding: bool)
         -> Result<SessionKey>
         where R: openpgp::packet::key::KeyRole
@@ -127,7 +128,9 @@ impl Sexp {
                     let S: Protected = s_.decode_point(curve)?.0.into();
 
                     // Now finish the decryption.
-                    openpgp::crypto::ecdh::decrypt_unwrap(recipient, &S, ciphertext)
+                    openpgp::crypto::ecdh::decrypt_unwrap2(
+                        recipient.role_as_unspecified(), &S, ciphertext,
+                        plaintext_len)
                 },
 
                 _ => {
