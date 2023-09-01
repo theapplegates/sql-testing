@@ -103,7 +103,7 @@ impl Asymmetric for super::Backend {
     fn ed25519_generate_key() -> Result<(Protected, [u8; 32])> {
         let mut rng = cng::random::RandomNumberGenerator::system_preferred();
         let pair = ed25519_dalek::Keypair::generate(&mut rng);
-        Ok((pair.secret.as_bytes().as_slice().into(), pair.secret.to_bytes()))
+        Ok((pair.secret.as_bytes().as_slice().into(), pair.public.to_bytes()))
     }
 
     fn ed25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {

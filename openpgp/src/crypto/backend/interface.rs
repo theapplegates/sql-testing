@@ -94,3 +94,14 @@ pub trait Asymmetric {
             PublicKeyAlgorithm::ElGamalEncrypt).into())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::crypto::backend::{Backend, interface::Asymmetric};
+
+    #[test]
+    pub fn ed25519_generate_key_private_and_public_not_equal() {
+        let (secret, public) = Backend::ed25519_generate_key().unwrap();
+        assert_ne!(secret.as_ref(), public);
+    }
+}
