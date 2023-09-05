@@ -2,8 +2,6 @@
 
 use std::convert::TryInto;
 
-use x25519_dalek_ng as x25519_dalek;
-
 use crate::{Error, Result};
 use crate::crypto::SessionKey;
 use crate::crypto::mem::Protected;
@@ -40,7 +38,7 @@ pub fn encrypt<R>(recipient: &Key<key::PublicParts, R>,
             let recipient_key = PublicKey::from(R);
 
             // Generate a keypair and perform Diffie-Hellman.
-            let secret = EphemeralSecret::new(OsRng);
+            let secret = EphemeralSecret::random_from_rng(OsRng);
             let public = PublicKey::from(&secret);
             let shared = secret.diffie_hellman(&recipient_key);
 

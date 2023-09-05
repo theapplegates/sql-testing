@@ -7,7 +7,6 @@
 use std::convert::TryFrom;
 use std::time::SystemTime;
 
-use x25519_dalek_ng as x25519_dalek;
 use num_bigint_dig::{traits::ModInverse, BigUint};
 use rsa::traits::{PrivateKeyParts, PublicKeyParts};
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey, RsaPrivateKey, Pkcs1v15Sign};
@@ -76,10 +75,10 @@ impl Asymmetric for super::Backend {
         // depends on rand 0.8.
         use rand::rngs::OsRng;
 
-        let secret = StaticSecret::new(&mut OsRng);
+        let secret = StaticSecret::random_from_rng(&mut OsRng);
         let public = PublicKey::from(&secret);
         let mut secret_bytes = secret.to_bytes();
-        let secret = secret_bytes.as_ref().into();
+        let secret: Protected = secret_bytes.as_ref().into();
         unsafe {
             memsec::memzero(secret_bytes.as_mut_ptr(), secret_bytes.len());
         }
@@ -586,6 +585,17 @@ impl<R> Key4<SecretParts, R>
             (Curve::Cv25519, false) => {
                 let (mut private, public) =
                     super::Backend::x25519_generate_key()?;
+
+                // x25519-dalek since v 2.0.0-rc.3 does not return clamped
+                // integers from Static Secrets but clamps them on usage.
+                // See: https://github.com/dalek-cryptography/x25519-dalek/blob/main/CHANGELOG.md#200-rc3
+                //
+                // Clamp the scalar.  X25519 does the clamping implicitly, but
+                // OpenPGP's ECDH over Curve25519 requires the secret to be
+                // clamped.
+                private[0] &= 0b1111_1000;
+                private[31] &= !0b1000_0000;
+                private[31] |= 0b0100_0000;
 
                 private.reverse();
 
