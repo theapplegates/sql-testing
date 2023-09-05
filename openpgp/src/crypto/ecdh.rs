@@ -566,8 +566,10 @@ mod tests {
             const LAST: usize = 0;
 
             let s = s.as_ref();
-            assert_eq!(s[FIRST] & ! 0b1111_1000, 0);
-            assert_eq!(s[LAST] & 0b1100_0000, 0b0100_0000);
+            assert_eq!(s[FIRST] & ! 0b1111_1000, 0,
+                       "bits 0, 1 and 2 of the first byte should be cleared");
+            assert_eq!(s[LAST] & 0b1100_0000, 0b0100_0000,
+                       "bits 7 should be cleared and bit 6 should be set in the last byte");
         }
 
         for _ in 0..5 {
