@@ -584,26 +584,19 @@ impl<R> Key4<SecretParts, R>
             }
 
             (Curve::Cv25519, false) => {
-                use x25519_dalek::{StaticSecret, PublicKey};
+                let (mut private, public) =
+                    super::Backend::x25519_generate_key()?;
 
-                // x25519_dalek v1.1 doesn't reexport OsRng.  It
-                // depends on rand 0.8.
-                use rand::rngs::OsRng;
-
-                let private_key = StaticSecret::new(&mut OsRng);
-                let public_key = PublicKey::from(&private_key);
-
-                let mut private_key = Vec::from(private_key.to_bytes());
-                private_key.reverse();
+                private.reverse();
 
                 let public_mpis = mpi::PublicKey::ECDH {
                     curve: Curve::Cv25519,
-                    q: MPI::new_compressed_point(&*public_key.as_bytes()),
+                    q: MPI::new_compressed_point(&public),
                     hash,
                     sym,
                 };
                 let private_mpis = mpi::SecretKeyMaterial::ECDH {
-                    scalar: private_key.into(),
+                    scalar: private.into(),
                 };
 
                 (PublicKeyAlgorithm::ECDH, public_mpis, private_mpis)
