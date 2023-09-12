@@ -33,7 +33,6 @@ macro_rules! impl_digest_for {
 
 impl_digest_for!(md5::Md5, MD5);
 impl_digest_for!(ripemd::Ripemd160, RipeMD);
-impl_digest_for!(sha1::Sha1, SHA1);
 impl_digest_for!(sha2::Sha224, SHA224);
 impl_digest_for!(sha2::Sha256, SHA256);
 impl_digest_for!(sha2::Sha384, SHA384);
@@ -66,7 +65,10 @@ impl HashAlgorithm {
     /// [`HashAlgorithm::is_supported`]: #method.is_supported
     pub(crate) fn new_hasher(self) -> Result<Box<dyn Digest>> {
         match self {
-            HashAlgorithm::SHA1 => Ok(Box::new(sha1::Sha1::new())),
+            // Note: SHA1 is implemented using SHA1CD, this is handled
+            // in HashAlgorithm::context.
+            HashAlgorithm::SHA1 =>
+                Err(Error::UnsupportedHashAlgorithm(self).into()),
             HashAlgorithm::SHA224 => Ok(Box::new(sha2::Sha224::new())),
             HashAlgorithm::SHA256 => Ok(Box::new(sha2::Sha256::new())),
             HashAlgorithm::SHA384 => Ok(Box::new(sha2::Sha384::new())),

@@ -188,7 +188,7 @@ impl From<&MPI> for BigUint {
 fn pkcs1_padding(hash_algo: HashAlgorithm) -> Result<Pkcs1v15Sign> {
     let hash = match hash_algo {
         HashAlgorithm::MD5 => Pkcs1v15Sign::new::<md5::Md5>(),
-        HashAlgorithm::SHA1 => Pkcs1v15Sign::new::<sha1::Sha1>(),
+        HashAlgorithm::SHA1 => Pkcs1v15Sign::new::<sha1collisiondetection::Sha1CD>(),
         HashAlgorithm::SHA224 => Pkcs1v15Sign::new::<sha2::Sha224>(),
         HashAlgorithm::SHA256 => Pkcs1v15Sign::new::<sha2::Sha256>(),
         HashAlgorithm::SHA384 => Pkcs1v15Sign::new::<sha2::Sha384>(),
