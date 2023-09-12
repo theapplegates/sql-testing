@@ -2104,9 +2104,9 @@ impl PacketParser<'_> {
     /// # use openpgp::parse::{Parse, PacketParserResult, PacketParserBuilder};
     /// // Parse a signed message, verify using the signer's key.
     /// let message_data: &[u8] = // ...
-    /// #    include_bytes!("../tests/data/messages/signed-1-sha256-testy.gpg");
+    /// #    include_bytes!("../tests/data/messages/signed-1-eddsa-ed25519.pgp");
     /// # let cert: Cert = // ...
-    /// #    Cert::from_bytes(include_bytes!("../tests/data/keys/testy.pgp"))?;
+    /// #    Cert::from_bytes(include_bytes!("../tests/data/keys/emmelie-dorothea-dina-samantha-awina-ed25519.pgp"))?;
     /// let signer = // ...
     /// #    cert.primary_key().key();
     /// let mut good = false;

@@ -3494,7 +3494,7 @@ mod test {
     use crate::KeyID;
     use crate::cert::prelude::*;
     use crate::crypto;
-    use crate::parse::{Parse, PacketParserBuilder};
+    use crate::parse::Parse;
     use crate::packet::Key;
     use crate::packet::key::Key4;
     use crate::types::Curve;
@@ -3506,7 +3506,11 @@ mod test {
         use super::*;
 
         use crate::Cert;
-        use crate::parse::{PacketParserResult, PacketParser};
+        use crate::parse::{
+            PacketParserBuilder,
+            PacketParserResult,
+            PacketParser,
+        };
 
         struct Test<'a> {
             key: &'a str,
