@@ -46,12 +46,12 @@ before_script:
 after_script:
   - *after_script_end
 
-bookworm:
+trixie:
   tags:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   script:
     - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-nettle,compression --example supported-algorithms
     - $MAKE_TOP test
@@ -61,18 +61,12 @@ bookworm:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
 
-# XXX: Our MSRV is 1.63 except with rust-crypto, which requires
-# 1.65.  Switch back to bookworm, when rustc is >= 1.65.
-#
-# bookworm-crypto-rust:
-#   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
-rust-stable-crypto-rust:
+trixie-crypto-rust:
   tags:
     - linux
   stage: build
   interruptible: true
-
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   dependencies:
     - codespell
   script:
@@ -82,12 +76,12 @@ rust-stable-crypto-rust:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
 
-bookworm-crypto-openssl:
+trixie-crypto-openssl:
   tags:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   dependencies:
     - codespell
   script:
@@ -97,12 +91,12 @@ bookworm-crypto-openssl:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
 
-bookworm-crypto-botan:
+trixie-crypto-botan:
   tags:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   script:
     - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-botan2,compression --example supported-algorithms
     - cargo test --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-botan2,compression
@@ -114,7 +108,7 @@ all_commits:
   # Test each commit up to main, to facilitate bisecting.
   stage: test
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   needs: ["rust-stable"]
   except:
     # Do not run for pushes to the pep-engine branch.
@@ -131,7 +125,7 @@ codespell:
     - linux
   stage: pre-check
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/bookworm:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie:latest
 
   before_script:
     - *before_script_start
@@ -145,7 +139,7 @@ doc:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   script:
     - cargo doc --document-private-items --no-deps
   variables:
@@ -157,7 +151,7 @@ rust-stable:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   script:
     - CARGO_PACKAGES="-p buffered-reader -p sequoia-openpgp" $MAKE_TOP test
   variables:
