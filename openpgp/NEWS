@@ -30,6 +30,8 @@
 
    - When creating an authentication-capable subkey, Sequoia now also
      adds a primary key binding signature.
+
+   - The MSRV is now 1.67.
 ** New functionality
    - The RustCrypto backend now supports DSA.
    - crypto::SessionKey::as_protected

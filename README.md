@@ -200,7 +200,7 @@ $ docker run --rm -i sq --help
 
 ## Requirements and MSRV
 
-The minimum supported Rust version (MSRV) is 1.60.  Sequoia aims to always be
+The minimum supported Rust version (MSRV) is 1.67.  Sequoia aims to always be
 compatible with the version included in [Debian testing], the MSRV follows what
 is available there.  Increasing the MSRV will be accompanied by a raise in
 the minor version of all crates.
