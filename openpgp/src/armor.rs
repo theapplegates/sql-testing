@@ -600,16 +600,14 @@ impl Default for ReaderMode {
 /// State for transforming a message using the Cleartext Signature
 /// Framework into an inline signed message.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[allow(clippy::upper_case_acronyms)]
 enum CSFTransformer {
-    OPS,
-    Literal,
-    Signatures,
+    Transform,
+    Read,
 }
 
 impl Default for CSFTransformer {
     fn default() -> Self {
-        CSFTransformer::OPS
+        CSFTransformer::Transform
     }
 }
 
@@ -1173,6 +1171,8 @@ fn common_prefix<A: AsRef<[u8]>, B: AsRef<[u8]>>(a: A, b: B) -> usize {
 
 impl<'a> Reader<'a> {
     fn read_armored_data(&mut self, buf: &mut [u8]) -> Result<usize> {
+        assert!(self.csft.is_none());
+
         let (consumed, decoded) = if !self.decode_buffer.is_empty() {
             // We have something buffered, use that.
 
@@ -1333,170 +1333,180 @@ impl<'a> Reader<'a> {
         Ok(decoded)
     }
 
-    fn read_clearsigned_message(&mut self, buf: &mut [u8]) -> Result<usize> {
-        // XXX: We're not terribly concerned with performance at this
-        // point, there is room for improvement.
+    /// Reads a message using the Cleartext Signature Framework,
+    /// transforms it into an inline-signed message, then feeds that
+    /// to the consumer.
+    fn read_clearsigned_message(&mut self, buf: &mut [u8])
+                                -> crate::Result<usize>
+    {
+        assert!(self.csft.is_some());
 
-        use std::collections::HashSet;
         use crate::{
-            types::{DataFormat, HashAlgorithm, SignatureType},
+            parse::{
+                Dearmor,
+                PacketParserBuilder,
+                PacketParserResult,
+                Parse,
+            },
             serialize::Serialize,
+            types::DataFormat,
         };
 
-        assert!(self.csft.is_some());
-        if self.decode_buffer.is_empty() {
-            match self.csft.as_ref().expect("CSFT has been initialized") {
-                CSFTransformer::OPS => {
-                    // Determine the set of hash algorithms.
-                    let mut algos: HashSet<HashAlgorithm> = self.headers.iter()
-                        .filter(|(key, _value)| key == "Hash")
-                        .flat_map(|(_key, value)| {
-                            value.split(',')
-                                .filter_map(|hash| hash.parse().ok())
-                        }).collect();
+        if self.csft == Some(CSFTransformer::Transform) {
+            // Read the text body.
+            let literal = {
+                let mut text = Vec::new();
+                loop {
+                    let prefixed_line = self.source.read_to(b'\n')?;
 
-                    if algos.is_empty() {
-                        // The default is MD5.
-                        #[allow(deprecated)]
-                        algos.insert(HashAlgorithm::MD5);
+                    if prefixed_line.is_empty() {
+                        // Truncated?
+                        break;
                     }
 
-                    // Now create an OPS packet for every algorithm.
-                    let count = algos.len();
-                    for (i, &algo) in algos.iter().enumerate() {
-                        let mut ops = OnePassSig3::new(SignatureType::Text);
-                        ops.set_hash_algo(algo);
-                        ops.set_last(i + 1 == count);
-                        Packet::from(ops).serialize(&mut self.decode_buffer)
-                            .expect("writing to vec does not fail");
+                    // Treat lines shorter than the prefix as
+                    // empty lines.
+                    let n = prefixed_line.len().min(self.prefix.len());
+                    let prefix = &prefixed_line[..n];
+                    let mut line = &prefixed_line[n..];
+
+                    // Check that we see the correct prefix.
+                    let l = common_prefix(&self.prefix, prefix);
+                    let full_prefix = l == self.prefix.len();
+                    if ! (full_prefix
+                          // Truncation is okay if the rest of the prefix
+                          // contains only whitespace.
+                          || self.prefix[l..].iter().all(
+                              |c| c.is_ascii_whitespace()))
+                    {
+                        return Err(
+                            Error::new(ErrorKind::InvalidInput,
+                                       "Inconsistent quoting of \
+                                        armored data").into());
                     }
 
-                    // We will let the caller consume the buffer.
-                    // Once drained, we start decoding the message.
-                    self.csft = Some(CSFTransformer::Literal);
-                },
-
-                CSFTransformer::Literal => {
-                    // XXX: We should create a partial-body encoded
-                    // literal packet, but for now we construct the
-                    // whole packet in core.
-
-                    let mut text = Vec::new();
-                    loop {
-                        let prefixed_line = self.source.read_to(b'\n')?;
-
-                        if prefixed_line.is_empty() {
-                            // Truncated?
-                            break;
-                        }
-
-                        // Treat lines shorter than the prefix as
-                        // empty lines.
-                        let n = prefixed_line.len().min(self.prefix.len());
-                        let prefix = &prefixed_line[..n];
-                        let mut line = &prefixed_line[n..];
-
-                        // Check that we see the correct prefix.
-                        let l = common_prefix(&self.prefix, prefix);
-                        let full_prefix = l == self.prefix.len();
-                        if ! (full_prefix
-                              // Truncation is okay if the rest of the prefix
-                              // contains only whitespace.
-                              || self.prefix[l..].iter().all(
-                                  |c| c.is_ascii_whitespace()))
-                        {
-                            return Err(
-                                Error::new(ErrorKind::InvalidInput,
-                                           "Inconsistent quoting of \
-                                            armored data"));
-                        }
-
-                        let (dashes, rest) = dash_prefix(line);
-                        if dashes.len() > 2 // XXX: heuristic...
-                            && rest.starts_with(b"BEGIN PGP SIGNATURE")
-                        {
-                            // We reached the end of the signed
-                            // message.  Consuming this line and break
-                            // the loop.
-                            let l = prefixed_line.len();
-                            self.source.consume(l);
-                            break;
-                        }
-
-                        // Undo the dash-escaping.
-                        if line.starts_with(b"- ") {
-                            line = &line[2..];
-                        }
-
-                        // Trim trailing whitespace according to
-                        // Section 7.1 of RFC4880, i.e. "spaces (0x20)
-                        // and tabs (0x09)".  We do this here, because
-                        // we transform the CSF message into an inline
-                        // signed message, which does not make a
-                        // distinction between the literal text and
-                        // the signed text (modulo the newline
-                        // normalization).
-
-                        // First, split off the line ending.
-                        let crlf_line_end = line.ends_with(b"\r\n");
-                        line = &line[..line.len().saturating_sub(
-                            if crlf_line_end { 2 } else { 1 })];
-
-                        // Now, trim whitespace off the line.
-                        while Some(&b' ') == line.last()
-                            || Some(&b'\t') == line.last()
-                        {
-                            line = &line[..line.len().saturating_sub(1)];
-                        }
-
-                        text.extend_from_slice(line);
-                        if crlf_line_end {
-                            text.extend_from_slice(&b"\r\n"[..]);
-                        } else {
-                            text.extend_from_slice(&b"\n"[..]);
-                        }
-
-                        // Finally, consume this line.
+                    let (dashes, rest) = dash_prefix(line);
+                    if dashes.len() > 2 // XXX: heuristic...
+                        && rest.starts_with(b"BEGIN PGP SIGNATURE")
+                    {
+                        // We reached the end of the signed
+                        // message.  Consuming this line and break
+                        // the loop.
                         let l = prefixed_line.len();
                         self.source.consume(l);
+                        break;
                     }
 
-                    // Trim the final newline, it is not part of the
-                    // message, but separates the signature marker
-                    // from the text.
-                    let c = text.pop();
-                    assert!(c.is_none() || c == Some(b'\n'));
-                    if text.ends_with(b"\r") {
-                        text.pop();
+                    // Undo the dash-escaping.
+                    if line.starts_with(b"- ") {
+                        line = &line[2..];
                     }
 
-                    // Now, we have the whole text.
-                    let mut literal = Literal::new(DataFormat::Text);
-                    literal.set_body(text);
-                    Packet::from(literal).serialize(&mut self.decode_buffer)
-                        .expect("writing to vec does not fail");
+                    // Trim trailing whitespace according to Section
+                    // 7.1 of RFC4880, i.e. "spaces (0x20) and tabs
+                    // (0x09)".  We do this here, because we transform
+                    // the CSF message into an inline signed message,
+                    // which does not make a distinction between the
+                    // literal text and the signed text (modulo the
+                    // newline normalization).
 
-                    // We will let the caller consume the buffer.
-                    // Once drained, we start streaming the
-                    // signatures.
-                    self.csft = Some(CSFTransformer::Signatures);
-                },
+                    // First, split off the line ending.
+                    let crlf_line_end = line.ends_with(b"\r\n");
+                    line = &line[..line.len().saturating_sub(
+                        if crlf_line_end { 2 } else { 1 })];
 
-                CSFTransformer::Signatures => {
-                    // Drop transformer to revert to normal armor
-                    // reader.
-                    self.csft = None;
+                    // Now, trim whitespace off the line.
+                    while Some(&b' ') == line.last()
+                        || Some(&b'\t') == line.last()
+                    {
+                        line = &line[..line.len().saturating_sub(1)];
+                    }
 
-                    // Consume any headers.
-                    self.read_headers()?;
+                    text.extend_from_slice(line);
+                    if crlf_line_end {
+                        text.extend_from_slice(&b"\r\n"[..]);
+                    } else {
+                        text.extend_from_slice(&b"\n"[..]);
+                    }
 
-                    // Then start streaming the signatures.  We call
-                    // this function explicitly once, but next time
-                    // the caller reads, it will shortcut to that
-                    // function.
-                    return self.read_armored_data(buf);
-                },
+                    // Finally, consume this line.
+                    let l = prefixed_line.len();
+                    self.source.consume(l);
+                }
+
+                // Trim the final newline, it is not part of the
+                // message, but separates the signature marker from
+                // the text.
+                let c = text.pop();
+                assert!(c.is_none() || c == Some(b'\n'));
+                if text.ends_with(b"\r") {
+                    text.pop();
+                }
+
+                // Now, we have the whole text.
+                let mut literal = Literal::new(DataFormat::Text);
+                literal.set_body(text);
+                literal
+            };
+
+            // Then, read and parse all the signatures.  To that end,
+            // we need to temporarily disable the CSF transformation,
+            // and doing that will finalize the reader, which we'll
+            // have to undo later on.
+            self.csft = None;
+            let mut sigs: Vec<Packet> = Vec::new();
+            let mut ppr = PacketParserBuilder::from_reader(self.by_ref())?
+                .dearmor(Dearmor::Disabled)
+                .build()?;
+            while let PacketParserResult::Some(pp) = ppr {
+                let (p, ppr_) = pp.next()?;
+                match p {
+                    Packet::Signature(sig) => sigs.push(sig.into()),
+                    Packet::Marker(_) => (),
+                    Packet::Unknown(u) if u.tag() == Tag::Signature =>
+                        sigs.push(u.into()),
+                    p => return Err(crate::Error::MalformedMessage(
+                        format!("Unexpected {} packet in \
+                                 cleartext signed message", p.tag()))
+                                    .into()),
+                }
+                ppr = ppr_;
             }
+            drop(ppr);
+            assert!(self.finalized);
+
+            // Now assemble an inline-signed message from the text
+            // and components.
+
+            // First, create one-pass-signature packets, and mark
+            // the last of them as being the last.
+            let mut opss = Vec::with_capacity(sigs.len());
+            for p in sigs.iter().rev() {
+                if let Packet::Signature(sig) = p {
+                    if let Ok(ops) = OnePassSig3::try_from(sig) {
+                        opss.push(ops);
+                    }
+                }
+            }
+            if let Some(ops) = opss.last_mut() {
+                ops.set_last(true);
+            }
+
+            // Now write everything out to our buffer.
+            for ops in opss {
+                Packet::from(ops).serialize(&mut self.decode_buffer)?;
+            }
+            Packet::from(literal).serialize(&mut self.decode_buffer)?;
+            for p in sigs {
+                p.serialize(&mut self.decode_buffer)?;
+            }
+
+            // We have placed the assembled message into our decode
+            // buffer.  Now revert the reader to a state so that the
+            // caller can extract it.
+            self.finalized = false;
+            self.eof = false;
+            self.csft = Some(CSFTransformer::Read);
         }
 
         let amount = cmp::min(buf.len(), self.decode_buffer.len());
@@ -1527,6 +1537,12 @@ impl<'a> Reader<'a> {
 
         if self.csft.is_some() {
             self.read_clearsigned_message(buf)
+                .map_err(|e| {
+                    match e.downcast::<io::Error>() {
+                        Ok(e) => e,
+                        Err(e) => io::Error::new(io::ErrorKind::Other, e),
+                    }
+                })
         } else {
             self.read_armored_data(buf)
         }
