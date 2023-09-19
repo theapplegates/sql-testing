@@ -44,6 +44,7 @@ trust-dns-resolver = { version = "0.22", features = ["dnssec-openssl"]}
 [dev-dependencies]
 rand = { version = "0.8", default-features = false, features = [ "getrandom" ] }
 hyper = { version = "0.14", features = [ "server" ] }
+reqwest = { version = "0.11", features = ["socks"] }
 
 [lib]
 bench = false
