@@ -632,12 +632,14 @@ pub struct Signer<'a> {
     // take our inner reader.  If that happens, we only update the
     // digests.
     inner: Option<writer::BoxStack<'a, Cookie>>,
-    signers: Vec<Box<dyn crypto::Signer + Send + Sync + 'a>>,
+    signers: Vec<(Box<dyn crypto::Signer + Send + Sync + 'a>,
+                  HashAlgorithm, Vec<u8>)>,
     intended_recipients: Vec<Fingerprint>,
     mode: SignatureMode,
     template: signature::SignatureBuilder,
     creation_time: Option<SystemTime>,
-    hash: HashingMode<Box<dyn crypto::hash::Digest>>,
+    hash_algo: HashAlgorithm,
+    hashes: Vec<HashingMode<Box<dyn crypto::hash::Digest>>>,
     cookie: Cookie,
     position: u64,
 }
@@ -803,13 +805,13 @@ impl<'a> Signer<'a> {
         let level = inner.cookie_ref().level + 1;
         Signer {
             inner: Some(inner),
-            signers: vec![Box::new(signer)],
+            signers: vec![(Box::new(signer), Default::default(), Vec::new())],
             intended_recipients: Vec::new(),
             mode: SignatureMode::Inline,
             template: template.into(),
             creation_time: None,
-            hash: HashingMode::Binary(
-                HashAlgorithm::default().context().unwrap()),
+            hash_algo: Default::default(),
+            hashes: vec![],
             cookie: Cookie {
                 level,
                 private: Private::Signer,
@@ -1049,7 +1051,7 @@ impl<'a> Signer<'a> {
     pub fn add_signer<S>(mut self, signer: S) -> Self
         where S: crypto::Signer + Send + Sync + 'a
     {
-        self.signers.push(Box::new(signer));
+        self.signers.push((Box::new(signer), Default::default(), Vec::new()));
         self
     }
 
@@ -1103,7 +1105,12 @@ impl<'a> Signer<'a> {
         self
     }
 
-    /// Sets the hash algorithm to use for the signatures.
+    /// Sets the preferred hash algorithm to use for the signatures.
+    ///
+    /// Note that some signers only support a subset of hash
+    /// algorithms, see [`crate::crypto::Signer.acceptable_hashes`].
+    /// If the hash selected using this method is not supported by a
+    /// signer, a hash supported by the signer is selected instead.
     ///
     /// # Examples
     ///
@@ -1138,7 +1145,7 @@ impl<'a> Signer<'a> {
     /// # Ok(()) }
     /// ```
     pub fn hash_algo(mut self, algo: HashAlgorithm) -> Result<Self> {
-        self.hash = HashingMode::Binary(algo.context()?);
+        self.hash_algo = algo;
         Ok(self)
     }
 
@@ -1238,49 +1245,76 @@ impl<'a> Signer<'a> {
         assert!(!self.signers.is_empty(), "The constructor adds a signer.");
         assert!(self.inner.is_some(), "The constructor adds an inner writer.");
 
-        let mut acceptable_hashes = crate::crypto::hash::DEFAULT_HASHES.to_vec();
+        for (keypair, signer_hash, _signer_salt) in self.signers.iter_mut() {
+            // First, compute a suitable hash algorithm, starting with
+            // the one configured using Self::hash_algo.
+            let mut acceptable_hashes =
+                std::iter::once(&self.hash_algo)
+                .chain(crate::crypto::hash::DEFAULT_HASHES.iter())
+                .cloned()
+                .collect::<Vec<_>>();
 
-        let is_sorted = |data: &[HashAlgorithm]| {
-            data.windows(2).all(|w| w[0] <= w[1])
-        };
+            let is_sorted = |data: &[HashAlgorithm]| {
+                data.windows(2).all(|w| w[0] <= w[1])
+            };
 
-        for signer in &self.signers {
-            let mut signer_hashes = signer.acceptable_hashes();
+            let mut signer_hashes = keypair.acceptable_hashes();
             let mut signer_hashes_;
             if ! is_sorted(signer_hashes) {
                 signer_hashes_ = signer_hashes.to_vec();
                 signer_hashes_.sort();
                 signer_hashes = &signer_hashes_;
             }
-            acceptable_hashes.retain(|hash| signer_hashes.binary_search(hash).is_ok());
-        }
+            acceptable_hashes.retain(
+                |hash| signer_hashes.binary_search(hash).is_ok());
 
-        if let Some(hash) = acceptable_hashes.first() {
-            let ctx = hash.context().unwrap();
-            self.hash = if self.template.typ() == SignatureType::Text
-                || self.mode == SignatureMode::Cleartext
-            {
-                HashingMode::Text(ctx)
-            } else {
-                HashingMode::Binary(ctx)
-            };
-        } else {
-            return Err(Error::NoAcceptableHash.into());
+            if acceptable_hashes.is_empty() {
+                return Err(Error::NoAcceptableHash.into());
+            }
+            let algo = acceptable_hashes[0];
+            *signer_hash = algo;
+            let hash = algo.context()?;
+
+            match keypair.public().version() {
+                4 => {
+                    self.hashes.push(
+                        if self.template.typ() == SignatureType::Text
+                            || self.mode == SignatureMode::Cleartext
+                        {
+                            HashingMode::Text(hash)
+                        } else {
+                            HashingMode::Binary(hash)
+                        });
+                },
+                v => return Err(Error::InvalidOperation(
+                    format!("Unsupported Key version {}", v)).into()),
+            }
         }
 
         match self.mode {
             SignatureMode::Inline => {
                 // For every key we collected, build and emit a one pass
                 // signature packet.
-                for (i, keypair) in self.signers.iter().enumerate() {
+                let signers_count = self.signers.len();
+                for (i, (keypair, hash_algo, _salt)) in
+                    self.signers.iter().enumerate()
+                {
+                    let last = i == signers_count - 1;
                     let key = keypair.public();
-                    let mut ops = OnePassSig3::new(self.template.typ());
-                    ops.set_pk_algo(key.pk_algo());
-                    ops.set_hash_algo(self.hash.as_ref().algo());
-                    ops.set_issuer(key.keyid());
-                    ops.set_last(i == self.signers.len() - 1);
-                    Packet::OnePassSig(ops.into())
-                        .serialize(self.inner.as_mut().unwrap())?;
+
+                    match key.version() {
+                        4 => {
+                            let mut ops = OnePassSig3::new(self.template.typ());
+                            ops.set_pk_algo(key.pk_algo());
+                            ops.set_hash_algo(*hash_algo);
+                            ops.set_issuer(key.keyid());
+                            ops.set_last(last);
+                            Packet::from(ops)
+                                .serialize(self.inner.as_mut().unwrap())?;
+                        },
+                        v => return Err(Error::InvalidOperation(
+                            format!("Unsupported Key version {}", v)).into()),
+                    }
                 }
             },
             SignatureMode::Detached => (), // Do nothing.
@@ -1291,8 +1325,18 @@ impl<'a> Signer<'a> {
                 // Write the header.
                 let mut sink = self.inner.take().unwrap();
                 writeln!(sink, "-----BEGIN PGP SIGNED MESSAGE-----")?;
-                writeln!(sink, "Hash: {}",
-                         self.hash.as_ref().algo().text_name()?)?;
+                let mut hashes = self.signers.iter().filter_map(
+                    |(keypair, algo, _)| if keypair.public().version() == 4 {
+                        Some(algo)
+                    } else {
+                        None
+                    })
+                    .collect::<Vec<_>>();
+                hashes.sort();
+                hashes.dedup();
+                for hash in hashes {
+                    writeln!(sink, "Hash: {}", hash.text_name()?)?;
+                }
                 writeln!(sink)?;
 
                 // We now install two filters.  See the comment on
@@ -1337,16 +1381,34 @@ impl<'a> Signer<'a> {
             // Emit the signatures in reverse, so that the
             // one-pass-signature and signature packets "bracket" the
             // message.
-            for signer in self.signers.iter_mut().rev() {
-                // Part of the signature packet is hashed in,
-                // therefore we need to clone the hash.
-                let hash = self.hash.clone();
+            for (signer, algo, _signer_salt) in self.signers.iter_mut().rev() {
+                let (mut sig, hash) = match signer.public().version() {
+                    4 => {
+                        // V4 signature.
 
-                // Make and hash a signature packet.
-                let mut sig = self.template.clone()
-                    .set_signature_creation_time(
-                        self.creation_time
-                            .unwrap_or_else(crate::now))?;
+                        let hash = self.hashes.iter()
+                            .find_map(|hash| {
+                                if hash.as_ref().algo() == *algo
+                                {
+                                    Some(hash.clone())
+                                } else {
+                                    None
+                                }
+                            })
+                            .expect("we put it in there");
+
+                        // Make and hash a signature packet.
+                        let sig = self.template.clone();
+
+                        (sig, hash)
+                    },
+                    v => return Err(Error::InvalidOperation(
+                        format!("Unsupported Key version {}", v)).into()),
+                };
+
+                sig = sig.set_signature_creation_time(
+                    self.creation_time
+                        .unwrap_or_else(crate::now))?;
 
                 if ! self.intended_recipients.is_empty() {
                     sig = sig.set_intended_recipients(
@@ -1403,7 +1465,9 @@ impl<'a> Write for Signer<'a> {
 
         if let Ok(amount) = written {
             let data = &buf[..amount];
-            self.hash.update(data);
+
+            self.hashes.iter_mut().for_each(
+                |hash| hash.update(data));
             self.position += amount as u64;
         }
 
