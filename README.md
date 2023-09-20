@@ -71,8 +71,10 @@ https://www.gnu.org/licenses/lgpl-2.0.html for details.
 Using Sequoia
 =============
 
-If you want to use Sequoia from Rust, you can simply register the
-dependency in your `Cargo.toml` file as with any other project.
+If you want to use Sequoia from Rust in a binary crate, you can simply
+register the dependency in your `Cargo.toml` file as with any other
+project.  Please see [this guide] on how to use Sequoia in a library
+crate, or how to control the cryptographic backend used by Sequoia.
 
 ```toml
 sequoia-openpgp = "*"
@@ -84,6 +86,8 @@ below.
 
 Besides being a Rust crate, we also provide a C API, and bindings to
 other languages, see **Bindings**.
+
+[this guide]: openpgp/README.md#feature-flags
 
 Features
 --------
@@ -105,61 +109,7 @@ Currently, the `crypto-nettle` feature is enabled by default -
 regardless of the operating system used. If you choose to enable a
 different backend, please make sure to disable the default first.
 
-### Example
-
-To use the Windows CNG backend, use:
-
-```toml
-# Cargo.toml
-[dependencies]
-sequoia-openpgp = { version = "*", default-features = false, features = ["crypto-cng"] }
-```
-
-```bash
-# When building locally
-$ cargo build --manifest-path=openpgp/Cargo.toml --no-default-features --features crypto-cng
-```
-
-### Note
-
-If you are developing a crate that depends on Sequoia, please ensure
-the users can opt into different backends. This is done by:
-
-- disabling default features for `sequoia-openpgp`
-- providing top-level features for your crate that correspond to
-  `crypto-*` ones in `sequoia-openpgp`
-- (Optionally) Select one by default yourself
-
-Like so:
-```toml
-# Cargo.toml
-[dependencies]
-sequoia-openpgp = { version = "*", default-features = false }
-
-[features]
-# Pick a Sequoia backend enabled by default
-default = ["sequoia-openpgp/default"]
-
-# .. but allow others to select a different backend, as well
-crypto-cng = ["sequoia-openpgp/crypto-cng"]
-crypto-nettle = ["sequoia-openpgp/crypto-nettle"]
-# .. other backends
-```
-
-Once Cargo target-specific default features are [implemented], it will
-be possible to automatically select a backend depending on the
-operating system used.
-
-[implemented]: https://github.com/rust-lang/cargo/issues/1197#issuecomment-590385530
-
-### Compression
-
-By default, Sequoia supports compression via `flate2` and `bzip2`
-crates, enabled by `compression-deflate` and `compression-bzip2` Cargo
-features respectively (also available via `compression` shorthand
-feature).
-
-[Cryptographic API: Next Generation (CNG)]: https://docs.microsoft.com/windows/win32/seccng/cng-portal
+See [openpgp/README.md#features-flags] for more information.
 
 Building Sequoia
 ================
