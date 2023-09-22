@@ -163,6 +163,13 @@ pub(crate) fn zero_stack<const N: usize, T>(v: T) -> T {
     v
 }
 
+/// Very carefully copies the slice.
+///
+/// The obvious `to.copy_from_slice(from);` indeed leaks secrets.
+pub(crate) fn careful_memcpy(from: &[u8], to: &mut [u8]) {
+    from.iter().zip(to.iter_mut()).for_each(|(f, t)| *t = *f);
+}
+
 impl From<Box<[u8]>> for Protected {
     fn from(v: Box<[u8]>) -> Self {
         Protected(Box::leak(v))
@@ -172,11 +179,7 @@ impl From<Box<[u8]>> for Protected {
 impl From<&[u8]> for Protected {
     fn from(v: &[u8]) -> Self {
         let mut p = Protected::new(v.len());
-
-        // Very carefully copy the slice.  The obvious
-        // `p.copy_from_slice(v);` indeed leaks secrets.
-        v.iter().zip(p.iter_mut()).for_each(|(f, t)| *t = *f);
-
+        careful_memcpy(v, &mut p);
         p
     }
 }
@@ -184,11 +187,7 @@ impl From<&[u8]> for Protected {
 impl<const N: usize> From<[u8; N]> for Protected {
     fn from(v: [u8; N]) -> Self {
         let mut p = Protected::new(v.len());
-
-        // Very carefully copy the slice.  The obvious
-        // `p.copy_from_slice(v);` indeed leaks secrets.
-        v.iter().zip(p.iter_mut()).for_each(|(f, t)| *t = *f);
-
+        careful_memcpy(&v, &mut p);
         p
     }
 }
