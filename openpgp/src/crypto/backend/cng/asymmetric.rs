@@ -8,7 +8,7 @@ use crate::{Error, Result};
 
 use crate::crypto::asymmetric::KeyPair;
 use crate::crypto::backend::interface::Asymmetric;
-use crate::crypto::mem::Protected;
+use crate::crypto::mem::{Protected, zero_stack};
 use crate::crypto::mpi::{self, MPI, ProtectedMPI};
 use crate::crypto::SessionKey;
 use crate::crypto::{pad, pad_at_least, pad_truncating};
@@ -131,7 +131,7 @@ impl Asymmetric for super::Backend {
                     -> Result<[u8; 64]> {
         use ed25519_dalek::{SigningKey, Signer};
         let pair: SigningKey = secret.try_into()?;
-        Ok(pair.sign(digest).to_bytes().try_into()?)
+        Ok(zero_stack::<256, _>(pair.sign(digest)).to_bytes().try_into()?)
     }
 
     fn ed25519_verify(public: &[u8; 32], digest: &[u8], signature: &[u8; 64])

@@ -152,6 +152,17 @@ impl From<Vec<u8>> for Protected {
     }
 }
 
+/// Zeros N bytes on the stack, returning the given value.
+#[allow(dead_code)]
+pub(crate) fn zero_stack<const N: usize, T>(v: T) -> T {
+    let mut a = [0xffu8; N];
+    unsafe {
+        memsec::memzero(a.as_mut_ptr(), a.len());
+    }
+    std::hint::black_box(a);
+    v
+}
+
 impl From<Box<[u8]>> for Protected {
     fn from(v: Box<[u8]>) -> Self {
         Protected(Box::leak(v))
