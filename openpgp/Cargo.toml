@@ -59,15 +59,15 @@ openssl-sys = { version = "0.9.90", optional = true }
 botan = { version = "0.10.6", optional = true }
 
 # RustCrypto crates.
-aes = { version = "0.8", optional = true }
+aes = { version = "0.8", optional = true, features = ["zeroize"] }
 aes-gcm = { version = "0.10", optional = true, features = ["std"] }
 block-padding = { version = "0.3", optional = true }
-blowfish = { version = "0.9", optional = true }
-camellia = { version = "0.1", optional = true }
-cast5 = { version = "0.11", optional = true }
-cipher = { version = "0.4", optional = true, features = ["std"] }
+blowfish = { version = "0.9", optional = true, features = ["zeroize"] }
+camellia = { version = "0.1", optional = true, features = ["zeroize"] }
+cast5 = { version = "0.11", optional = true, features = ["zeroize"] }
+cipher = { version = "0.4", optional = true, features = ["std", "zeroize"] }
 cfb-mode = { version = "0.8", optional = true }
-des = { version = "0.8", optional = true }
+des = { version = "0.8", optional = true, features = ["zeroize"] }
 digest = { version = "0.10", optional = true }
 dsa = { version = "0.5", optional = true }
 eax = { version = "0.5", optional = true }
@@ -79,7 +79,7 @@ ecdsa = { version = "0.16", optional = true, features = ["hazmat", "arithmetic"]
 ed25519 = { version = "1", default-features = false, features = ["std"], optional = true }
 ed25519-dalek = { version = "2", features = ["rand_core", "zeroize"], optional = true }
 generic-array = { version = "0.14.4", optional = true }
-idea = { version = "0.5", optional = true }
+idea = { version = "0.5", optional = true, features = ["zeroize"] }
 md-5 = { version = "0.10", features = ["oid"], optional = true }
 num-bigint-dig = { version = "0.8", default-features = false, optional = true }
 p256 = { version = "0.13", optional = true, features = ["ecdh", "ecdsa"] }
@@ -87,7 +87,7 @@ rand_core = { version = "0.6", optional = true }
 ripemd = { version = "0.1", features = ["oid"], optional = true }
 rsa = { version = "0.9.0", optional = true }
 sha2 = { version = "0.10", features = ["oid"], optional = true }
-twofish = { version = "0.7", optional = true }
+twofish = { version = "0.7", optional = true, features = ["zeroize"] }
 typenum = { version = "1.12.0", optional = true }
 x25519-dalek = { version = "2", optional = true, default-features = false, features = ["static_secrets", "zeroize"] }
 
