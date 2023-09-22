@@ -185,9 +185,12 @@ impl From<&[u8]> for Protected {
 }
 
 impl<const N: usize> From<[u8; N]> for Protected {
-    fn from(v: [u8; N]) -> Self {
+    fn from(mut v: [u8; N]) -> Self {
         let mut p = Protected::new(v.len());
         careful_memcpy(&v, &mut p);
+        unsafe {
+            memsec::memzero(v.as_mut_ptr(), v.len());
+        }
         p
     }
 }
