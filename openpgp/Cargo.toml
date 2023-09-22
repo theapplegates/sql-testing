@@ -147,3 +147,7 @@ required-features = ["compression-deflate"]
 [[bench]]
 name = "run_benchmarks"
 harness = false
+
+[[example]]
+name = "secret-leak-detector"
+path = "tests/secret-leak-detector/detector.rs"
