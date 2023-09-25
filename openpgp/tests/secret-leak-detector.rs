@@ -207,10 +207,6 @@ mod leak_tests {
     make_test!(test_encrypted);
     make_test!(test_password);
     make_test!(test_ed25519);
-
-    // These find leaks in the RustCrypto backend, so we cannot enable
-    // them yet:
-    //
-    //make_test!(test_aes_256_encryption);
-    //make_test!(test_aes_256_decryption);
+    make_test!(test_aes_256_encryption);
+    make_test!(test_aes_256_decryption);
 }
