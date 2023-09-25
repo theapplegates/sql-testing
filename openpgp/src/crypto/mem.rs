@@ -24,6 +24,8 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 
+/// Whether to trace execution by default (on stderr).
+const TRACE: bool = false;
 
 /// Protected memory.
 ///
@@ -152,10 +154,49 @@ impl From<Vec<u8>> for Protected {
     }
 }
 
-/// Zeros N bytes on the stack, returning the given value.
+/// Zeros N bytes on the stack after running the given closure.
+///
+/// Note: In general, don't use this function directly, use the more
+/// convenient and robust macro zero_stack! instead, like so:
+///
+/// ```ignore
+/// zero_stack!(128 bytes after running {
+///     let mut a = [0; 6];
+///     a.copy_from_slice(b"secret");
+/// })
+/// ```
+///
+/// Or, if you need to specify the type of the expression:
+///
+/// ```ignore
+/// zero_stack!(128 bytes after running || -> () {
+///     let mut a = [0; 6];
+///     a.copy_from_slice(b"secret");
+/// })
+/// ```
+///
+/// If you must use this function directly, make sure to declare `fun`
+/// as `#[inline(never)]`.
 #[allow(dead_code)]
+#[inline(never)]
+pub(crate) fn zero_stack_after<const N: usize, T>(fun: impl FnOnce() -> T) -> T
+{
+    zero_stack::<N, T>(fun())
+}
+
+/// Zeros N bytes on the stack, returning the given value.
+///
+/// Note: In general, don't use this function directly.  This is only
+/// effective if `v` has been computed by a function that has been
+/// marked as `#[inline(never)]`.  However, since the inline attribute
+/// is only a hint that may be freely ignored by the compiler, it is
+/// sometimes necessary to use this function directly.
+#[allow(dead_code)]
+#[inline(never)]
 pub(crate) fn zero_stack<const N: usize, T>(v: T) -> T {
+    tracer!(TRACE, "zero_stack");
     let mut a = [0xffu8; N];
+    t!("zeroing {:?}..{:?}", a.as_ptr(), unsafe { a.as_ptr().offset(N as _) });
     unsafe {
         memsec::memzero(a.as_mut_ptr(), a.len());
     }

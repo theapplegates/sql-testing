@@ -232,3 +232,38 @@ mod test_assert_send_and_sync {
     }
     assert_send_and_sync!(MyWriterWithLifetime<'_, C, W> where C, W: std::io::Write);
 }
+
+/// Zeros the stack after executing a block of code.
+///
+/// These are more convenient and more robust ways of using
+/// crypto::mem::zero_stack and crypto::mem::zero_stack_after.  You
+/// should prefer this macro over using the functions directly.
+///
+/// # Examples
+///
+/// ```ignore
+/// zero_stack!(128 bytes after running {
+///     let mut a = [0; 6];
+///     a.copy_from_slice(b"secret");
+/// })
+/// ```
+///
+/// Or, if you need to specify the type of the expression:
+///
+/// ```ignore
+/// zero_stack!(128 bytes after running || -> () {
+///     let mut a = [0; 6];
+///     a.copy_from_slice(b"secret");
+/// })
+/// ```
+#[allow(unused_macros)]
+macro_rules! zero_stack {
+    ($n:literal bytes after running || -> $t:ty $code:block) => {
+        crate::crypto::mem::zero_stack_after::<$n, _>(
+            #[inline(never)] || -> $t { $code })
+    };
+    ($n:literal bytes after running $code:block) => {
+        crate::crypto::mem::zero_stack_after::<$n, _>(
+            #[inline(never)] || $code)
+    };
+}
