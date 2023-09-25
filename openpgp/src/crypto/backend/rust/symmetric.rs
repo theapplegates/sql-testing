@@ -110,6 +110,7 @@ macro_rules! impl_enc_mode {
                 dst: &mut [u8],
                 src: &[u8],
             ) -> Result<()> {
+              zero_stack!(4096 bytes after running {
                 debug_assert_eq!(dst.len(), src.len());
                 let bs = self.block_size();
                 let missing = (bs - (dst.len() % bs)) % bs;
@@ -213,6 +214,7 @@ macro_rules! impl_enc_mode {
                     }
                 }
                 Ok(())
+              })
             }
 
             fn decrypt(
@@ -247,6 +249,7 @@ macro_rules! impl_dec_mode {
                 dst: &mut [u8],
                 src: &[u8],
             ) -> Result<()> {
+              zero_stack!(4096 bytes after running {
                 debug_assert_eq!(dst.len(), src.len());
                 let bs = self.block_size();
                 let missing = (bs - (dst.len() % bs)) % bs;
@@ -350,6 +353,7 @@ macro_rules! impl_dec_mode {
                     }
                 }
                 Ok(())
+              })
             }
         }
     }
@@ -375,6 +379,7 @@ where
 macro_rules! make_mode {
     ($fn:ident, $enum:ident, $mode:ident::$mode2:ident $(, $iv:ident:$ivt:ty)?) => {
         pub(crate) fn $fn(self, key: &[u8], $($iv: $ivt)?) -> Result<Box<dyn Mode>> {
+          zero_stack!(8192 bytes after running || -> Result<Box<dyn Mode>> {
             use cipher::generic_array::GenericArray as GA;
 
             use SymmetricAlgorithm::*;
@@ -459,6 +464,7 @@ macro_rules! make_mode {
                     Err(Error::UnsupportedSymmetricAlgorithm(self).into())
                 }
             }
+          })
         }
     }
 }
