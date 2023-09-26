@@ -8,7 +8,7 @@ use crate::{Error, Result};
 
 use crate::crypto::asymmetric::KeyPair;
 use crate::crypto::backend::interface::Asymmetric;
-use crate::crypto::mem::{Protected, zero_stack};
+use crate::crypto::mem::Protected;
 use crate::crypto::mpi::{self, MPI, ProtectedMPI};
 use crate::crypto::SessionKey;
 use crate::crypto::{pad, pad_at_least, pad_truncating};
@@ -22,7 +22,7 @@ use win_crypto_ng as cng;
 
 const CURVE25519_SIZE: usize = 32;
 
-impl TryFrom<&Protected> for ed25519_dalek::SigningKey {
+impl TryFrom<&Protected> for Box<ed25519_dalek::SigningKey> {
     type Error = anyhow::Error;
 
     fn try_from(value: &Protected) -> Result<Self> {
@@ -30,9 +30,11 @@ impl TryFrom<&Protected> for ed25519_dalek::SigningKey {
             return Err(crate::Error::InvalidArgument(
                 "Bad Ed25519 secret length".into()).into());
         }
-        Ok(Self::from_bytes(value.as_ref().try_into().map_err(|e: std::array::TryFromSliceError| {
-            Error::InvalidKey(e.to_string())
-        })?))
+        Ok(Box::new(ed25519_dalek::SigningKey::from_bytes(
+            value.as_ref().try_into().map_err(
+                |e: std::array::TryFromSliceError| {
+                    Error::InvalidKey(e.to_string())
+                })?)))
     }
 }
 
@@ -122,7 +124,7 @@ impl Asymmetric for super::Backend {
 
     fn ed25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
         use ed25519_dalek::SigningKey;
-        let secret: SigningKey = secret.try_into()?;
+        let secret: Box<SigningKey> = secret.try_into()?;
         let public = secret.verifying_key();
         Ok(public.to_bytes())
     }
@@ -130,8 +132,8 @@ impl Asymmetric for super::Backend {
     fn ed25519_sign(secret: &Protected, _public: &[u8; 32], digest: &[u8])
                     -> Result<[u8; 64]> {
         use ed25519_dalek::{SigningKey, Signer};
-        let pair: SigningKey = secret.try_into()?;
-        Ok(zero_stack::<256, _>(pair.sign(digest)).to_bytes().try_into()?)
+        let secret: Box<SigningKey> = secret.try_into()?;
+        Ok(secret.sign(digest).to_bytes().try_into()?)
     }
 
     fn ed25519_verify(public: &[u8; 32], digest: &[u8], signature: &[u8; 64])
