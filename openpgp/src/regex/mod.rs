@@ -378,12 +378,31 @@ fn generate_class(caret: bool, chars: impl Iterator<Item=char>) -> Hir
 /// See the [module-level documentation] for more details.
 ///
 ///   [module-level documentation]: self
+///
+/// # A note on equality
+///
+/// We define equality on `Regex` as the equality of the uncompiled
+/// regular expression given to the constructor and whether
+/// sanitizations are enabled.
 #[derive(Clone, Debug)]
 pub struct Regex {
+    /// The original regular expression.
+    ///
+    /// Equality is defined using this and `disable_sanitizations`.
+    re: String,
     regex: regex::Regex,
     disable_sanitizations: bool,
 }
 assert_send_and_sync!(Regex);
+
+impl PartialEq for Regex {
+    fn eq(&self, other: &Self) -> bool {
+        self.re == other.re
+            && self.disable_sanitizations == other.disable_sanitizations
+    }
+}
+
+impl Eq for Regex {}
 
 impl Regex {
     /// Parses and compiles the regular expression.
@@ -411,6 +430,7 @@ impl Regex {
             .build()?;
 
         Ok(Self {
+            re: re.into(),
             regex,
             disable_sanitizations: false,
         })
@@ -428,6 +448,11 @@ impl Regex {
     ///   [`Regex::disable_sanitizations`]: Regex::disable_sanitizations()
     pub fn from_bytes(re: &[u8]) -> Result<Self> {
         Self::new(std::str::from_utf8(re)?)
+    }
+
+    /// Returns the string-representation of the regular expression.
+    pub fn as_str(&self) -> &str {
+        &self.re
     }
 
     /// Controls whether matched strings must pass a sanity check.
@@ -530,12 +555,31 @@ assert_send_and_sync!(RegexSet_);
 /// See the [module-level documentation] for more details.
 ///
 ///   [module-level documentation]: self
+///
+/// # A note on equality
+///
+/// We define equality on `RegexSet` as the equality of the uncompiled
+/// regular expressions given to the constructor and whether
+/// sanitizations are enabled.
 #[derive(Clone)]
 pub struct RegexSet {
+    /// The original regular expressions.
+    ///
+    /// Equality is defined using this and `disable_sanitizations`.
+    re_bytes: Vec<Vec<u8>>,
     re_set: RegexSet_,
     disable_sanitizations: bool,
 }
 assert_send_and_sync!(RegexSet);
+
+impl PartialEq for RegexSet {
+    fn eq(&self, other: &Self) -> bool {
+        self.re_bytes == other.re_bytes
+            && self.disable_sanitizations == other.disable_sanitizations
+    }
+}
+
+impl Eq for RegexSet {}
 
 impl fmt::Debug for RegexSet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -600,8 +644,11 @@ impl RegexSet {
         let mut had_good = false;
         let mut had_bad = false;
 
+        let mut re_bytes = Vec::new();
         for re in res {
             let re = re.borrow();
+            re_bytes.push(re.as_bytes().into());
+
             let lexer = Lexer::new(re);
             match grammar::RegexParser::new().parse(re, lexer) {
                 Ok(hir) => {
@@ -622,6 +669,7 @@ impl RegexSet {
         if had_bad && ! had_good {
             t!("All regular expressions were invalid.");
             Ok(RegexSet {
+                re_bytes,
                 re_set: RegexSet_::Invalid,
                 disable_sanitizations: false,
             })
@@ -629,14 +677,17 @@ impl RegexSet {
             // Match everything.
             t!("No regular expressions provided.");
             Ok(RegexSet {
+                re_bytes,
                 re_set: RegexSet_::Everything,
                 disable_sanitizations: false,
             })
         } else {
             // Match any of the regular expressions.
             Ok(RegexSet {
+                re_bytes,
                 re_set: RegexSet_::Regex(
                     Regex {
+                        re: String::new(),
                         regex: regex::RegexBuilder::new(
                             &Hir::alternation(regexes).to_string())
                             .build()?,
@@ -714,12 +765,14 @@ impl RegexSet {
     {
         let mut have_valid_utf8 = false;
         let mut have_invalid_utf8 = false;
+        let mut re_bytes = Vec::new();
         let re_set = Self::new(
             res
                 .into_iter()
                 .scan((&mut have_valid_utf8, &mut have_invalid_utf8),
                       |(valid, invalid), re|
                       {
+                          re_bytes.push(re.borrow().to_vec());
                           if let Ok(re) = std::str::from_utf8(re.borrow()) {
                               **valid = true;
                               Some(Some(re))
@@ -734,14 +787,20 @@ impl RegexSet {
             // None of the strings were valid UTF-8.  Reject
             // everything.
             Ok(RegexSet {
+                re_bytes,
                 re_set: RegexSet_::Invalid,
                 disable_sanitizations: false,
             })
         } else {
             // We had nothing or at least one string was valid UTF-8.
             // RegexSet::new did the right thing.
-            re_set
+            re_set.map(|mut r| { r.re_bytes = re_bytes; r })
         }
+    }
+
+    /// Returns the bytes-representation of the regular expressions.
+    pub fn as_bytes(&self) -> &[Vec<u8>] {
+        &self.re_bytes
     }
 
     /// Creates a `RegexSet` from the regular expressions stored in a
@@ -873,6 +932,7 @@ impl RegexSet {
     pub fn everything() -> Result<Self>
     {
         Ok(Self {
+            re_bytes: vec![vec![]],
             re_set: RegexSet_::Everything,
             disable_sanitizations: false,
         })

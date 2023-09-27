@@ -44,6 +44,10 @@
    - packet::Key::generate_elgamal
    - parse::PacketParser::start_hashing
    - parse::PacketParserBuilder::automatic_hashing
+   - impl Eq, PartialEq for regex::Regex
+   - regex::Regex::as_str
+   - impl Eq, PartialEq for regex::RegexSet
+   - regex::RegexSet::as_bytes
    - impl Default for types::AEADAlgorithm
    - serialize::stream::Encryptor2
    - types::AEADAlgorithm::GCM
