@@ -2472,6 +2472,8 @@ impl SubpacketAreas {
     /// Note: if the signature contains multiple instances of this
     /// subpacket in the hashed subpacket area, the last one is
     /// returned.
+    // Note: If you update this function, also update
+    // SignatureBuilder::signature_expiration_time.
     pub fn signature_expiration_time(&self) -> Option<time::SystemTime> {
         match (self.signature_creation_time(), self.signature_validity_period())
         {
@@ -4393,6 +4395,80 @@ impl signature::SignatureBuilder {
 
         self.overrode_creation_time = true;
         Ok(self)
+    }
+
+    /// Returns the value of the Signature Expiration Time subpacket
+    /// as an absolute time.
+    ///
+    /// A [Signature Expiration Time subpacket] specifies when the
+    /// signature expires.  The value stored is not an absolute time,
+    /// but a duration, which is relative to the Signature's creation
+    /// time.  To better reflect the subpacket's name, this method
+    /// returns the absolute expiry time, and the
+    /// [`SubpacketAreas::signature_validity_period`] method returns
+    /// the subpacket's raw value.
+    ///
+    /// [Signature Expiration Time subpacket]: https://tools.ietf.org/html/rfc4880#section-5.2.3.10
+    /// [`SubpacketAreas::signature_validity_period`]: SubpacketAreas::signature_validity_period()
+    ///
+    /// The Signature Expiration Time subpacket is different from the
+    /// [Key Expiration Time subpacket], which is accessed using
+    /// [`SubpacketAreas::key_validity_period`], and used specifies
+    /// when an associated key expires.  The difference is that in the
+    /// former case, the signature itself expires, but in the latter
+    /// case, only the associated key expires.  This difference is
+    /// critical: if a binding signature expires, then an OpenPGP
+    /// implementation will still consider the associated key to be
+    /// valid if there is another valid binding signature, even if it
+    /// is older than the expired signature; if the active binding
+    /// signature indicates that the key has expired, then OpenPGP
+    /// implementations will not fallback to an older binding
+    /// signature.
+    ///
+    /// [Key Expiration Time subpacket]: https://tools.ietf.org/html/rfc4880#section-5.2.3.6
+    /// [`SubpacketAreas::key_validity_period`]: SubpacketAreas::key_validity_period()
+    ///
+    /// There are several cases where having a signature expire is
+    /// useful.  Say Alice certifies Bob's certificate for
+    /// `bob@example.org`.  She can limit the lifetime of the
+    /// certification to force her to reevaluate the certification
+    /// shortly before it expires.  For instance, is Bob still
+    /// associated with `example.org`?  Does she have reason to
+    /// believe that his key has been compromised?  Using an
+    /// expiration is common in the X.509 ecosystem.  For instance,
+    /// [Let's Encrypt] issues certificates with 90-day lifetimes.
+    ///
+    /// [Let's Encrypt]: https://letsencrypt.org/2015/11/09/why-90-days.html
+    ///
+    /// Having signatures expire can also be useful when deploying
+    /// software.  For instance, you might have a service that
+    /// installs an update if it has been signed by a trusted
+    /// certificate.  To prevent an adversary from coercing the
+    /// service to install an older version, you could limit the
+    /// signature's lifetime to just a few minutes.
+    ///
+    /// If the subpacket is not present in the hashed subpacket area,
+    /// this returns `None`.  If this function returns `None`, the
+    /// signature does not expire.
+    ///
+    /// Note: if the signature contains multiple instances of this
+    /// subpacket in the hashed subpacket area, the last one is
+    /// returned.
+    // Note: This shadows SubpacketAreas::signature_expiration_time
+    // (SignatureBuilder derefs to SubpacketAreas), because we need to
+    // take SignatureBuilder::reference_time into account.
+    //
+    // If you update this function, also update
+    // SubpacketAreas::signature_expiration_time.
+    pub fn signature_expiration_time(&self) -> Option<time::SystemTime> {
+        match (self.effective_signature_creation_time(),
+               // This ^ is the difference to
+               // SubpacketAreas::signature_expiration_time.
+               self.signature_validity_period())
+        {
+            (Ok(Some(ct)), Some(vp)) if vp.as_secs() > 0 => Some(ct + vp),
+            _ => None,
+        }
     }
 
     /// Sets the Signature Expiration Time subpacket.

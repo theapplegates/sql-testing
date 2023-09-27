@@ -4290,4 +4290,26 @@ mod test {
 
         Ok(())
     }
+
+    #[test]
+    fn issue_998() -> Result<()> {
+        let now_t = Timestamp::try_from(crate::now())?;
+        let now = SystemTime::from(now_t);
+        let hour = std::time::Duration::new(3600, 0);
+        let hour_t = crate::types::Duration::from(3600);
+        let past = now - 2 * hour;
+
+        let sig = SignatureBuilder::new(SignatureType::PositiveCertification)
+            .modify_hashed_area(|mut a| {
+                a.add(Subpacket::new(
+                    SubpacketValue::SignatureCreationTime(now_t), true)?)?;
+                a.add(Subpacket::new(
+                    SubpacketValue::SignatureExpirationTime(hour_t), true)?)?;
+                Ok(a)
+            })?;
+        assert_eq!(sig.signature_expiration_time(), Some(now + hour));
+        let sig = sig.set_reference_time(past);
+        assert_eq!(sig.signature_expiration_time(), Some(now - hour));
+        Ok(())
+    }
 }
