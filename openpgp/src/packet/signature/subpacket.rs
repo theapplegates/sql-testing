@@ -4254,13 +4254,12 @@ impl signature::SignatureBuilder {
         -> Result<Self>
         where T: Into<time::SystemTime>
     {
-        self.overrode_creation_time = true;
-
         self.hashed_area.replace(Subpacket::new(
             SubpacketValue::SignatureCreationTime(
                 creation_time.into().try_into()?),
             true)?)?;
 
+        self.overrode_creation_time = true;
         Ok(self)
     }
 
@@ -4389,11 +4388,10 @@ impl signature::SignatureBuilder {
     pub fn suppress_signature_creation_time(mut self)
         -> Result<Self>
     {
-        self.overrode_creation_time = true;
-
         self.hashed_area.remove_all(SubpacketTag::SignatureCreationTime);
         self.unhashed_area.remove_all(SubpacketTag::SignatureCreationTime);
 
+        self.overrode_creation_time = true;
         Ok(self)
     }
 
