@@ -39,6 +39,7 @@
 ** New functionality
    - The RustCrypto backend now supports DSA.
    - cert::amalgamation::key::KeyAmalgamationIter::encrypted_secret
+   - cert::amalgamation::key::ValidKeyAmalgamationIter::encrypted_secret
    - crypto::SessionKey::as_protected
    - crypto::ecdh::decrypt_unwrap2
    - packet::Key::generate_dsa

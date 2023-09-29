@@ -8,7 +8,6 @@ use crate::{
     KeyHandle,
     types::RevocationStatus,
     packet::key,
-    packet::key::SecretKeyMaterial,
     types::KeyFlags,
     cert::prelude::*,
     policy::Policy,
@@ -579,14 +578,7 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
             time: time.into().unwrap_or_else(crate::now),
 
             // The filters.
-            secret: match (self.encrypted_secret, self.unencrypted_secret) {
-                (Some(encrypted_secret), Some(unencrypted_secret)) => {
-                    Some(encrypted_secret && unencrypted_secret)
-                }
-                (Some(encrypted_secret), None) => Some(encrypted_secret),
-                (None, Some(unencrypted_secret)) => Some(unencrypted_secret),
-                (None, None) => None,
-            },
+            encrypted_secret: self.encrypted_secret,
             unencrypted_secret: self.unencrypted_secret,
             key_handles: self.key_handles,
             supported: self.supported,
@@ -694,8 +686,8 @@ pub struct ValidKeyAmalgamationIter<'a, P, R>
     // The time.
     time: SystemTime,
 
-    // If not None, filters by whether a key has a secret.
-    secret: Option<bool>,
+    // If not None, filters by whether a key has an encrypted secret.
+    encrypted_secret: Option<bool>,
 
     // If not None, filters by whether a key has an unencrypted
     // secret.
@@ -734,7 +726,7 @@ impl<'a, P, R> fmt::Debug for ValidKeyAmalgamationIter<'a, P, R>
         f.debug_struct("ValidKeyAmalgamationIter")
             .field("policy", &self.policy)
             .field("time", &self.time)
-            .field("secret", &self.secret)
+            .field("encrypted_secret", &self.encrypted_secret)
             .field("unencrypted_secret", &self.unencrypted_secret)
             .field("key_handles", &self.key_handles)
             .field("supported", &self.supported)
@@ -887,35 +879,13 @@ impl<'a, P, R> ValidKeyAmalgamationIter<'a, P, R>
                 }
             }
 
-            if let Some(want_secret) = self.secret {
-                if key.has_secret() {
-                    // We have a secret.
-                    if ! want_secret {
-                        t!("Have a secret... skipping.");
-                        continue;
-                    }
-                } else if want_secret {
-                    t!("No secret... skipping.");
-                    continue;
-                }
-            }
-
-            if let Some(want_unencrypted_secret) = self.unencrypted_secret {
-                if let Some(secret) = key.optional_secret() {
-                    if let SecretKeyMaterial::Unencrypted { .. } = secret {
-                        if ! want_unencrypted_secret {
-                            t!("Unencrypted secret... skipping.");
-                            continue;
-                        }
-                    } else if want_unencrypted_secret {
-                        t!("Encrypted secret... skipping.");
-                        continue;
-                    }
-                } else {
-                    // No secret.
-                    t!("No secret... skipping.");
-                    continue;
-                }
+            if let Some(msg) = skip_secret(
+                ka.key().optional_secret().map(|x| x.is_encrypted()),
+                self.encrypted_secret,
+                self.unencrypted_secret,
+            ) {
+                t!(msg);
+                continue;
             }
 
             return Some(ka);
@@ -1405,7 +1375,56 @@ impl<'a, P, R> ValidKeyAmalgamationIter<'a, P, R>
             policy: self.policy,
 
             // The filters.
-            secret: Some(true),
+            encrypted_secret: Some(true),
+            unencrypted_secret: Some(true),
+            key_handles: self.key_handles,
+            supported: self.supported,
+            flags: self.flags,
+            alive: self.alive,
+            revoked: self.revoked,
+
+            _p: std::marker::PhantomData,
+            _r: std::marker::PhantomData,
+        }
+    }
+
+    /// Changes the iterator to only return keys with encrypted secret key
+    /// material.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::Result;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    ///
+    /// # fn main() -> Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// #     let (cert, _) =
+    /// #         CertBuilder::new().set_password(Some("password".into()))
+    /// #         .generate()?;
+    /// for ka in cert.keys().with_policy(p, None).encrypted_secret() {
+    ///     // Use it.
+    /// }
+    /// #     assert!(cert.keys().with_policy(p, None).encrypted_secret().count() == 1);
+    /// #     Ok(())
+    /// # }
+    /// ```
+    pub fn encrypted_secret(
+        self,
+    ) -> ValidKeyAmalgamationIter<'a, key::SecretParts, R> {
+        ValidKeyAmalgamationIter {
+            cert: self.cert,
+            primary: self.primary,
+            subkey_iter: self.subkey_iter,
+
+            time: self.time,
+            policy: self.policy,
+
+            // The filters.
+            encrypted_secret: Some(true),
             unencrypted_secret: self.unencrypted_secret,
             key_handles: self.key_handles,
             supported: self.supported,
@@ -1451,7 +1470,7 @@ impl<'a, P, R> ValidKeyAmalgamationIter<'a, P, R>
             policy: self.policy,
 
             // The filters.
-            secret: self.secret,
+            encrypted_secret: self.encrypted_secret,
             unencrypted_secret: Some(true),
             key_handles: self.key_handles,
             supported: self.supported,
@@ -1637,7 +1656,7 @@ impl<'a, P, R> ValidKeyAmalgamationIter<'a, P, R>
             policy: self.policy,
 
             // The filters.
-            secret: self.secret,
+            encrypted_secret: self.encrypted_secret,
             unencrypted_secret: self.unencrypted_secret,
             key_handles: self.key_handles,
             supported: self.supported,
