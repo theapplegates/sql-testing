@@ -97,6 +97,11 @@ impl std::str::FromStr for KeyID {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        if s.chars().filter(|c| ! c.is_whitespace()).count() % 2 == 1 {
+            return Err(Error::InvalidArgument(
+                "Odd number of nibbles".into()).into());
+        }
+
         let bytes = crate::fmt::hex::decode_pretty(s)?;
 
         // A KeyID is exactly 8 bytes long.

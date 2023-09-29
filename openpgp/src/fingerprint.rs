@@ -89,6 +89,11 @@ impl std::str::FromStr for Fingerprint {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        if s.chars().filter(|c| ! c.is_whitespace()).count() % 2 == 1 {
+            return Err(crate::Error::InvalidArgument(
+                "Odd number of nibbles".into()).into());
+        }
+
         Ok(Self::from_bytes(&crate::fmt::hex::decode_pretty(s)?[..]))
     }
 }

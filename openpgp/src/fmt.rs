@@ -269,8 +269,7 @@ pub(crate) fn from_hex(hex: &str, pretty: bool) -> Result<Vec<u8>> {
 
     // We need an even number of nibbles.
     if nibbles.len() % 2 != 0 {
-        return
-            Err(Error::InvalidArgument("Odd number of nibbles".into()).into());
+        nibbles.insert(0, 0);
     }
 
     let bytes = nibbles.chunks(2).map(|nibbles| {
@@ -337,20 +336,20 @@ mod test {
     fn from_hex() {
         use super::from_hex as fh;
         assert_eq!(fh("", false).ok(), Some(vec![]));
-        assert_eq!(fh("0", false).ok(), None);
+        assert_eq!(fh("0", false).ok(), Some(vec![0x00]));
         assert_eq!(fh("00", false).ok(), Some(vec![0x00]));
         assert_eq!(fh("09", false).ok(), Some(vec![0x09]));
         assert_eq!(fh("0f", false).ok(), Some(vec![0x0f]));
         assert_eq!(fh("99", false).ok(), Some(vec![0x99]));
         assert_eq!(fh("ff", false).ok(), Some(vec![0xff]));
-        assert_eq!(fh("000", false).ok(), None);
+        assert_eq!(fh("000", false).ok(), Some(vec![0x00, 0x00]));
         assert_eq!(fh("0000", false).ok(), Some(vec![0x00, 0x00]));
         assert_eq!(fh("0009", false).ok(), Some(vec![0x00, 0x09]));
         assert_eq!(fh("000f", false).ok(), Some(vec![0x00, 0x0f]));
         assert_eq!(fh("0099", false).ok(), Some(vec![0x00, 0x99]));
         assert_eq!(fh("00ff", false).ok(), Some(vec![0x00, 0xff]));
         assert_eq!(fh("\t\n\x0c\r ", false).ok(), None);
-        assert_eq!(fh("a", false).ok(), None);
+        assert_eq!(fh("a", false).ok(), Some(vec![0x0a]));
         assert_eq!(fh("0x", false).ok(), None);
         assert_eq!(fh("0x0", false).ok(), None);
         assert_eq!(fh("0x00", false).ok(), None);
@@ -360,13 +359,13 @@ mod test {
     fn from_pretty_hex() {
         use super::from_hex as fh;
         assert_eq!(fh(" ", true).ok(), Some(vec![]));
-        assert_eq!(fh(" 0", true).ok(), None);
+        assert_eq!(fh(" 0", true).ok(), Some(vec![0x00]));
         assert_eq!(fh(" 00", true).ok(), Some(vec![0x00]));
         assert_eq!(fh(" 09", true).ok(), Some(vec![0x09]));
         assert_eq!(fh(" 0f", true).ok(), Some(vec![0x0f]));
         assert_eq!(fh(" 99", true).ok(), Some(vec![0x99]));
         assert_eq!(fh(" ff", true).ok(), Some(vec![0xff]));
-        assert_eq!(fh(" 00 0", true).ok(), None);
+        assert_eq!(fh(" 00 0", true).ok(), Some(vec![0x00, 0x00]));
         assert_eq!(fh(" 00 00", true).ok(), Some(vec![0x00, 0x00]));
         assert_eq!(fh(" 00 09", true).ok(), Some(vec![0x00, 0x09]));
         assert_eq!(fh(" 00 0f", true).ok(), Some(vec![0x00, 0x0f]));
@@ -375,9 +374,9 @@ mod test {
         assert_eq!(fh("\t\n\x0c\r ", true).ok(), Some(vec![]));
         // Fancy Unicode spaces are ok too:
         assert_eq!(fh("     23", true).ok(), Some(vec![0x23]));
-        assert_eq!(fh("a", true).ok(), None);
+        assert_eq!(fh("a", true).ok(), Some(vec![0x0a]));
         assert_eq!(fh(" 0x", true).ok(), Some(vec![]));
-        assert_eq!(fh(" 0x0", true).ok(), None);
+        assert_eq!(fh(" 0x0", true).ok(), Some(vec![0x00]));
         assert_eq!(fh(" 0x00", true).ok(), Some(vec![0x00]));
     }
 
