@@ -14,6 +14,40 @@ use crate::{
     policy::Policy,
 };
 
+/// Evaluates whether to skip the use of a secret key when filtering.
+///
+/// This function takes three optional boolean values, indicating whether
+/// an encrypted secret is present,
+/// whether to filter for encrypted secret keys
+/// and whether to filter for unencrypted secret keys.
+///
+/// An optional string provides context in the case where a key is skipped.
+fn skip_secret(
+    have_secret_encrypted: Option<bool>,
+    want_encrypted_key: Option<bool>,
+    want_unencrypted_secret: Option<bool>,
+) -> Option<&'static str> {
+    match (have_secret_encrypted, want_encrypted_key, want_unencrypted_secret) {
+        (Some(_), Some(true), Some(true))
+        | (_, None, None)
+        | (Some(true), Some(true), _)
+        | (Some(true), None, Some(false))
+        | (Some(false), _, Some(true))
+        | (Some(false), Some(false), None) => None,  // do not skip the key
+        (Some(true), Some(false), _) | (Some(true), None, Some(true)) => {
+            Some("Encrypted secret... skipping.")
+        }
+        (Some(false), _, Some(false)) | (Some(false), Some(true), None) => {
+            Some("Unencrypted secret... skipping.")
+        }
+        (None, Some(_), None)
+        | (None, None, Some(_))
+        | (None, Some(_), Some(_)) => {
+            Some("No secret... skipping.")
+        }
+    }
+}
+
 /// An iterator over `Key`s.
 ///
 /// An iterator over [`KeyAmalgamation`]s.
@@ -32,7 +66,8 @@ use crate::{
 ///
 /// `KeyAmalgamationIter` supports other filters.  For instance
 /// [`KeyAmalgamationIter::secret`] filters on whether secret key
-/// material is present, and
+/// material is present, [`KeyAmalgamationIter::encrypted_secret`]
+/// filters on whether secret key material is present and encrypted, and
 /// [`KeyAmalgamationIter::unencrypted_secret`] filters on whether
 /// secret key material is present and unencrypted.  Of course, since
 /// `KeyAmalgamationIter` implements `Iterator`, it is possible to use
@@ -61,8 +96,8 @@ pub struct KeyAmalgamationIter<'a, P, R>
     subkey_iter: slice::Iter<'a, KeyBundle<key::PublicParts,
                                            key::SubordinateRole>>,
 
-    // If not None, filters by whether a key has a secret.
-    secret: Option<bool>,
+    // If not None, filters by whether a key has an encrypted secret.
+    encrypted_secret: Option<bool>,
 
     // If not None, filters by whether a key has an unencrypted
     // secret.
@@ -89,7 +124,7 @@ impl<'a, P, R> fmt::Debug for KeyAmalgamationIter<'a, P, R>
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("KeyAmalgamationIter")
-            .field("secret", &self.secret)
+            .field("encrypted_secret", &self.encrypted_secret)
             .field("unencrypted_secret", &self.unencrypted_secret)
             .field("key_handles", &self.key_handles)
             .field("supported", &self.supported)
@@ -181,35 +216,13 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
                 }
             }
 
-            if let Some(want_secret) = self.secret {
-                if ka.key().has_secret() {
-                    // We have a secret.
-                    if ! want_secret {
-                        t!("Have a secret... skipping.");
-                        continue;
-                    }
-                } else if want_secret {
-                    t!("No secret... skipping.");
-                    continue;
-                }
-            }
-
-            if let Some(want_unencrypted_secret) = self.unencrypted_secret {
-                if let Some(secret) = ka.key().optional_secret() {
-                    if let SecretKeyMaterial::Unencrypted { .. } = secret {
-                        if ! want_unencrypted_secret {
-                            t!("Unencrypted secret... skipping.");
-                            continue;
-                        }
-                    } else if want_unencrypted_secret {
-                        t!("Encrypted secret... skipping.");
-                        continue;
-                    }
-                } else {
-                    // No secret.
-                    t!("No secret... skipping.");
-                    continue;
-                }
+            if let Some(msg) = skip_secret(
+                ka.key().optional_secret().map(|x| x.is_encrypted()),
+                self.encrypted_secret,
+                self.unencrypted_secret,
+            ) {
+                t!(msg);
+                continue;
             }
 
             return Some(ka);
@@ -229,7 +242,7 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
             subkey_iter: cert.subkeys.iter(),
 
             // The filters.
-            secret: None,
+            encrypted_secret: None,
             unencrypted_secret: None,
             key_handles: None,
             supported: None,
@@ -265,7 +278,46 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
             subkey_iter: self.subkey_iter,
 
             // The filters.
-            secret: Some(true),
+            encrypted_secret: Some(true),
+            unencrypted_secret: Some(true),
+            key_handles: self.key_handles,
+            supported: self.supported,
+
+            _p: std::marker::PhantomData,
+            _r: std::marker::PhantomData,
+        }
+    }
+
+    /// Changes the iterator to only return keys with encrypted secret key
+    /// material.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::Result;
+    /// # use openpgp::cert::prelude::*;
+    /// # fn main() -> Result<()> {
+    /// #     let (cert, _) =
+    /// #         CertBuilder::new().set_password(Some("password".into()))
+    /// #         .generate()?;
+    /// for ka in cert.keys().encrypted_secret() {
+    ///     // Use it.
+    /// }
+    /// #     assert!(cert.keys().encrypted_secret().count() == 1);
+    /// #     Ok(())
+    /// # }
+    /// ```
+    pub fn encrypted_secret(
+        self,
+    ) -> KeyAmalgamationIter<'a, key::SecretParts, R> {
+        KeyAmalgamationIter {
+            cert: self.cert,
+            primary: self.primary,
+            subkey_iter: self.subkey_iter,
+
+            // The filters.
+            encrypted_secret: Some(true),
             unencrypted_secret: self.unencrypted_secret,
             key_handles: self.key_handles,
             supported: self.supported,
@@ -301,7 +353,7 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
             subkey_iter: self.subkey_iter,
 
             // The filters.
-            secret: self.secret,
+            encrypted_secret: self.encrypted_secret,
             unencrypted_secret: Some(true),
             key_handles: self.key_handles,
             supported: self.supported,
@@ -468,7 +520,7 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
             subkey_iter: self.subkey_iter,
 
             // The filters.
-            secret: self.secret,
+            encrypted_secret: self.encrypted_secret,
             unencrypted_secret: self.unencrypted_secret,
             key_handles: self.key_handles,
             supported: self.supported,
@@ -527,7 +579,14 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
             time: time.into().unwrap_or_else(crate::now),
 
             // The filters.
-            secret: self.secret,
+            secret: match (self.encrypted_secret, self.unencrypted_secret) {
+                (Some(encrypted_secret), Some(unencrypted_secret)) => {
+                    Some(encrypted_secret && unencrypted_secret)
+                }
+                (Some(encrypted_secret), None) => Some(encrypted_secret),
+                (None, Some(unencrypted_secret)) => Some(unencrypted_secret),
+                (None, None) => None,
+            },
             unencrypted_secret: self.unencrypted_secret,
             key_handles: self.key_handles,
             supported: self.supported,
