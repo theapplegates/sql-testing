@@ -2612,8 +2612,7 @@ impl crate::packet::Signature {
         // Make multiple passes over the subpacket areas.  Always
         // start with self, then other.  Only consider eligible
         // packets.  Consider authenticated ones first, then plausible
-        // unauthenticated ones, then the rest.  If inserting fails at
-        // any moment, stop.
+        // unauthenticated ones, then the rest.
         for p in
             self.unhashed_area().iter()
                    .filter(|p| eligible(p) && p.authenticated())
