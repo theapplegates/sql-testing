@@ -2604,7 +2604,7 @@ impl crate::packet::Signature {
             };
 
             let l = p.serialized_len();
-            if size + l <= std::u16::MAX as usize && acc.insert(p.clone()) {
+            if size + l <= std::u16::MAX as usize && acc.insert(p) {
                 size += l;
             }
         }
