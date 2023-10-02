@@ -2736,10 +2736,12 @@ impl Signature {
                 self.additional_issuers.push(id);
             }
 
-            let fp = KeyHandle::from(key.fingerprint());
-            if ! (issuers.contains(&fp)
-                  || self.additional_issuers.contains(&fp)) {
-                self.additional_issuers.push(fp);
+            if self.version() >= 4 {
+                let fp = KeyHandle::from(key.fingerprint());
+                if ! (issuers.contains(&fp)
+                      || self.additional_issuers.contains(&fp)) {
+                    self.additional_issuers.push(fp);
+                }
             }
         }
         result
