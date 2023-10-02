@@ -7286,4 +7286,25 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
 
         Ok(())
     }
+
+    /// Tests v3 revocation signatures.
+    #[test]
+    fn v3_revocation_signature() -> Result<()> {
+        if ! crate::types::PublicKeyAlgorithm::ECDSA.is_supported()
+            || ! crate::types::Curve::NistP521.is_supported()
+        {
+            eprintln!("Skipping because ECDSA/NistP521 is not supported");
+            return Ok(());
+        }
+
+        let c = Cert::from_bytes(
+            crate::tests::key("v4-revoked-by-v3.pgp"))?;
+        assert_eq!(c.bad_signatures().count(), 0);
+
+        let sp = crate::policy::StandardPolicy::new();
+        assert!(matches!(c.revocation_status(&sp, None),
+                         RevocationStatus::Revoked(_)));
+
+        Ok(())
+    }
 }
