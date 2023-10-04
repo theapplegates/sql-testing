@@ -262,11 +262,15 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
     /// # use openpgp::cert::prelude::*;
     /// # fn main() -> Result<()> {
     /// #     let (cert, _) =
-    /// #         CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #         CertBuilder::new().set_password(Some("password".into()))
     /// #         .generate()?;
     /// for ka in cert.keys().secret() {
     ///     // Use it.
     /// }
+    /// #     assert!(cert.keys().secret().count() == 1);
+    /// #
+    /// #     let (cert, _) = CertBuilder::new().generate()?;
+    /// #     assert!(cert.keys().secret().count() == 1);
     /// #     Ok(())
     /// # }
     /// ```
@@ -337,11 +341,11 @@ impl<'a, P, R> KeyAmalgamationIter<'a, P, R>
     /// # use openpgp::cert::prelude::*;
     /// # fn main() -> Result<()> {
     /// #     let (cert, _) =
-    /// #         CertBuilder::general_purpose(None, Some("alice@example.org"))
-    /// #         .generate()?;
+    /// #         CertBuilder::new().generate()?;
     /// for ka in cert.keys().unencrypted_secret() {
     ///     // Use it.
     /// }
+    /// #     assert!(cert.keys().secret().unencrypted_secret().count() == 1);
     /// #     Ok(())
     /// # }
     /// ```
@@ -1357,11 +1361,15 @@ impl<'a, P, R> ValidKeyAmalgamationIter<'a, P, R>
     /// let p = &StandardPolicy::new();
     ///
     /// #     let (cert, _) =
-    /// #         CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #         CertBuilder::new().set_password(Some("password".into()))
     /// #         .generate()?;
     /// for ka in cert.keys().with_policy(p, None).secret() {
     ///     // Use it.
     /// }
+    /// #     assert!(cert.keys().with_policy(p, None).secret().count() == 1);
+    /// #
+    /// #     let (cert, _) = CertBuilder::new().generate()?;
+    /// #     assert!(cert.keys().with_policy(p, None).secret().count() == 1);
     /// #     Ok(())
     /// # }
     /// ```
@@ -1451,12 +1459,11 @@ impl<'a, P, R> ValidKeyAmalgamationIter<'a, P, R>
     /// # fn main() -> Result<()> {
     /// let p = &StandardPolicy::new();
     ///
-    /// #     let (cert, _) =
-    /// #         CertBuilder::general_purpose(None, Some("alice@example.org"))
-    /// #         .generate()?;
+    /// #     let (cert, _) = CertBuilder::new().generate()?;
     /// for ka in cert.keys().with_policy(p, None).unencrypted_secret() {
     ///     // Use it.
     /// }
+    /// #     assert!(cert.keys().with_policy(p, None).unencrypted_secret().count() == 1);
     /// #     Ok(())
     /// # }
     /// ```
