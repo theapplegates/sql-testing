@@ -872,6 +872,15 @@ impl UserID {
     /// See [conventional User ID] for more information.
     ///
     ///   [conventional User ID]: #conventional-user-ids
+    pub fn name2(&self) -> Result<Option<&str>> {
+        Ok(self.do_parse()?.name())
+    }
+
+    /// Parses the User ID according to de facto conventions, and
+    /// returns the name component, if any.
+    ///
+    /// Like [`UserID::name2`], but heap-allocates.
+    #[deprecated(note = "Use UserID::name2")]
     pub fn name(&self) -> Result<Option<String>> {
         Ok(self.do_parse()?.name().map(|s| s.to_string()))
     }
@@ -882,6 +891,15 @@ impl UserID {
     /// See [conventional User ID] for more information.
     ///
     ///   [conventional User ID]: #conventional-user-ids
+    pub fn comment2(&self) -> Result<Option<&str>> {
+        Ok(self.do_parse()?.comment())
+    }
+
+    /// Parses the User ID according to de facto conventions, and
+    /// returns the comment field, if any.
+    ///
+    /// Like [`UserID::comment2`], but heap-allocates.
+    #[deprecated(note = "Use UserID::comment2")]
     pub fn comment(&self) -> Result<Option<String>> {
         Ok(self.do_parse()?.comment().map(|s| s.to_string()))
     }
@@ -892,6 +910,15 @@ impl UserID {
     /// See [conventional User ID] for more information.
     ///
     ///   [conventional User ID]: #conventional-user-ids
+    pub fn email2(&self) -> Result<Option<&str>> {
+        Ok(self.do_parse()?.email())
+    }
+
+    /// Parses the User ID according to de facto conventions, and
+    /// returns the email address, if any.
+    ///
+    /// Like [`UserID::email2`], but heap-allocates.
+    #[deprecated(note = "Use UserID::email2")]
     pub fn email(&self) -> Result<Option<String>> {
         Ok(self.do_parse()?.email().map(|s| s.to_string()))
     }
@@ -902,6 +929,15 @@ impl UserID {
     /// See [conventional User ID] for more information.
     ///
     ///   [conventional User ID]: #conventional-user-ids
+    pub fn uri2(&self) -> Result<Option<&str>> {
+        Ok(self.do_parse()?.uri())
+    }
+
+    /// Parses the User ID according to de facto conventions, and
+    /// returns the URI, if any.
+    ///
+    /// Like [`UserID::uri2`], but heap-allocates.
+    #[deprecated(note = "Use UserID::uri2")]
     pub fn uri(&self) -> Result<Option<String>> {
         Ok(self.do_parse()?.uri().map(|s| s.to_string()))
     }
@@ -925,10 +961,9 @@ impl UserID {
     ///   [empty locale]: https://www.w3.org/International/wiki/Case_folding
     ///   [Autocrypt]: https://autocrypt.org/level1.html#e-mail-address-canonicalization
     pub fn email_normalized(&self) -> Result<Option<String>> {
-        match self.email() {
-            e @ Err(_) => e,
-            Ok(None) => Ok(None),
-            Ok(Some(address)) => {
+        match self.email2()? {
+            None => Ok(None),
+            Some(address) => {
                 let mut iter = address.split('@');
                 let localpart = iter.next().expect("Invalid email address");
                 let domain = iter.next().expect("Invalid email address");

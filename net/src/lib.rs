@@ -191,7 +191,7 @@ impl KeyServer {
                                          -> Result<Vec<Cert>>
     {
         let userid = userid.into();
-        let email = userid.email().and_then(|addr| addr.ok_or_else(||
+        let email = userid.email2().and_then(|addr| addr.ok_or_else(||
             openpgp::Error::InvalidArgument(
                 "UserID does not contain an email address".into()).into()))?;
         let url = self.request_url.join(
@@ -205,7 +205,7 @@ impl KeyServer {
                 for certo in CertParser::from_bytes(&body)? {
                     let cert = certo?;
                     if cert.userids().any(|uid| {
-                        uid.email().ok()
+                        uid.email2().ok()
                             .and_then(|addro| addro)
                             .map(|addr| addr == email)
                             .unwrap_or(false)

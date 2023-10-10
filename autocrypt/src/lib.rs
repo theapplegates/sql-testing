@@ -137,7 +137,7 @@ impl AutocryptHeader {
         let mut found_one = false;
         for uidb in cert.userids().with_policy(policy, None) {
             // XXX: Fix match once we have the rfc2822-name-addr.
-            if let Ok(Some(a)) = uidb.userid().email() {
+            if let Ok(Some(a)) = uidb.userid().email2() {
                 if a == addr {
                     acc.push(uidb.userid().clone().into());
                     acc.push(uidb.binding_signature().clone().into());

@@ -44,6 +44,10 @@
    - crypto::ecdh::decrypt_unwrap2
    - packet::Key::generate_dsa
    - packet::Key::generate_elgamal
+   - packet::UserID::comment2
+   - packet::UserID::email2
+   - packet::UserID::name2
+   - packet::UserID::uri2
    - parse::PacketParser::start_hashing
    - parse::PacketParserBuilder::automatic_hashing
    - impl Eq, PartialEq for regex::Regex
@@ -63,6 +67,10 @@
 ** Deprecated functionality
    - cert::Preferences::preferred_aead_algorithms
    - crypto::ecdh::decrypt_unwrap
+   - packet::UserID::comment
+   - packet::UserID::email
+   - packet::UserID::name
+   - packet::UserID::uri
    - packet::signature::SignatureBuilder::set_preferred_aead_algorithms
    - packet::signature::subpacket::SubpacketAreas::preferred_aead_algorithms
    - packet::signature::subpacket::SubpacketTag::PreferredAEADAlgorithms
