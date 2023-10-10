@@ -1,13 +1,12 @@
 use std::fmt;
 use std::str;
 use std::hash::{Hash, Hasher};
-use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::sync::Mutex;
 
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
 
+use once_cell::sync::OnceCell;
 use regex::Regex;
 
 use crate::Result;
@@ -476,7 +475,7 @@ pub struct UserID {
 
     hash_algo_security: HashAlgoSecurity,
 
-    parsed: Mutex<RefCell<Option<ConventionallyParsedUserID>>>,
+    parsed: OnceCell<ConventionallyParsedUserID>,
 }
 assert_send_and_sync!(UserID);
 
@@ -486,7 +485,7 @@ impl From<Vec<u8>> for UserID {
             common: Default::default(),
             hash_algo_security: UserID::determine_hash_algo_security(&u),
             value: u,
-            parsed: Mutex::new(RefCell::new(None)),
+            parsed: Default::default(),
         }
     }
 }
@@ -576,7 +575,11 @@ impl Clone for UserID {
             common: self.common.clone(),
             hash_algo_security: self.hash_algo_security,
             value: self.value.clone(),
-            parsed: Mutex::new(RefCell::new(None)),
+            parsed: if let Some(p) = self.parsed.get() {
+                OnceCell::with_value(p.clone())
+            } else {
+                OnceCell::new()
+            },
         }
     }
 }
@@ -851,21 +854,16 @@ impl UserID {
         self.value.as_slice()
     }
 
-    fn do_parse(&self) -> Result<()> {
-        if self.parsed.lock().unwrap().borrow().is_none() {
+    fn do_parse(&self) -> Result<&ConventionallyParsedUserID> {
+        self.parsed.get_or_try_init(|| {
             let s = str::from_utf8(&self.value)?;
 
-            *self.parsed.lock().unwrap().borrow_mut() =
-              Some(match ConventionallyParsedUserID::new(s) {
-                Ok(puid) => puid,
-                Err(err) => {
-                    // Return the error from the NameAddrOrOther parser.
-                    return Err(err.context(format!(
-                        "Failed to parse User ID: {:?}", s)));
-                }
-            });
-        }
-        Ok(())
+            ConventionallyParsedUserID::new(s).map_err(|err| {
+                // Return the error from the NameAddrOrOther parser.
+                err.context(format!(
+                    "Failed to parse User ID: {:?}", s))
+            })
+        })
     }
 
     /// Parses the User ID according to de facto conventions, and
@@ -875,11 +873,7 @@ impl UserID {
     ///
     ///   [conventional User ID]: #conventional-user-ids
     pub fn name(&self) -> Result<Option<String>> {
-        self.do_parse()?;
-        match *self.parsed.lock().unwrap().borrow() {
-            Some(ref puid) => Ok(puid.name().map(|s| s.to_string())),
-            None => unreachable!(),
-        }
+        Ok(self.do_parse()?.name().map(|s| s.to_string()))
     }
 
     /// Parses the User ID according to de facto conventions, and
@@ -889,11 +883,7 @@ impl UserID {
     ///
     ///   [conventional User ID]: #conventional-user-ids
     pub fn comment(&self) -> Result<Option<String>> {
-        self.do_parse()?;
-        match *self.parsed.lock().unwrap().borrow() {
-            Some(ref puid) => Ok(puid.comment().map(|s| s.to_string())),
-            None => unreachable!(),
-        }
+        Ok(self.do_parse()?.comment().map(|s| s.to_string()))
     }
 
     /// Parses the User ID according to de facto conventions, and
@@ -903,11 +893,7 @@ impl UserID {
     ///
     ///   [conventional User ID]: #conventional-user-ids
     pub fn email(&self) -> Result<Option<String>> {
-        self.do_parse()?;
-        match *self.parsed.lock().unwrap().borrow() {
-            Some(ref puid) => Ok(puid.email().map(|s| s.to_string())),
-            None => unreachable!(),
-        }
+        Ok(self.do_parse()?.email().map(|s| s.to_string()))
     }
 
     /// Parses the User ID according to de facto conventions, and
@@ -917,11 +903,7 @@ impl UserID {
     ///
     ///   [conventional User ID]: #conventional-user-ids
     pub fn uri(&self) -> Result<Option<String>> {
-        self.do_parse()?;
-        match *self.parsed.lock().unwrap().borrow() {
-            Some(ref puid) => Ok(puid.uri().map(|s| s.to_string())),
-            None => unreachable!(),
-        }
+        Ok(self.do_parse()?.uri().map(|s| s.to_string()))
     }
 
     /// Returns a normalized version of the UserID's email address.
