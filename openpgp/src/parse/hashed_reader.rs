@@ -331,9 +331,6 @@ impl Cookie {
         for h in self.sig_groups[0].hashes.iter_mut() {
             t!("{:?}: {:?} hashing {} bytes.",
                hashes_for, h.map(|ctx| ctx.algo()), data.len());
-            assert!(matches!(h, HashingMode::Text(_)
-                             | HashingMode::TextLastWasCr(_)),
-                    "CSF transformation uses text signatures");
             h.update(data);
         }
     }
