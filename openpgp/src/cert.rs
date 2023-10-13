@@ -757,25 +757,44 @@ assert_send_and_sync!(Cert);
 impl std::str::FromStr for Cert {
     type Err = anyhow::Error;
 
+    /// Parses and returns a certificate.
+    ///
+    /// `s` must return an OpenPGP-encoded certificate.
+    ///
+    /// If `s` contains multiple certificates, this returns an error.
+    /// Use [`CertParser`] if you want to parse a keyring.
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         Self::from_bytes(s.as_bytes())
     }
 }
 
 impl<'a> Parse<'a, Cert> for Cert {
-    /// Returns the first Cert encountered in the reader.
+    /// Parses and returns a certificate.
+    ///
+    /// The reader must return an OpenPGP-encoded certificate.
+    ///
+    /// If `reader` contains multiple certificates, this returns an
+    /// error.  Use [`CertParser`] if you want to parse a keyring.
     fn from_reader<R: io::Read + Send + Sync>(reader: R) -> Result<Self> {
         Cert::try_from(PacketParser::from_reader(reader)?)
     }
 
-    /// Returns the first Cert encountered in the file.
+    /// Parses and returns a certificate.
+    ///
+    /// The file must contain an OpenPGP-encoded certificate.
+    ///
+    /// If the file contains multiple certificates, this returns an
+    /// error.  Use [`CertParser`] if you want to parse a keyring.
     fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
         Cert::try_from(PacketParser::from_file(path)?)
     }
 
-    /// Returns the first Cert found in `buf`.
+    /// Parses and returns a certificate.
     ///
-    /// `buf` must be an OpenPGP-encoded message.
+    /// `buf` must contain an OpenPGP-encoded certificate.
+    ///
+    /// If `buf` contains multiple certificates, this returns an
+    /// error.  Use [`CertParser`] if you want to parse a keyring.
     fn from_bytes<D: AsRef<[u8]> + ?Sized + Send + Sync>(data: &'a D) -> Result<Self> {
         Cert::try_from(PacketParser::from_bytes(data)?)
     }
