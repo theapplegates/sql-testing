@@ -2177,6 +2177,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5996294f19bd3aae0453a862ad728f60e6600695733dd5df01da90c54363a3c"
 
 [[package]]
+name = "regex-syntax"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
+
+[[package]]
 name = "reqwest"
 version = "0.11.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2514,7 +2520,7 @@ dependencies = [
  "rand",
  "rand_core",
  "regex",
- "regex-syntax 0.6.29",
+ "regex-syntax 0.8.2",
  "ripemd",
  "rpassword",
  "rsa",

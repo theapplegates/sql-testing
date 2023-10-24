@@ -653,10 +653,6 @@ impl RegexSet {
             match grammar::RegexParser::new().parse(re, lexer) {
                 Ok(hir) => {
                     had_good = true;
-                    let hir = hir::Hir::group(hir::Group {
-                        kind: hir::GroupKind::NonCapturing,
-                        hir: Box::new(hir),
-                    });
                     regexes.push(hir);
                 }
                 Err(err) => {
@@ -1471,6 +1467,65 @@ mod tests {
             (true, "xabcdey"),
             (false, "xa(b(c)d)ey"),
         ]);
+        a("x(a|b)y", &[
+            (false, "xy"),
+            (true, "xay"),
+            (true, "xby"),
+            (false, "xaay"),
+            (false, "xbby"),
+            (false, "xaby"),
+            (false, "xaaby"),
+            (false, "xabby"),
+            (false, "xaabby"),
+            (false, "xcy"),
+        ]);
+        a("x(a|bc)y", &[
+            (false, "xy"),
+            (true, "xay"),
+            (false, "xby"),
+            (true, "xbcy"),
+            (false, "xaay"),
+            (false, "xbby"),
+            (false, "xaby"),
+            (false, "xabcy"),
+            (false, "xabby"),
+            (false, "xaabby"),
+            (false, "xcy"),
+            (false, "xacy"),
+        ]);
+        a("x(a|b|c)y", &[
+            (false, "xy"),
+            (true, "xay"),
+            (true, "xby"),
+            (true, "xcy"),
+            (false, "xaay"),
+            (false, "xbby"),
+            (false, "xaby"),
+            (false, "xabcy"),
+            (false, "xabby"),
+            (false, "xaabby"),
+            (false, "xacy"),
+        ]);
+        a("x(a|b)(c|d)y", &[
+            (false, "xy"),
+            (false, "xay"),
+            (false, "xby"),
+            (false, "xcy"),
+            (false, "xdy"),
+            (false, "xaay"),
+            (false, "xbby"),
+            (false, "xccy"),
+            (false, "xddy"),
+            (false, "xaby"),
+            (false, "xcdy"),
+            (true, "xacy"),
+            (true, "xady"),
+            (true, "xbcy"),
+            (true, "xbdy"),
+            (false, "xabcy"),
+            (false, "xabby"),
+            (false, "xaabby"),
+        ]);
         a("x(a+|b+)y", &[
             (false, "xy"),
             (true, "xay"),
@@ -2077,7 +2132,10 @@ mod tests {
         // Try to make sure one re does not leak into another.
         let re = RegexSet::new(&[ "cd$", "^ab" ])?;
         assert!(re.is_match("abxx"));
+        assert!(! re.is_match("xabxx"));
         assert!(re.is_match("xxcd"));
+        assert!(! re.is_match("xxcdx"));
+        assert!(re.is_match("abcdx"));
 
         // Invalid regular expressions should be ignored.
         let re = RegexSet::new(&[ "[ab", "cd]", "x" ])?;
@@ -2111,6 +2169,14 @@ mod tests {
         assert!(re.is_match("cd"));
         assert!(re.is_match("cd]"));
         assert!(re.is_match("x"));
+
+        // The empty branch of the alternation should match everything.
+        let re = RegexSet::new(&[ "ab|", "cd" ])?;
+        assert!(re.is_match("a"));
+        assert!(re.is_match("b"));
+        assert!(re.is_match("x"));
+        assert!(re.is_match("xyx"));
+        assert!(re.is_match(""));
 
         Ok(())
     }
