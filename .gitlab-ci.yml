@@ -270,6 +270,26 @@ windows-msvc32-cng:
   variables:
     CFLAGS: "" # Silence some C warnings when compiling with MSVC
 
+authenticate-commits:
+  stage: test
+  interruptible: true
+  image: registry.gitlab.com/sequoia-pgp/sequoia-git:latest
+  before_script: []
+  script:
+    - sq-git policy describe
+    - /usr/sbin/gitlab.sh # Script baked-in to image
+  after_script: []
+  rules:
+    # Run whenever the non-default branch is updated.  Note, we only
+    # run for "push" events otherwise the job would also be triggered
+    # for merge requests, which would result in the job running twice.
+    #
+    # TODO: We currently only authenticate the changes on non-merged
+    # branches where we use the default branch as the trust root.  For
+    # the default branch, the project needs to set an explicit trust
+    # root.
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
+
 variables:
   DEBIAN_FRONTEND: noninteractive
   CARGO_HOME: $CI_PROJECT_DIR/../cargo
