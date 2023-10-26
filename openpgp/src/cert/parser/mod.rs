@@ -224,7 +224,7 @@ impl KeyringValidator {
         } else {
             match r {
                 Ok(_) => KeyringValidity::KeyringPrefix,
-                Err(ParseError::UnrecognizedEOF { .. }) =>
+                Err(ParseError::UnrecognizedEof { .. }) =>
                     KeyringValidity::KeyringPrefix,
                 Err(err) =>
                     KeyringValidity::Error(

@@ -288,8 +288,8 @@ pub(crate) fn parse_error_downcast(e: ParseError<usize, Token, LexicalError>)
         ParseError::User { error }
         => ParseError::User { error },
 
-        ParseError::UnrecognizedEOF { location, expected }
-        => ParseError::UnrecognizedEOF { location, expected },
+        ParseError::UnrecognizedEof { location, expected }
+        => ParseError::UnrecognizedEof { location, expected },
     }
 }
 
