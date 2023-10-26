@@ -76,7 +76,7 @@ ecdsa = { version = "0.16", optional = true, features = ["hazmat", "arithmetic"]
 # We don't directly use ed25519, but ed25519-dalek reexports it and we
 # need the std feature, at least so that ed25519::Error implements
 # std::error::Error.
-ed25519 = { version = "1", default-features = false, features = ["std"], optional = true }
+ed25519 = { version = "2", default-features = false, features = ["std"], optional = true }
 ed25519-dalek = { version = "2", features = ["rand_core", "zeroize"], optional = true }
 generic-array = { version = "0.14.4", optional = true }
 idea = { version = "0.5", optional = true, features = ["zeroize"] }
