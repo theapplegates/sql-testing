@@ -1,7 +1,7 @@
 //! Implementation of Sequoia crypto API using pure Rust cryptographic
 //! libraries.
 
-use generic_array::{ArrayLength, GenericArray};
+use cipher::generic_array::{ArrayLength, GenericArray};
 
 use crate::{Error, Result};
 use crate::types::*;

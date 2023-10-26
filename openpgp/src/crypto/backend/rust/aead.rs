@@ -6,7 +6,7 @@ use std::cmp::Ordering;
 use cipher::{BlockCipher, BlockEncrypt, BlockSizeUser, KeyInit, Unsigned};
 use cipher::consts::{U12, U16};
 use eax::online::{Eax, Encrypt, Decrypt};
-use generic_array::GenericArray;
+use cipher::generic_array::GenericArray;
 
 use crate::{Error, Result};
 use crate::crypto::aead::{Aead, CipherOp};

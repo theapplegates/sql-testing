@@ -2577,7 +2577,6 @@ dependencies = [
  "ed25519",
  "ed25519-dalek",
  "flate2",
- "generic-array",
  "getrandom",
  "idea",
  "idna 0.3.0",

@@ -4,7 +4,7 @@ use cipher::BlockDecryptMut;
 use cipher::BlockEncryptMut;
 use cipher::KeyInit;
 use cipher::KeyIvInit;
-use generic_array::{ArrayLength, GenericArray};
+use cipher::generic_array::{ArrayLength, GenericArray};
 
 use crate::{Error, Result};
 use crate::crypto::symmetric::Mode;

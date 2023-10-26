@@ -78,7 +78,6 @@ ecdsa = { version = "0.16", optional = true, features = ["hazmat", "arithmetic"]
 # std::error::Error.
 ed25519 = { version = "2", default-features = false, features = ["std"], optional = true }
 ed25519-dalek = { version = "2", features = ["rand_core", "zeroize"], optional = true }
-generic-array = { version = "0.14.4", optional = true }
 idea = { version = "0.5", optional = true, features = ["zeroize"] }
 md-5 = { version = "0.10", features = ["oid"], optional = true }
 num-bigint-dig = { version = "0.8", default-features = false, optional = true }
@@ -113,7 +112,7 @@ default = ["compression", "crypto-nettle"]
 crypto-nettle = ["nettle"]
 crypto-rust = [
     "aes", "block-padding", "blowfish", "camellia", "cast5", "cfb-mode", "cipher", "des",
-    "digest", "eax", "ecb", "ed25519", "ed25519-dalek", "generic-array", "idea",
+    "digest", "eax", "ecb", "ed25519", "ed25519-dalek", "idea",
     "md-5", "num-bigint-dig", "ripemd", "rsa", "sha2",
     "sha1collisiondetection/digest-trait", "sha1collisiondetection/oid",
     "twofish", "typenum", "x25519-dalek", "p256",
