@@ -103,7 +103,7 @@ lalrpop = { version = "0.20", default-features = false }
 
 [dev-dependencies]
 quickcheck = { version = "1", default-features = false }
-rpassword = "6.0"
+rpassword = "7.0"
 criterion = { version = "0.5", features = ["html_reports"] }
 
 [features]
