@@ -122,9 +122,6 @@ all_commits:
   interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   needs: ["rust-stable"]
-  except:
-    # Do not run for pushes to the pep-engine branch.
-    - /^pep-engine$/
   script:
     - .ci/all_commits.sh
   variables:
