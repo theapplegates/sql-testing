@@ -39,7 +39,7 @@ thiserror = "1.0.2"
 tokio = { version = "1.19", features = [ "rt-multi-thread", "io-util", "net" ] }
 tokio-util = { version = "0.7", features = ["compat"] }
 socket2 = "0.4"
-dirs = "4.0"
+dirs = "5"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3.8", default-features = false, features = ["winsock2"] }
