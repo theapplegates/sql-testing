@@ -49,7 +49,7 @@ ctor = "0.1"
 lalrpop = { version = ">=0.17, <0.21", default-features = false }
 
 [dev-dependencies]
-clap = "3"
+clap = { version = "4", features = ["derive", "env", "string", "wrap_help"] }
 quickcheck = { version = "1", default-features = false }
 tokio = { version = "1", features = [ "macros" ] }
 

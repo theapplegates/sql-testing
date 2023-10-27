@@ -2,6 +2,11 @@
 
 use std::collections::HashMap;
 use std::io;
+use std::path::PathBuf;
+
+use clap::CommandFactory;
+use clap::FromArgMatches;
+use clap::Parser;
 
 use sequoia_openpgp as openpgp;
 use sequoia_ipc as ipc;
@@ -25,22 +30,42 @@ use openpgp::policy::Policy;
 use openpgp::policy::StandardPolicy as P;
 use ipc::gnupg::{Context, KeyPair};
 
+/// Defines the CLI.
+#[derive(Parser, Debug)]
+#[clap(
+    name = "gpg-agent-decrypt",
+    about = "Connects to gpg-agent and decrypts a message.",
+)]
+pub struct Cli {
+    #[clap(
+        long,
+        value_name = "PATH",
+        env = "GNUPGHOME",
+        help = "Use this GnuPG home directory, default: $GNUPGHOME",
+    )]
+    homedir: Option<PathBuf>,
+
+    #[clap(
+        long,
+        value_name = "CERT",
+        help = "Public part of the secret keys managed by gpg-agent",
+        required = true,
+    )]
+    cert: Vec<PathBuf>,
+}
+
 fn main() -> openpgp::Result<()> {
     let p = &P::new();
 
-    let matches = clap::App::new("gpg-agent-decrypt")
-        .version(env!("CARGO_PKG_VERSION"))
-        .about("Connects to gpg-agent and decrypts a message.")
-        .arg(clap::Arg::with_name("homedir").value_name("PATH")
-             .long("homedir")
-             .help("Use this GnuPG home directory, default: $GNUPGHOME"))
-        .arg(clap::Arg::with_name("cert").value_name("Cert")
-             .required(true)
-             .multiple(true)
-             .help("Public part of the secret keys managed by gpg-agent"))
-        .get_matches();
+    let version = format!(
+        "{} (sequoia-openpgp {}, using {})",
+        env!("CARGO_PKG_VERSION"),
+        sequoia_openpgp::VERSION,
+        sequoia_openpgp::crypto::backend());
+    let cli = Cli::command().version(version);
+    let matches = Cli::from_arg_matches(&cli.get_matches())?;
 
-    let ctx = if let Some(homedir) = matches.value_of("homedir") {
+    let ctx = if let Some(homedir) = matches.homedir {
         Context::with_homedir(homedir)?
     } else {
         Context::new()?
@@ -48,7 +73,7 @@ fn main() -> openpgp::Result<()> {
 
     // Read the Certs from the given files.
     let certs =
-        matches.values_of("cert").expect("required").map(
+        matches.cert.into_iter().map(
             openpgp::Cert::from_file
         ).collect::<Result<_, _>>()?;
 
