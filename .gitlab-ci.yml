@@ -46,6 +46,17 @@ before_script:
 after_script:
   - *after_script_end
 
+# Don't run when merging a commit into main.
+#
+# We've configured the gitlab project so that the only way to push to
+# main is via a merge request for which CI has passed.  As such,
+# running (most) jobs when merging to main is a waste of resources,
+# and we don't do it by default.
+.default_rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      when: on_success
+
 trixie:
   tags:
     - linux
@@ -57,6 +68,8 @@ trixie:
     - $MAKE_TOP test
     - if ! git diff --quiet Cargo.lock ; then echo "Cargo.lock changed.  Please add the change to the corresponding commit." ; git diff ; false ; fi
     - if ! git diff --quiet ; then echo "The build changed the source.  Please investigate." ; git diff ; fi
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -72,6 +85,8 @@ trixie-crypto-rust:
   script:
     - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-rust,compression,allow-experimental-crypto,allow-variable-time-crypto --example supported-algorithms
     - cargo test --release --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-rust,compression,allow-experimental-crypto,allow-variable-time-crypto
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -87,6 +102,8 @@ trixie-crypto-openssl:
   script:
     - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-openssl,compression --example supported-algorithms
     - cargo test --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-openssl,compression
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -100,6 +117,8 @@ trixie-crypto-botan:
   script:
     - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-botan2,compression --example supported-algorithms
     - cargo test --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-botan2,compression
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -112,6 +131,8 @@ trixie-crypto-fuzzing:
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   script:
     - cargo check --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-fuzzing,compression,allow-experimental-crypto,allow-variable-time-crypto
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -124,6 +145,8 @@ all_commits:
   needs: ["rust-stable"]
   script:
     - .ci/all_commits.sh
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -142,6 +165,8 @@ codespell:
     - *before_script_end
   script:
     - $MAKE_TOP codespell CODESPELL_FLAGS=--summary
+  rules:
+    - !reference [.default_rules, rules]
 
 doc:
   tags:
@@ -151,6 +176,8 @@ doc:
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   script:
     - cargo doc --document-private-items --no-deps
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -163,6 +190,8 @@ rust-stable:
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
   script:
     - CARGO_PACKAGES="-p buffered-reader -p sequoia-openpgp" $MAKE_TOP test
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -181,6 +210,8 @@ clippy:
     - *before_script_end
   script:
     - cargo clippy
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -197,6 +228,8 @@ rust-stable-armv7:
     - *before_script_end
   script:
     - cargo test --tests --target=armv7-unknown-linux-gnueabihf -p buffered-reader -p sequoia-openpgp
+  rules:
+    - !reference [.default_rules, rules]
   variables:
     CARGO_TARGET_DIR: /target
     CARGO_HOME: /cargo
@@ -210,11 +243,12 @@ windows-msvc-cng:
   stage: build
   interruptible: true
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/windows-msvc
-  only:
-    variables:
-      # Forks of this project most likely use gitlab's shared windows runners, which
-      # do not use the docker executor, so disable the windows jobs for forks.
-      - $CI_PROJECT_NAMESPACE == "sequoia-pgp"
+  rules:
+    # Forks of this project most likely use gitlab's shared windows runners, which
+    # do not use the docker executor, so disable the windows jobs for forks.
+    - if: $CI_PROJECT_NAMESPACE != "sequoia-pgp"
+      when: never
+    - !reference [.default_rules, rules]
   before_script:
     # We don't call *before_script_start or *before_script_end as we
     # don't have bash, clang, etc.
@@ -248,11 +282,12 @@ windows-msvc32-cng:
     # Alternatively: ["C:\\BuildTools\\VC\\Auxiliary\\Build\\vcvarsamd64_x86.bat", "&&", "type", "README", "&&", "powershell.exe", "-NoLogo", "-ExecutionPolicy", "Bypass"]
     # see https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-160
     entrypoint: ["C:\\BuildTools\\Common7\\Tools\\VsDevCmd.bat", "-arch=x86", "-host_arch=amd64", "&&", "type", "README", "&&", "powershell.exe", "-NoLogo", "-ExecutionPolicy", "Bypass"]
-  only:
-    variables:
-      # Forks of this project most likely use gitlab's shared windows runners, which
-      # do not use the docker executor, so disable the windows jobs for forks.
-      - $CI_PROJECT_NAMESPACE == "sequoia-pgp"
+  rules:
+    # Forks of this project most likely use gitlab's shared windows runners, which
+    # do not use the docker executor, so disable the windows jobs for forks.
+    - if: $CI_PROJECT_NAMESPACE != "sequoia-pgp"
+      when: never
+    - !reference [.default_rules, rules]
   before_script:
     # We don't call *before_script_start or *before_script_end as we
     # don't have bash, clang, etc.
