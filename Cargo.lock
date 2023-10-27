@@ -2533,7 +2533,7 @@ dependencies = [
  "quickcheck",
  "rand",
  "sequoia-openpgp",
- "socket2 0.4.10",
+ "socket2 0.5.5",
  "tempfile",
  "thiserror",
  "tokio",
