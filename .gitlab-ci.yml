@@ -187,7 +187,7 @@ rust-stable:
     - linux
   stage: build
   interruptible: true
-  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/trixie-prebuild:latest
+  image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   script:
     - CARGO_PACKAGES="-p buffered-reader -p sequoia-openpgp" $MAKE_TOP test
   rules:
