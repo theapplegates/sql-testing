@@ -317,6 +317,8 @@ impl<'a> std::fmt::Display for VerificationError<'a> {
     }
 }
 
+impl<'a> std::error::Error for VerificationError<'a> {}
+
 impl<'a> From<VerificationError<'a>> for Error {
     fn from(e: VerificationError<'a>) -> Self {
         use self::VerificationError::*;
