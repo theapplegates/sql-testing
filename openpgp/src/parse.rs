@@ -1333,6 +1333,10 @@ impl Signature {
         }
 
         let need_hash = HashingMode::for_signature(hash_algo, typ);
+        t!("Need a {:?}", need_hash);
+        if TRACE {
+            pp.reader.dump(&mut std::io::stderr())?;
+        }
 
         // Locate the corresponding HashedReader and extract the
         // computed hash.
@@ -1353,6 +1357,8 @@ impl Signature {
                     // 'recursion_depth - 1'.
                     if cookie.level.is_none()
                         || cookie.level.unwrap() < recursion_depth - 1 {
+                            t!("Abandoning search for suitable \
+                                hashed reader at {:?}.", cookie.level);
                             break
                         }
 
