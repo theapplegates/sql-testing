@@ -17,9 +17,9 @@ use sequoia_openpgp::{
 
 use super::Result;
 
-use trust_dns_client::rr::{RData, RecordType};
-use trust_dns_resolver::config::ResolverOpts;
-use trust_dns_resolver::TokioAsyncResolver;
+use hickory_client::rr::{RData, RecordType};
+use hickory_resolver::config::ResolverOpts;
+use hickory_resolver::TokioAsyncResolver;
 
 /// Generates a Fully Qualified Domain Name that holds the OPENPGPKEY
 /// record for given `local` and `domain` parameters.
@@ -65,7 +65,7 @@ pub async fn get_raw(email_address: impl AsRef<str>) -> Result<Vec<Vec<u8>>> {
     let mut opts = ResolverOpts::default();
     opts.validate = true;
 
-    let resolver = TokioAsyncResolver::tokio(Default::default(), opts)?;
+    let resolver = TokioAsyncResolver::tokio(Default::default(), opts);
 
     let answers = resolver
         .lookup(fqdn, RecordType::OPENPGPKEY)
