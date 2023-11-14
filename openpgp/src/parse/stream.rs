@@ -4022,4 +4022,51 @@ xHUDBRY0WIQ+50WENDPP";
 
         Ok(())
     }
+
+    /// Tests that an inline-signed message using two different hash
+    /// algorithms verifies correctly.
+    #[test]
+    fn inline_signed_two_hashes() -> Result<()> {
+        use crate::{
+            types::{DataFormat, HashAlgorithm, SignatureType},
+            packet::Literal,
+            parse::SignatureBuilder,
+        };
+        let p = P::new();
+        let cert = Cert::from_bytes(crate::tests::key("testy-private.pgp"))?;
+        let helper = VHelper::new(0, 0, 0, 0, vec![cert.clone()]);
+        let mut signer = cert.primary_key().key().clone().parts_into_secret()?
+            .into_keypair()?;
+        let msg = b"Hello, world!";
+        let sig0 = SignatureBuilder::new(SignatureType::Binary)
+            .set_signature_creation_time(crate::frozen_time())?
+            .set_hash_algo(HashAlgorithm::SHA256)
+            .sign_message(&mut signer, msg)?;
+        let sig1 = SignatureBuilder::new(SignatureType::Binary)
+            .set_signature_creation_time(crate::frozen_time())?
+            .set_hash_algo(HashAlgorithm::SHA512)
+            .sign_message(&mut signer, msg)?;
+        let packets: Vec<Packet> = vec![
+            OnePassSig::try_from(&sig0)?.into(),
+            {
+                let mut ops = OnePassSig::try_from(&sig1)?;
+                ops.set_last(true);
+                ops.into()
+            },
+            {
+                let mut lit = Literal::new(DataFormat::Binary);
+                lit.set_body((*msg).into());
+                lit.into()
+            },
+            sig1.into(),
+            sig0.into(),
+        ];
+        let mut buf = Vec::new();
+        packets.iter().for_each(|p| p.serialize(&mut buf).unwrap());
+        let v = VerifierBuilder::from_bytes(&buf)?
+            .with_policy(&p, crate::frozen_time(), helper)?;
+        assert!(v.message_processed());
+        assert_eq!(v.helper_ref().good, 2);
+        Ok(())
+    }
 }
