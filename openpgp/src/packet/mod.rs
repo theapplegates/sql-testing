@@ -1078,6 +1078,18 @@ impl From<OnePassSig> for Packet {
     }
 }
 
+impl<'a> std::convert::TryFrom<&'a Signature> for OnePassSig {
+    type Error = anyhow::Error;
+
+    fn try_from(s: &'a Signature) -> Result<Self> {
+        match s.version() {
+            4 => one_pass_sig::OnePassSig3::try_from(s).map(Into::into),
+            n => Err(Error::InvalidOperation(
+                format!("Unsupported signature version {}", n)).into()),
+         }
+     }
+}
+
 // Trivial forwarder for singleton enum.
 impl Deref for OnePassSig {
     type Target = one_pass_sig::OnePassSig3;
