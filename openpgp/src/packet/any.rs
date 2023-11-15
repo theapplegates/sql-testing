@@ -5,12 +5,8 @@ use crate::packet::{
     Unknown,
     Signature,
     OnePassSig,
-    key::{
-        PublicKey,
-        PublicSubkey,
-        SecretKey,
-        SecretSubkey,
-    },
+    Key,
+    key,
     Marker,
     Trust,
     UserID,
@@ -75,25 +71,28 @@ pub trait Any<T>: crate::seal::Sealed {
 
 macro_rules! impl_downcast_for {
     ($typ: tt) => {
+        impl_downcast_for!($typ => $typ);
+    };
+    ($($typ: tt)|* => $subtyp: ty) => {
         #[allow(deprecated)]
-        impl Any<$typ> for Packet {
-            fn downcast(self) -> std::result::Result<$typ, Packet> {
+        impl Any<$subtyp> for Packet {
+            fn downcast(self) -> std::result::Result<$subtyp, Packet> {
                 match self {
-                    Packet::$typ(v) => Ok(v),
+                    $(Packet::$typ(v) => Ok(v.into()),)*
                     p => Err(p),
                 }
             }
 
-            fn downcast_ref(&self) -> Option<&$typ> {
+            fn downcast_ref(&self) -> Option<&$subtyp> {
                 match self {
-                    Packet::$typ(v) => Some(v),
+                    $(Packet::$typ(v) => Some(v.into()),)*
                     _ => None,
                 }
             }
 
-            fn downcast_mut(&mut self) -> Option<&mut $typ> {
+            fn downcast_mut(&mut self) -> Option<&mut $subtyp> {
                 match self {
-                    Packet::$typ(v) => Some(v),
+                    $(Packet::$typ(v) => Some(v.into()),)*
                     _ => None,
                 }
             }
@@ -113,6 +112,11 @@ macro_rules! impl_downcasts {
         fn check_exhaustion(p: Packet) {
             match p {
                 $(Packet::$typ(_) => (),)*
+                // The downcasts to Key<P, R> are handled below.
+                Packet::PublicKey(_) => (),
+                Packet::PublicSubkey(_) => (),
+                Packet::SecretKey(_) => (),
+                Packet::SecretSubkey(_) => (),
             }
         }
     }
@@ -122,10 +126,6 @@ impl_downcasts!(
     Unknown,
     Signature,
     OnePassSig,
-    PublicKey,
-    PublicSubkey,
-    SecretKey,
-    SecretSubkey,
     Marker,
     Trust,
     UserID,
@@ -139,6 +139,32 @@ impl_downcasts!(
     AED,
 );
 
+// We ow selectively implement downcasts for the key types that alias
+// with the packet type.
+
+// 1. PublicParts, any role.
+impl_downcast_for!(PublicKey | SecretKey
+                   => Key<key::PublicParts, key::PrimaryRole>);
+impl_downcast_for!(PublicSubkey | SecretSubkey
+                   => Key<key::PublicParts, key::SubordinateRole>);
+impl_downcast_for!(PublicKey | PublicSubkey | SecretKey | SecretSubkey
+                   => Key<key::PublicParts, key::UnspecifiedRole>);
+
+// 2. SecretParts, any role.
+impl_downcast_for!(SecretKey
+                   => Key<key::SecretParts, key::PrimaryRole>);
+impl_downcast_for!(SecretSubkey
+                   => Key<key::SecretParts, key::SubordinateRole>);
+impl_downcast_for!(SecretKey | SecretSubkey
+                   => Key<key::SecretParts, key::UnspecifiedRole>);
+
+// 3. UnspecifiedParts, any role.
+impl_downcast_for!(PublicKey | SecretKey
+                   => Key<key::UnspecifiedParts, key::PrimaryRole>);
+impl_downcast_for!(PublicSubkey | SecretSubkey
+                   => Key<key::UnspecifiedParts, key::SubordinateRole>);
+impl_downcast_for!(PublicKey | PublicSubkey | SecretKey | SecretSubkey
+                   => Key<key::UnspecifiedParts, key::UnspecifiedRole>);
 
 #[cfg(test)]
 mod test {
