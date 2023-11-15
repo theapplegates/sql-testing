@@ -113,6 +113,14 @@ macro_rules! create_part_conversions {
                         convert_ref!(p)
                     }
                 }
+
+                impl<$($l, )* $($g, )* > From<&$($l)* mut $Key<$($l, )* $from_parts, $($g, )* >> for &$($l)* mut $Key<$($l, )* $to_parts, $($g, )* >
+                    where $($w: $c ),*
+                {
+                    fn from(p: &$($l)* mut $Key<$($l, )* $from_parts, $($g, )* >) -> Self {
+                        convert_ref!(p)
+                    }
+                }
             }
         }
 
@@ -133,6 +141,20 @@ macro_rules! create_part_conversions {
                 {
                     type Error = anyhow::Error;
                     fn try_from(p: &$($l)* $Key<$($l, )* $from_parts, $($g, )* >) -> Result<Self> {
+                        if p.has_secret() {
+                            Ok(convert_ref!(p))
+                        } else {
+                            Err(Error::InvalidArgument("No secret key".into())
+                                .into())
+                        }
+                    }
+                }
+
+                impl<$($l, )* $($g, )* > TryFrom<&$($l)* mut $Key<$($l, )* $from_parts, $($g, )* >> for &$($l)* mut $Key<$($l, )* $to_parts, $($g, )* >
+                    where $($w: $c ),*
+                {
+                    type Error = anyhow::Error;
+                    fn try_from(p: &$($l)* mut $Key<$($l, )* $from_parts, $($g, )* >) -> Result<Self> {
                         if p.has_secret() {
                             Ok(convert_ref!(p))
                         } else {
@@ -187,6 +209,11 @@ macro_rules! create_part_conversions {
                 convert_ref!(self)
             }
 
+            /// Changes the key's parts tag to `PublicParts`.
+            pub fn parts_as_public_mut(&$($l)* mut self) -> &$($l)* mut $Key<$($l, )* PublicParts, $($g, )*> {
+                convert_ref!(self)
+            }
+
             /// Changes the key's parts tag to `SecretParts`.
             pub fn parts_into_secret(self) -> Result<$Key<$($l, )* SecretParts, $($g, )*>> {
                 if self.has_secret() {
@@ -206,6 +233,16 @@ macro_rules! create_part_conversions {
                 }
             }
 
+            /// Changes the key's parts tag to `SecretParts`.
+            pub fn parts_as_secret_mut(&$($l)* mut self) -> Result<&$($l)* mut $Key<$($l, )* SecretParts, $($g, )*>>
+            {
+                if self.has_secret() {
+                    Ok(convert_ref!(self))
+                } else {
+                    Err(Error::InvalidArgument("No secret key".into()).into())
+                }
+            }
+
             /// Changes the key's parts tag to `UnspecifiedParts`.
             pub fn parts_into_unspecified(self) -> $Key<$($l, )* UnspecifiedParts, $($g, )*> {
                 convert!(self)
@@ -213,6 +250,11 @@ macro_rules! create_part_conversions {
 
             /// Changes the key's parts tag to `UnspecifiedParts`.
             pub fn parts_as_unspecified(&$($l)* self) -> &$Key<$($l, )* UnspecifiedParts, $($g, )*> {
+                convert_ref!(self)
+            }
+
+            /// Changes the key's parts tag to `UnspecifiedParts`.
+            pub fn parts_as_unspecified_mut(&$($l)* mut self) -> &mut $Key<$($l, )* UnspecifiedParts, $($g, )*> {
                 convert_ref!(self)
             }
         }
@@ -237,6 +279,14 @@ macro_rules! create_role_conversions {
                     where P: KeyParts
                 {
                     fn from(p: &$($l)* $Key<$($l, )* P, $from_role>) -> Self {
+                        convert_ref!(p)
+                    }
+                }
+
+                impl<$($l, )* P> From<&$($l)* mut $Key<$($l, )* P, $from_role>> for &$($l)* mut $Key<$($l, )* P, $to_role>
+                    where P: KeyParts
+                {
+                    fn from(p: &$($l)* mut $Key<$($l, )* P, $from_role>) -> Self {
                         convert_ref!(p)
                     }
                 }
@@ -274,6 +324,13 @@ macro_rules! create_conversions {
                 impl<$($l ),*> From<&$($l)* $Key<$($l, )* $from_parts, $from_role>> for &$($l)* $Key<$($l, )* $to_parts, $to_role>
                 {
                     fn from(p: &$($l)* $Key<$from_parts, $from_role>) -> Self {
+                        convert_ref!(p)
+                    }
+                }
+
+                impl<$($l ),*> From<&$($l)* mut $Key<$($l, )* $from_parts, $from_role>> for &$($l)* mut $Key<$($l, )* $to_parts, $to_role>
+                {
+                    fn from(p: &$($l)* mut $Key<$from_parts, $from_role>) -> Self {
                         convert_ref!(p)
                     }
                 }
@@ -387,6 +444,11 @@ macro_rules! create_conversions {
                 convert_ref!(self)
             }
 
+            /// Changes the key's role tag to `PrimaryRole`.
+            pub fn role_as_primary_mut(&$($l)* mut self) -> &$($l)* mut $Key<$($l, )* P, PrimaryRole> {
+                convert_ref!(self)
+            }
+
             /// Changes the key's role tag to `SubordinateRole`.
             pub fn role_into_subordinate(self) -> $Key<$($l, )* P, SubordinateRole>
             {
@@ -399,6 +461,12 @@ macro_rules! create_conversions {
                 convert_ref!(self)
             }
 
+            /// Changes the key's role tag to `SubordinateRole`.
+            pub fn role_as_subordinate_mut(&$($l)* mut self) -> &$($l)* mut $Key<$($l, )* P, SubordinateRole>
+            {
+                convert_ref!(self)
+            }
+
             /// Changes the key's role tag to `UnspecifiedRole`.
             pub fn role_into_unspecified(self) -> $Key<$($l, )* P, UnspecifiedRole>
             {
@@ -407,6 +475,12 @@ macro_rules! create_conversions {
 
             /// Changes the key's role tag to `UnspecifiedRole`.
             pub fn role_as_unspecified(&$($l)* self) -> &$($l)* $Key<$($l, )* P, UnspecifiedRole>
+            {
+                convert_ref!(self)
+            }
+
+            /// Changes the key's role tag to `UnspecifiedRole`.
+            pub fn role_as_unspecified_mut(&$($l)* mut self) -> &$($l)* mut $Key<$($l, )* P, UnspecifiedRole>
             {
                 convert_ref!(self)
             }
