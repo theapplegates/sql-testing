@@ -1,13 +1,20 @@
 //! Provides e-mail parsing functions.
 
+use std::fmt;
 use super::{Result, Error};
 
 /// Stores the local_part and domain of an email address.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct EmailAddress {
     pub(crate) local_part: String,
     pub(crate) domain: String,
 }
 
+impl fmt::Display for EmailAddress {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}@{}", self.local_part, self.domain)
+    }
+}
 
 impl EmailAddress {
     /// Returns an EmailAddress from an email address string.
