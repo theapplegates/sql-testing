@@ -38,6 +38,9 @@
 #![doc(html_logo_url = "https://docs.sequoia-pgp.org/logo.svg")]
 #![warn(missing_docs)]
 
+// Re-exports of crates that we use in our API.
+pub use reqwest;
+
 use percent_encoding::{percent_encode, AsciiSet, CONTROLS};
 
 use std::io::Cursor;
