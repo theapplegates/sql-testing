@@ -64,7 +64,9 @@ async fn get_raw(email_address: impl AsRef<str>) -> Result<Vec<Vec<u8>>> {
 
     let answers = resolver
         .lookup(fqdn, RecordType::OPENPGPKEY)
-        .await?;
+        .await
+        .map_err(|e| anyhow::Error::from(crate::Error::NotFound)
+                 .context(e.to_string()))?;
 
     let mut bytes = vec![];
 
