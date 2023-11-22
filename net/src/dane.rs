@@ -96,11 +96,19 @@ async fn get_raw(email_address: impl AsRef<str>) -> Result<Vec<Vec<u8>>> {
 /// # Ok(())
 /// # }
 /// ```
-pub async fn get(email_address: impl AsRef<str>) -> Result<Vec<Cert>> {
+pub async fn get(email_address: impl AsRef<str>) -> Result<Vec<Result<Cert>>> {
     let mut certs = vec![];
 
     for bytes in get_raw(email_address).await?.iter() {
-        certs.extend(CertParser::from_bytes(bytes)?.flatten());
+        // Section 2 of RFC7929 says that a record may only contain a
+        // single cert, but there may be more than one record:
+        //
+        //   A user that wishes to specify more than one OpenPGP key,
+        //   for example, because they are transitioning to a newer
+        //   stronger key, can do so by adding multiple OPENPGPKEY
+        //   records.  A single OPENPGPKEY DNS record MUST only
+        //   contain one OpenPGP key.
+        certs.push(Cert::from_bytes(bytes));
     }
 
     Ok(certs)
