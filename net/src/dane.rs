@@ -53,19 +53,7 @@ fn generate_fqdn(local: &str, domain: &str) -> Result<String> {
 /// the found certificates only on validation success.
 ///
 /// [DANE]: https://datatracker.ietf.org/doc/html/rfc7929
-///
-/// # Examples
-///
-/// ```no_run
-/// # use sequoia_net::{Result, dane};
-/// # use sequoia_openpgp::Cert;
-/// # async fn f() -> Result<()> {
-/// let email_address = "john@example.com";
-/// let certs = dane::get_raw(email_address).await?;
-/// # Ok(())
-/// # }
-/// ```
-pub async fn get_raw(email_address: impl AsRef<str>) -> Result<Vec<Vec<u8>>> {
+async fn get_raw(email_address: impl AsRef<str>) -> Result<Vec<Vec<u8>>> {
     let email_address = EmailAddress::from(email_address)?;
     let fqdn = generate_fqdn(&email_address.local_part, &email_address.domain)?;
 
