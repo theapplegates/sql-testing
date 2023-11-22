@@ -124,9 +124,10 @@ async fn get() -> anyhow::Result<()> {
 
     let keyserver = KeyServer::new(&format!("hkp://{}", addr))?;
     let keyid: KeyID = ID.parse()?;
-    let key = keyserver.get(keyid).await?;
+    let keys = keyserver.get(keyid).await?;
+    assert_eq!(keys.len(), 1);
 
-    assert_eq!(key.fingerprint(),
+    assert_eq!(keys[0].as_ref().unwrap().fingerprint(),
                FP.parse().unwrap());
     Ok(())
 }

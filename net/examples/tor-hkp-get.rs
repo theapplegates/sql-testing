@@ -40,6 +40,8 @@ async fn main() -> Result<()> {
         client)?;
 
     // Finally, get the requested certificate.
-    keyserver.get(handle).await?.armored().serialize(&mut io::stdout())?;
+    for cert in keyserver.get(handle).await? {
+        cert?.armored().serialize(&mut io::stdout())?;
+    }
     Ok(())
 }

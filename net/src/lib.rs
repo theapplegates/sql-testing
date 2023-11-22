@@ -43,8 +43,6 @@ pub use reqwest;
 
 use percent_encoding::{percent_encode, AsciiSet, CONTROLS};
 
-use std::io::Cursor;
-
 use reqwest::{
     StatusCode,
     Url,
@@ -52,7 +50,6 @@ use reqwest::{
 
 use sequoia_openpgp::{
     self as openpgp,
-    armor,
     cert::{Cert, CertParser},
     KeyHandle,
     packet::UserID,
@@ -130,8 +127,13 @@ impl KeyServer {
     }
 
     /// Retrieves the certificate with the given handle.
+    ///
+    /// # Warning
+    ///
+    /// Returned certificates must be mistrusted, and be carefully
+    /// interpreted under a policy and trust model.
     pub async fn get<H: Into<KeyHandle>>(&self, handle: H)
-                                         -> Result<Cert>
+                                         -> Result<Vec<Result<Cert>>>
     {
         let handle = handle.into();
         let url = self.request_url.join(
@@ -141,33 +143,8 @@ impl KeyServer {
         match res.status() {
             StatusCode::OK => {
                 let body = res.bytes().await?;
-                let r = armor::Reader::from_reader(
-                    Cursor::new(body),
-                    armor::ReaderMode::Tolerant(Some(armor::Kind::PublicKey)),
-                );
-                let cert = Cert::from_reader(r)?;
-                // XXX: This test is dodgy.  Passing it doesn't really
-                // mean anything.  A malicious keyserver can attach
-                // the key with the queried keyid to any certificate
-                // they control.  Querying for signing-capable sukeys
-                // are safe because they require a primary key binding
-                // signature which the server cannot produce.
-                // However, if the public key algorithm is also
-                // capable of encryption (I'm looking at you, RSA),
-                // then the server can simply turn it into an
-                // encryption subkey.
-                //
-                // Returned certificates must be mistrusted, and be
-                // carefully interpreted under a policy and trust
-                // model.  This test doesn't provide any real
-                // protection, and maybe it is better to remove it.
-                // That would also help with returning multiple certs,
-                // see above.
-                if cert.keys().any(|ka| ka.key_handle().aliases(&handle)) {
-                    Ok(cert)
-                } else {
-                    Err(Error::MismatchedKeyHandle(handle, cert).into())
-                }
+                let certs = CertParser::from_bytes(&body)?.collect();
+                Ok(certs)
             }
             StatusCode::NOT_FOUND => Err(Error::NotFound.into()),
             n => Err(Error::HttpStatus(n).into()),
@@ -180,18 +157,15 @@ impl KeyServer {
     /// conventions for userids, or it does not contain a email
     /// address, an error is returned.
     ///
-    ///   [`UserID`]: https://docs.sequoia-pgp.org/sequoia_openpgp/packet/struct.UserID.html
-    ///
-    /// Any certificates returned by the server that do not contain
-    /// the email address queried for are silently discarded.
+    ///   [`UserID`]: sequoia_openpgp::packet::UserID
     ///
     /// # Warning
     ///
     /// Returned certificates must be mistrusted, and be carefully
     /// interpreted under a policy and trust model.
     #[allow(clippy::blocks_in_if_conditions)]
-    pub async fn search<U: Into<UserID>>(&mut self, userid: U)
-                                         -> Result<Vec<Cert>>
+    pub async fn search<U: Into<UserID>>(&self, userid: U)
+                                         -> Result<Vec<Result<Cert>>>
     {
         let userid = userid.into();
         let email = userid.email2().and_then(|addr| addr.ok_or_else(||
@@ -203,20 +177,7 @@ impl KeyServer {
         let res = self.client.get(url).send().await?;
         match res.status() {
             StatusCode::OK => {
-                let body = res.bytes().await?;
-                let mut certs = Vec::new();
-                for certo in CertParser::from_bytes(&body)? {
-                    let cert = certo?;
-                    if cert.userids().any(|uid| {
-                        uid.email2().ok()
-                            .and_then(|addro| addro)
-                            .map(|addr| addr == email)
-                            .unwrap_or(false)
-                    }) {
-                        certs.push(cert);
-                    }
-                }
-                Ok(certs)
+                Ok(CertParser::from_bytes(&res.bytes().await?)?.collect())
             },
             StatusCode::NOT_FOUND => Err(Error::NotFound.into()),
             n => Err(Error::HttpStatus(n).into()),
