@@ -152,26 +152,28 @@ fn encode_local_part<S: AsRef<str>>(local_part: S) -> String {
 /// address.
 /// ```
 fn parse_body<S: AsRef<str>>(body: &[u8], email_address: S)
-        -> Result<Vec<Cert>> {
+        -> Result<Vec<Result<Cert>>> {
     let email_address = email_address.as_ref();
     // This will fail on the first packet that can not be parsed.
     let packets = CertParser::from_bytes(&body)?;
     // Collect only the correct packets.
-    let certs: Vec<Cert> = packets.flatten().collect();
+    let certs: Vec<Result<Cert>> = packets.collect();
     if certs.is_empty() {
         return Err(Error::NotFound.into());
     }
 
     // Collect only the Certs that contain the email in any of their userids
-    let valid_certs: Vec<Cert> = certs.iter()
+    let valid_certs: Vec<Result<Cert>> = certs.into_iter()
         // XXX: This filter could become a Cert method, but it adds other API
         // method to maintain
-        .filter(|cert| {cert.userids()
-            .any(|uidb|
-                if let Ok(Some(a)) = uidb.userid().email2() {
-                    a == email_address
-                } else { false })
-        }).cloned().collect();
+        .filter(|cert| match cert {
+            Ok(cert) => cert.userids()
+                .any(|uidb|
+                     if let Ok(Some(a)) = uidb.userid().email2() {
+                         a == email_address
+                     } else { false }),
+            Err(_) => true,
+        }).collect();
     if valid_certs.is_empty() {
         Err(Error::EmailNotInUserids(email_address.into()).into())
     } else {
@@ -205,6 +207,7 @@ fn parse_body<S: AsRef<str>>(body: &[u8], email_address: S)
 /// ```
 ///
 /// [draft-koch]: https://datatracker.ietf.org/doc/html/draft-koch-openpgp-webkey-service/#section-3.1
+///
 /// # Examples
 ///
 /// ```no_run
@@ -212,7 +215,8 @@ fn parse_body<S: AsRef<str>>(body: &[u8], email_address: S)
 /// # use sequoia_openpgp::Cert;
 /// # async fn f() -> Result<()> {
 /// let email_address = "foo@bar.baz";
-/// let certs: Vec<Cert> = wkd::get(&reqwest::Client::new(), &email_address).await?;
+/// let certs: Vec<Result<Cert>> =
+///     wkd::get(&reqwest::Client::new(), &email_address).await?;
 /// # Ok(())
 /// # }
 /// ```
@@ -220,7 +224,7 @@ fn parse_body<S: AsRef<str>>(body: &[u8], email_address: S)
 // XXX: Maybe the direct method should be tried on other errors too.
 // https://mailarchive.ietf.org/arch/msg/openpgp/6TxZc2dQFLKXtS0Hzmrk963EteE
 pub async fn get<S: AsRef<str>>(c: &reqwest::Client, email_address: S)
-                                -> Result<Vec<Cert>>
+                                -> Result<Vec<Result<Cert>>>
 {
     let email = email_address.as_ref().to_string();
     // First, prepare URIs and client.
