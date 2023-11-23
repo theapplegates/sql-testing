@@ -65,8 +65,7 @@ async fn get_raw(email_address: impl AsRef<str>) -> Result<Vec<Vec<u8>>> {
     let answers = resolver
         .lookup(fqdn, RecordType::OPENPGPKEY)
         .await
-        .map_err(|e| anyhow::Error::from(crate::Error::NotFound)
-                 .context(e.to_string()))?;
+        .map_err(Error::NotFound)?;
 
     let mut bytes = vec![];
 
@@ -347,6 +346,15 @@ fn generate_<'a>(cert: &ValidCert<'a>, fqdn: &str, ttl: Option<Duration>,
     }
 
     Ok(records)
+}
+
+/// Errors for this module.
+#[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
+pub enum Error {
+    /// A requested cert was not found.
+    #[error("Cert not found")]
+    NotFound(#[from] hickory_resolver::error::ResolveError),
 }
 
 #[cfg(test)]
