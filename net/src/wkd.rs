@@ -34,7 +34,7 @@ use sequoia_openpgp::{
 };
 
 use crate::email::EmailAddress;
-use crate::{Result, Error};
+use crate::Result;
 
 /// WKD variants.
 ///
@@ -159,7 +159,7 @@ fn parse_body<S: AsRef<str>>(body: &[u8], email_address: S)
     // Collect only the correct packets.
     let certs: Vec<Result<Cert>> = packets.collect();
     if certs.is_empty() {
-        return Err(Error::NotFound.into());
+        return Err(crate::Error::NotFound.into());
     }
 
     // Collect only the Certs that contain the email in any of their userids
@@ -175,7 +175,7 @@ fn parse_body<S: AsRef<str>>(body: &[u8], email_address: S)
             Err(_) => true,
         }).collect();
     if valid_certs.is_empty() {
-        Err(Error::EmailNotInUserids(email_address.into()).into())
+        Err(crate::Error::EmailNotInUserids(email_address.into()).into())
     } else {
         Ok(valid_certs)
     }
@@ -239,10 +239,14 @@ pub async fn get<S: AsRef<str>>(c: &reqwest::Client, email_address: S)
     } else {
         // Fall back to the Direct Method.
         c.get(direct_uri).send().await
-    }?;
-    let body = res.bytes().await?;
+    }.map_err(Error::NotFound)?;
 
-    parse_body(&body, &email)
+    if res.status() == reqwest::StatusCode::OK {
+        let body = res.bytes().await?;
+        parse_body(&body, &email)
+    } else {
+        Err(crate::Error::NotFound.into())
+    }
 }
 
 /// Returns all e-mail addresses from certificate's User IDs matching `domain`.
@@ -360,6 +364,15 @@ impl KeyRing {
         }
         Ok(())
     }
+}
+
+/// Errors for this module.
+#[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
+pub enum Error {
+    /// A requested cert was not found.
+    #[error("Cert not found")]
+    NotFound(#[from] reqwest::Error),
 }
 
 #[cfg(test)]
