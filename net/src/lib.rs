@@ -218,13 +218,11 @@ pub type Result<T> = ::std::result::Result<T, anyhow::Error>;
 
 #[derive(thiserror::Error, Debug)]
 /// Errors returned from the network routines.
+#[non_exhaustive]
 pub enum Error {
-    /// A requested key was not found.
-    #[error("Key not found")]
+    /// A requested cert was not found.
+    #[error("Cert not found")]
     NotFound,
-    /// Mismatched key handle
-    #[error("Mismatched key handle, expected {0}")]
-    MismatchedKeyHandle(KeyHandle, Cert),
     /// A given keyserver URL was malformed.
     #[error("Malformed URL; expected hkp: or hkps:")]
     MalformedUrl,
