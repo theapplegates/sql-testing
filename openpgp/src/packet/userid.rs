@@ -971,8 +971,8 @@ impl UserID {
 
                 // Normalize Unicode in domains.
                 let domain = idna::domain_to_ascii(domain)
-                    .map_err(|e| anyhow::anyhow!(
-                        "punycode conversion failed: {:?}", e))?;
+                    .map_err(|e| anyhow::Error::from(e)
+                             .context("punycode conversion failed"))?;
 
                 // Join.
                 let address = format!("{}@{}", localpart, domain);

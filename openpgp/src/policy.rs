@@ -80,7 +80,8 @@ pub trait Policy : fmt::Debug + Send + Sync {
     /// revocations: if you reject a revocation certificate, it may
     /// inadvertently make something else valid!
     fn signature(&self, _sig: &Signature, _sec: HashAlgoSecurity) -> Result<()> {
-        Err(anyhow::anyhow!("By default all signatures are rejected."))
+        Err(Error::PolicyViolation(
+            "By default all signatures are rejected.".into(), None).into())
     }
 
     /// Returns an error if the key violates the policy.
@@ -107,7 +108,8 @@ pub trait Policy : fmt::Debug + Send + Sync {
     fn key(&self, _ka: &ValidErasedKeyAmalgamation<key::PublicParts>)
         -> Result<()>
     {
-        Err(anyhow::anyhow!("By default all keys are rejected."))
+        Err(Error::PolicyViolation(
+            "By default all keys are rejected.".into(), None).into())
     }
 
     /// Returns an error if the symmetric encryption algorithm
@@ -119,7 +121,8 @@ pub trait Policy : fmt::Debug + Send + Sync {
     /// With this function, you can prevent the use of insecure
     /// symmetric encryption algorithms.
     fn symmetric_algorithm(&self, _algo: SymmetricAlgorithm) -> Result<()> {
-        Err(anyhow::anyhow!("By default all symmetric algorithms are rejected."))
+        Err(Error::PolicyViolation(
+            "By default all symmetric algorithms are rejected.".into(), None).into())
     }
 
     /// Returns an error if the AEAD mode violates the policy.
@@ -132,7 +135,8 @@ pub trait Policy : fmt::Debug + Send + Sync {
     ///
     /// This feature is [experimental](super#experimental-features).
     fn aead_algorithm(&self, _algo: AEADAlgorithm) -> Result<()> {
-        Err(anyhow::anyhow!("By default all AEAD algorithms are rejected."))
+        Err(Error::PolicyViolation(
+            "By default all AEAD algorithms are rejected.".into(), None).into())
     }
 
     /// Returns an error if the packet violates the policy.
@@ -144,7 +148,8 @@ pub trait Policy : fmt::Debug + Send + Sync {
     /// encryption containers, notably the *Symmetrically Encrypted
     /// Data Packet*.
     fn packet(&self, _packet: &Packet) -> Result<()> {
-        Err(anyhow::anyhow!("By default all packets are rejected."))
+        Err(Error::PolicyViolation(
+            "By default all packets are rejected.".into(), None).into())
     }
 }
 

@@ -222,8 +222,9 @@ macro_rules! impl_enc_mode {
                 _dst: &mut [u8],
                 _src: &[u8],
             ) -> Result<()> {
-                Err(anyhow::anyhow!(
-                    "decryption not supported in encryption mode"))
+                Err(Error::InvalidOperation(
+                    "decryption not supported in encryption mode".into())
+                    .into())
             }
         }
     }
@@ -240,8 +241,9 @@ macro_rules! impl_dec_mode {
                 _dst: &mut [u8],
                 _src: &[u8],
             ) -> Result<()> {
-                Err(anyhow::anyhow!(
-                    "encryption not supported in decryption mode"))
+                Err(Error::InvalidOperation(
+                    "encryption not supported in decryption mode".into())
+                    .into())
             }
 
             fn decrypt(
