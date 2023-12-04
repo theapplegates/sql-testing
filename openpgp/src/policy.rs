@@ -777,9 +777,10 @@ a_versioned_cutoff_list!(PacketTagCutoffList, Tag, 21,
     // need to tweak the above.
     //
     // Note: this list must be sorted and the tag and version must be unique!
-    1,
+    2,
     [
         (Tag::Signature, 3, Some(Timestamp::Y2007M2)),
+        (Tag::Signature, 5, REJECT), // "v5" Signatures.
     ]);
 
 // We need to convert a `SystemTime` to a `Timestamp` in
