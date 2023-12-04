@@ -56,7 +56,33 @@ impl Clone for Unknown {
         Unknown {
             common: self.common.clone(),
             tag: self.tag,
-            error: anyhow::anyhow!("{}", self.error),
+            error: {
+                // anyhow::Error isn't Clone, so we cannot, in
+                // general, duplicate the error without losing
+                // information.  We can try to downcast to the most
+                // likely errors, and clone them, but this can never
+                // cover all possibilities.
+                use std::io;
+
+                if let Some(e) = self.error.downcast_ref::<crate::Error>() {
+                    e.clone().into()
+                } else if let Some(e) = self.error.downcast_ref::<io::Error>() {
+                    if let Some(wrapped) = e.get_ref() {
+                        // The wrapped error isn't clone, so this
+                        // loses information here.  This will always
+                        // be lossy, even once we changed this crate
+                        // to return concrete errors.
+                        io::Error::new(e.kind(), wrapped.to_string()).into()
+                    } else {
+                        io::Error::from(e.kind()).into()
+                    }
+                } else {
+                    // Here, we lose information, but the conversion
+                    // was lossy before.
+                    crate::Error::InvalidOperation(self.error.to_string())
+                        .into()
+                }
+            },
             container: self.container.clone(),
         }
     }
