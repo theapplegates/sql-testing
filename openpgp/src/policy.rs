@@ -771,7 +771,7 @@ a_versioned_cutoff_list!(PacketTagCutoffList, Tag, 21,
         ACCEPT,                   // 17. UserAttribute.
         ACCEPT,                   // 18. SEIP.
         ACCEPT,                   // 19. MDC.
-        ACCEPT,                   // 20. AED.
+        REJECT,                   // 20. "v5" AED.
     ],
     // The versioned list overrides the unversioned list.  So we only
     // need to tweak the above.

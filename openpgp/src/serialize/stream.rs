@@ -3687,7 +3687,7 @@ mod test {
             }
         }
 
-        let p = &P::new();
+        let p = &crate::policy::NullPolicy::new();
 
         for chunks in 0..3 {
             for msg_len in
@@ -4070,7 +4070,7 @@ mod test {
     fn experimental_aead_encryptor() -> Result<()> {
         use std::io::Write;
         use crate::types::AEADAlgorithm;
-        use crate::policy::StandardPolicy;
+        use crate::policy::NullPolicy;
         use crate::serialize::stream::{
             Message, Encryptor2, LiteralWriter,
         };
@@ -4113,7 +4113,7 @@ mod test {
             }
         }
 
-        let p = &StandardPolicy::new();
+        let p = &NullPolicy::new();
         let mut v = DecryptorBuilder::from_bytes(&sink)?.with_policy(p, None, Helper)?;
         let mut content = vec![];
         v.read_to_end(&mut content)?;
