@@ -74,6 +74,7 @@ const KEYSERVER_ENCODE_SET: &AsciiSet =
     .add(b'-').add(b'+').add(b'/');
 
 /// For accessing keyservers using HKP.
+#[derive(Clone)]
 pub struct KeyServer {
     client: reqwest::Client,
     /// The original URL given to the constructor.
