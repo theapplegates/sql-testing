@@ -1,3 +1,7 @@
+use std::{
+    borrow::Cow,
+};
+
 use crate::Result;
 use crate::cert::prelude::*;
 use crate::packet::{header::BodyLength, key, Signature, Tag};
@@ -264,6 +268,15 @@ impl Cert {
     pub fn as_tsk(&self) -> TSK {
         TSK::new(self)
     }
+
+    /// Derive a [`TSK`] object from this key that owns the `Cert`.
+    ///
+    /// This object writes out secret keys during serialization.
+    ///
+    /// [`TSK`]: crate::serialize::TSK
+    pub fn into_tsk(self) -> TSK<'static> {
+        TSK::from(self)
+    }
 }
 
 /// A reference to a `Cert` that allows serialization of secret keys.
@@ -293,7 +306,7 @@ impl Cert {
 /// # Ok(()) }
 /// ```
 pub struct TSK<'a> {
-    pub(crate) cert: &'a Cert,
+    pub(crate) cert: Cow<'a, Cert>,
     filter: Box<dyn Fn(&key::UnspecifiedSecret) -> bool + 'a>,
     emit_stubs: bool,
 }
@@ -333,11 +346,21 @@ impl PartialEq for TSK<'_> {
     }
 }
 
+impl From<Cert> for TSK<'_> {
+    fn from(c: Cert) -> Self {
+        Self {
+            cert: Cow::Owned(c),
+            filter: Box::new(|_| true),
+            emit_stubs: false,
+        }
+    }
+}
+
 impl<'a> TSK<'a> {
     /// Creates a new view for the given `Cert`.
     fn new(cert: &'a Cert) -> Self {
         Self {
-            cert,
+            cert: Cow::Borrowed(cert),
             filter: Box::new(|_| true),
             emit_stubs: false,
         }
