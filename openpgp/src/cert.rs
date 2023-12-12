@@ -1425,6 +1425,58 @@ impl Cert {
             .chain(self.bad.into_iter().map(|s| s.into()))
     }
 
+    /// Converts the certificate into an iterator over a sequence of
+    /// packets.
+    ///
+    /// This function strips secrets from the keys, similar to how
+    /// serializing a [`Cert`] would not serialize secret keys.  This
+    /// behavior makes it harder to accidentally leak secret key
+    /// material.
+    ///
+    /// If you do want to preserve secret key material, use
+    /// [`Cert::into_tsk`] to opt-in to getting the secret key
+    /// material, then use [`TSK::into_packets`] to convert to a
+    /// packet stream.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let (cert, _) =
+    /// #       CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #       .generate()?;
+    /// assert!(cert.is_tsk());
+    /// // But:
+    /// assert!(! Cert::from_packets(cert.into_packets2())?.is_tsk());
+    /// # Ok(()) }
+    /// ```
+    pub fn into_packets2(self) -> impl Iterator<Item=Packet> + Send + Sync {
+        /// Strips the secret key material.
+        fn rewrite(mut p: impl Iterator<Item=Packet> + Send + Sync)
+            -> impl Iterator<Item=Packet> + Send + Sync
+        {
+            let k: Packet = match p.next().unwrap() {
+                Packet::PublicKey(k) =>
+                    Packet::PublicKey(k.take_secret().0),
+                Packet::PublicSubkey(k) =>
+                    Packet::PublicSubkey(k.take_secret().0),
+                _ => unreachable!(),
+            };
+
+            std::iter::once(k).chain(p)
+        }
+
+        rewrite(self.primary.into_packets())
+            .chain(self.userids.into_iter().flat_map(|b| b.into_packets()))
+            .chain(self.user_attributes.into_iter().flat_map(|b| b.into_packets()))
+            .chain(self.subkeys.into_iter().flat_map(|b| rewrite(b.into_packets())))
+            .chain(self.unknowns.into_iter().flat_map(|b| b.into_packets()))
+            .chain(self.bad.into_iter().map(|s| s.into()))
+    }
+
     /// Returns the first certificate found in the sequence of packets.
     ///
     /// If the sequence of packets does not start with a certificate
@@ -3453,6 +3505,102 @@ impl Cert {
             policy,
             time,
         })
+    }
+}
+
+use crate::serialize::TSK;
+impl<'a> TSK<'a> {
+    /// Converts the certificate into an iterator over a sequence of
+    /// packets.
+    ///
+    /// This function emits secret key packets, modulo the keys that
+    /// are filtered (see [`TSK::set_filter`]).  If requested, missing
+    /// secret key material is replaced by stubs (see
+    /// [`TSK::emit_secret_key_stubs`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// # use openpgp::serialize::{Serialize, SerializeInto};
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let (cert, _) =
+    /// #       CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #       .generate()?;
+    /// assert!(cert.is_tsk());
+    /// let a = cert.as_tsk().to_vec()?;
+    /// let mut b = Vec::new();
+    /// cert.into_tsk().into_packets()
+    ///     .for_each(|p| p.serialize(&mut b).unwrap());
+    /// assert_eq!(a, b);
+    /// # Ok(()) }
+    /// ```
+    pub fn into_packets(self) -> impl Iterator<Item=Packet> + 'a {
+        /// Strips the secret key material if the filter rejects it,
+        /// and optionally inserts secret key stubs.
+        use std::sync::Arc;
+        fn rewrite<'a>(
+            filter: Arc<Box<dyn Fn(&key::UnspecifiedSecret) -> bool + 'a>>,
+            emit_secret_key_stubs: bool,
+            mut p: impl Iterator<Item=Packet> + Send + Sync)
+            -> impl Iterator<Item=Packet> + Send + Sync
+        {
+            let k: Packet = match p.next().unwrap() {
+                Packet::PublicKey(mut k) => {
+                    if ! k.role_as_unspecified().parts_as_secret()
+                        .map(|k| (filter)(k))
+                        .unwrap_or(false)
+                    {
+                        k = k.take_secret().0;
+                    }
+
+                    if ! k.has_secret() && emit_secret_key_stubs {
+                        k = TSK::add_stub(k).into();
+                    }
+
+                    if k.has_secret() {
+                        Packet::SecretKey(k.parts_into_secret().unwrap())
+                    } else {
+                        Packet::PublicKey(k)
+                    }
+                }
+                Packet::PublicSubkey(mut k) => {
+                    if ! k.role_as_unspecified().parts_as_secret()
+                        .map(|k| (filter)(k))
+                        .unwrap_or(false)
+                    {
+                        k = k.take_secret().0;
+                    }
+
+                    if ! k.has_secret() && emit_secret_key_stubs {
+                        k = TSK::add_stub(k).into();
+                    }
+
+                    if k.has_secret() {
+                        Packet::SecretSubkey(k.parts_into_secret().unwrap())
+                    } else {
+                        Packet::PublicSubkey(k)
+                    }
+                }
+                _ => unreachable!(),
+            };
+
+            std::iter::once(k).chain(p)
+        }
+
+        let (cert, filter, emit_secret_key_stubs) = self.decompose();
+        let filter = Arc::new(filter);
+        let cert = cert.into_owned();
+
+        rewrite(filter.clone(), emit_secret_key_stubs, cert.primary.into_packets())
+            .chain(cert.userids.into_iter().flat_map(|b| b.into_packets()))
+            .chain(cert.user_attributes.into_iter().flat_map(|b| b.into_packets()))
+            .chain(cert.subkeys.into_iter().flat_map(
+                move |b| rewrite(filter.clone(), emit_secret_key_stubs, b.into_packets())))
+            .chain(cert.unknowns.into_iter().flat_map(|b| b.into_packets()))
+            .chain(cert.bad.into_iter().map(|s| s.into()))
     }
 }
 

@@ -372,6 +372,15 @@ impl<'a> TSK<'a> {
         }
     }
 
+    /// Decomposes the TSK.
+    pub(crate) fn decompose(self)
+                            -> (Cow<'a, Cert>,
+                                Box<dyn 'a + Fn(&key::UnspecifiedSecret) -> bool>,
+                                bool)
+    {
+        (self.cert, self.filter, self.emit_stubs)
+    }
+
     /// Returns whether we're emitting secret (sub)key packets when
     /// serializing.
     ///
@@ -1124,6 +1133,39 @@ mod test {
                    cert.as_tsk().armored().to_vec()?);
         assert_eq!(cert.armored().to_vec()?,
                    tsk.as_tsk().set_filter(no_secrets).armored().to_vec()?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn into_packets() -> Result<()> {
+        let cert = Cert::from_bytes(crate::tests::key("testy-private.pgp"))?;
+
+        fn t(tsk: TSK) {
+            let a = tsk.to_vec().unwrap();
+            let b = {
+                let mut b = Vec::new();
+                tsk.into_packets().for_each(|p| p.serialize(&mut b).unwrap());
+                b
+            };
+            assert_eq!(a, b);
+        }
+
+        let tsk = cert.clone().into_tsk();
+        t(tsk);
+
+        let tsk = cert.clone().into_tsk().set_filter(|_| false);
+        t(tsk);
+
+        let tsk = cert.clone().into_tsk()
+            .set_filter(|k| k.fingerprint() == cert.fingerprint());
+        t(tsk);
+
+        let tsk = cert.clone().into_tsk()
+            .set_filter(|k| k.fingerprint() == cert.fingerprint())
+            .emit_secret_key_stubs(true);
+        t(tsk);
+
         Ok(())
     }
 }

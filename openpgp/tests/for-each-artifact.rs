@@ -118,8 +118,8 @@ mod for_each_artifact {
             if p != q {
                 eprintln!("roundtripping {:?} failed", src);
 
-                let p_: Vec<_> = p.clone().into_packets().collect();
-                let q_: Vec<_> = q.clone().into_packets().collect();
+                let p_: Vec<_> = p.clone().as_tsk().into_packets().collect();
+                let q_: Vec<_> = q.clone().as_tsk().into_packets().collect();
                 eprintln!("original: {} packets; roundtripped: {} packets",
                           p_.len(), q_.len());
 
@@ -140,6 +140,33 @@ mod for_each_artifact {
             let w = p.as_tsk().to_vec().unwrap();
             assert_eq!(v, w,
                        "Serialize and SerializeInto disagree on {:?}", p);
+
+            // Check that Cert::into_packets2() and Cert::to_vec()
+            // agree.  (Cert::into_packets2() returns no secret keys if
+            // secret key material is present; Cert::to_vec only ever
+            // returns public keys.)
+            let v = p.to_vec()?;
+            let mut buf = Vec::new();
+            for p in p.clone().into_packets2() {
+                p.serialize(&mut buf)?;
+            }
+            if let Err(_err) = diff_serialized(&buf, &v) {
+                panic!("Checking that \
+                        Cert::into_packets2() \
+                        and Cert::to_vec() agree.");
+            }
+
+            // Check that Cert::as_tsk().into_packets() and
+            // Cert::as_tsk().to_vec() agree.
+            let v = p.as_tsk().to_vec()?;
+            let mut buf = Vec::new();
+            for p in p.as_tsk().into_packets() {
+                p.serialize(&mut buf)?;
+            }
+            if let Err(_err) = diff_serialized(&buf, &v) {
+                panic!("Checking that Cert::as_tsk().into_packets() \
+                        and Cert::as_tsk().to_vec() agree.");
+            }
 
             // Check that
             // Cert::strip_secret_key_material().into_packets() and
