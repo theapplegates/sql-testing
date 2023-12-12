@@ -4,7 +4,13 @@ use std::{
 
 use crate::Result;
 use crate::cert::prelude::*;
-use crate::packet::{header::BodyLength, key, Signature, Tag};
+use crate::packet::{
+    header::BodyLength,
+    key,
+    Key,
+    Signature,
+    Tag,
+};
 use crate::seal;
 use crate::serialize::{
     PacketRef,
@@ -491,6 +497,36 @@ impl<'a> TSK<'a> {
         self
     }
 
+    /// Adds a GnuPG-style secret key stub to the key.
+    pub(crate) fn add_stub<P, R>(key: Key<P, R>) -> key::UnspecifiedSecret
+    where
+        P: key::KeyParts,
+        R: key::KeyRole,
+    {
+        let key = key.parts_into_public().role_into_unspecified();
+
+        // Emit a GnuPG-style secret key stub.
+        let stub = crate::crypto::S2K::Private {
+            tag: 101,
+            parameters: Some(vec![
+                0,    // "hash algo"
+                0x47, // 'G'
+                0x4e, // 'N'
+                0x55, // 'U'
+                1     // "mode"
+            ].into()),
+        };
+        key.add_secret(key::SecretKeyMaterial::Encrypted(
+            key::Encrypted::new(
+                stub, 0.into(),
+                // Mirrors more closely what GnuPG 2.1
+                // does (oddly, GnuPG 1.4 emits 0xfe
+                // here).
+                Some(crate::crypto::mpi::SecretKeyChecksum::Sum16),
+                vec![].into())))
+            .0.into()
+    }
+
     /// Serializes or exports the Cert.
     ///
     /// If `export` is true, then non-exportable signatures are not
@@ -529,26 +565,7 @@ impl<'a> TSK<'a> {
 
             if self.emit_stubs && (tag == Tag::PublicKey
                                    || tag == Tag::PublicSubkey) {
-                // Emit a GnuPG-style secret key stub.
-                let stub = crate::crypto::S2K::Private {
-                    tag: 101,
-                    parameters: Some(vec![
-                        0,    // "hash algo"
-                        0x47, // 'G'
-                        0x4e, // 'N'
-                        0x55, // 'U'
-                        1     // "mode"
-                    ].into()),
-                };
-                let key_with_stub = key.clone()
-                    .add_secret(key::SecretKeyMaterial::Encrypted(
-                        key::Encrypted::new(
-                            stub, 0.into(),
-                            // Mirrors more closely what GnuPG 2.1
-                            // does (oddly, GnuPG 1.4 emits 0xfe
-                            // here).
-                            Some(crate::crypto::mpi::SecretKeyChecksum::Sum16),
-                            vec![].into()))).0;
+                let key_with_stub = Self::add_stub(key.clone());
                 return match tag {
                     Tag::PublicKey =>
                         crate::Packet::SecretKey(key_with_stub.into())
