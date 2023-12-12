@@ -527,8 +527,18 @@ impl From<Cert> for PacketPile {
     /// Converts the `Cert` into a `PacketPile`.
     ///
     /// If any packets include secret key material, that secret key
-    /// material is not dropped, as it is when serializing a `Cert`.
+    /// material is included in the resulting `PacketPile`.  In
+    /// contrast, when serializing a `Cert`, or converting a cert to
+    /// packets with [`Cert::into_packets2`], the secret key material
+    /// not included.
+    ///
+    /// Note: This will change in sequoia-openpgp version 2, which
+    /// will harmonize the behavior and not include secret key
+    /// material.
+    // XXXv2: Drop the note in the doc comment and mentioned it in the
+    // release notes.
     fn from(cert: Cert) -> PacketPile {
+        #[allow(deprecated)]
         PacketPile::from(cert.into_packets().collect::<Vec<Packet>>())
     }
 }

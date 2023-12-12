@@ -175,6 +175,7 @@ mod for_each_artifact {
             // Cert::to_vec only ever returns public keys.)
             let v = p.to_vec()?;
             let mut buf = Vec::new();
+            #[allow(deprecated)]
             for p in p.clone().strip_secret_key_material().into_packets() {
                 p.serialize(&mut buf)?;
             }
@@ -188,6 +189,7 @@ mod for_each_artifact {
             // Cert::as_tsk().to_vec() agree.
             let v = p.as_tsk().to_vec()?;
             let mut buf = Vec::new();
+            #[allow(deprecated)]
             for p in p.into_packets() {
                 p.serialize(&mut buf)?;
             }

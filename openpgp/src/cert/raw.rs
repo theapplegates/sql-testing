@@ -1516,7 +1516,7 @@ mod test {
                 None, Some("a@example.org"))
             .generate()?;
         let cert_1_packets: Vec<Packet>
-            = cert_1.into_packets().collect();
+            = cert_1.into_packets2().collect();
 
         let (cert_2, _) =
             CertBuilder::general_purpose(

@@ -20,6 +20,8 @@
    - Error::ShortKeyID
    - Cert::into_packets2
    - TSK::into_packets
+** Deprecated functionality
+   - Cert::into_packets
 * Changes in 1.17.0
 ** Notable fixes
    - Sequoia now ignores some formatting errors when reading secret

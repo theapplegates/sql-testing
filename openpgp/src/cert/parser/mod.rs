@@ -1723,8 +1723,10 @@ mod test {
             .zip(certs_parsed.into_iter())
             .enumerate()
         {
-            let ps_orig: Vec<Packet> = c_orig.into_packets().collect();
-            let ps_parsed: Vec<Packet> = c_parsed.into_packets().collect();
+            let ps_orig: Vec<Packet> =
+                c_orig.as_tsk().into_packets().collect();
+            let ps_parsed: Vec<Packet> =
+                c_parsed.as_tsk().into_packets().collect();
             assert_eq!(ps_orig.len(), ps_parsed.len(),
                        "number of packets: expected vs. got");
 
@@ -1815,7 +1817,7 @@ mod test {
                 None, Some("a@example.org"))
             .generate()?;
         let cert_1_packets: Vec<Packet>
-            = cert_1.into_packets().collect();
+            = cert_1.into_packets2().collect();
 
         let (cert_2, _) =
             CertBuilder::general_purpose(
