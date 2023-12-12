@@ -294,7 +294,7 @@ impl Cert {
 /// ```
 pub struct TSK<'a> {
     pub(crate) cert: &'a Cert,
-    filter: Box<dyn Fn(&'a key::UnspecifiedSecret) -> bool + 'a>,
+    filter: Box<dyn Fn(&key::UnspecifiedSecret) -> bool + 'a>,
     emit_stubs: bool,
 }
 
@@ -385,7 +385,7 @@ impl<'a> TSK<'a> {
     /// # Ok(()) }
     /// ```
     pub fn set_filter<P>(mut self, predicate: P) -> Self
-        where P: 'a + Fn(&'a key::UnspecifiedSecret) -> bool
+        where P: 'a + Fn(&key::UnspecifiedSecret) -> bool
     {
         self.filter = Box::new(predicate);
         self
@@ -1029,7 +1029,7 @@ mod test {
         check!(&cert_0, &tsk_0, true);
 
         // Filters out secrets.
-        let no_secrets = |_| false;
+        let no_secrets = |_: &_| false;
 
         // TSK's equality.
         check!(tsk_0.as_tsk(), tsk_1.as_tsk(), true);
@@ -1070,7 +1070,7 @@ mod test {
         let tsk = Cert::from_bytes(crate::tests::key("testy-private.pgp"))?;
 
         // Filters out secrets.
-        let no_secrets = |_| false;
+        let no_secrets = |_: &_| false;
 
         assert!(! cert.as_tsk().emits_secret_key_packets());
         assert!(cert.as_tsk().emit_secret_key_stubs(true)
