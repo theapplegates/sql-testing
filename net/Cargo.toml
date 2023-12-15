@@ -32,7 +32,6 @@ hyper-tls = "0.5"
 libc = "0.2.66"
 percent-encoding = "2.1"
 reqwest = "0.11"
-tempfile = "3.1"
 thiserror = "1.0.2"
 url = "2.1"
 z-base-32 = "0.1.2"
@@ -45,6 +44,7 @@ hickory-resolver = { version = "0.24", features = ["dnssec-openssl"]}
 rand = { version = "0.8", default-features = false, features = [ "getrandom" ] }
 hyper = { version = "0.14", features = [ "server" ] }
 reqwest = { version = "0.11", features = ["socks"] }
+tempfile = "3.1"
 
 [lib]
 bench = false
