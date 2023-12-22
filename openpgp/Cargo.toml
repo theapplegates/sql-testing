@@ -109,22 +109,25 @@ criterion = { version = "0.5", features = ["html_reports"] }
 [features]
 default = ["compression", "crypto-nettle"]
 # TODO(#333): Allow for/implement more backends
-crypto-nettle = ["nettle"]
+crypto-nettle = ["dep:nettle"]
 crypto-rust = [
-    "aes", "block-padding", "blowfish", "camellia", "cast5", "cfb-mode", "cipher", "des",
-    "digest", "eax", "ecb", "ed25519", "ed25519-dalek", "idea",
-    "md-5", "num-bigint-dig", "ripemd", "rsa", "sha2",
+    "dep:aes", "dep:block-padding", "dep:blowfish", "dep:camellia",
+    "dep:cast5", "dep:cfb-mode", "dep:cipher", "dep:des", "dep:digest",
+    "dep:eax", "dep:ecb", "dep:ed25519", "dep:ed25519-dalek", "dep:idea",
+    "dep:md-5", "dep:num-bigint-dig", "dep:ripemd", "dep:rsa", "dep:sha2",
     "sha1collisiondetection/digest-trait", "sha1collisiondetection/oid",
-    "twofish", "typenum", "x25519-dalek", "p256",
-    "rand_core", "rand_core/getrandom", "ecdsa", "aes-gcm", "dsa"
+    "dep:twofish", "dep:typenum", "dep:x25519-dalek", "dep:p256",
+    "dep:rand_core", "rand_core?/getrandom", "dep:ecdsa", "dep:aes-gcm",
+    "dep:dsa"
 ]
 crypto-cng = [
-    "cipher", "eax", "winapi", "win-crypto-ng", "ed25519", "ed25519-dalek",
-    "num-bigint-dig", "aes-gcm", "rand_core"
+    "dep:cipher", "dep:eax", "dep:winapi", "dep:win-crypto-ng",
+    "dep:ed25519", "dep:ed25519-dalek",
+    "dep:num-bigint-dig", "dep:aes-gcm", "dep:rand_core"
 ]
-crypto-openssl = ["openssl", "openssl-sys"]
-crypto-botan = ["botan/botan3"]
-crypto-botan2 = ["botan"]
+crypto-openssl = ["dep:openssl", "dep:openssl-sys"]
+crypto-botan = ["dep:botan", "botan?/botan3"]
+crypto-botan2 = ["dep:botan"]
 crypto-fuzzing = []
 __implicit-crypto-backend-for-tests = []
 
@@ -134,8 +137,8 @@ allow-variable-time-crypto = []
 
 # The compression algorithms.
 compression = ["compression-deflate", "compression-bzip2"]
-compression-deflate = ["flate2", "buffered-reader/compression-deflate"]
-compression-bzip2 = ["bzip2", "buffered-reader/compression-bzip2"]
+compression-deflate = ["dep:flate2", "buffered-reader/compression-deflate"]
+compression-bzip2 = ["dep:bzip2", "buffered-reader/compression-bzip2"]
 
 [lib]
 bench = false
