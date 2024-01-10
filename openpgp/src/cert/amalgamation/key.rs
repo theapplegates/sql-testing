@@ -829,6 +829,210 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
     }
 }
 
+impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
+    where Self: PrimaryKey<'a, P, R>,
+          P: 'a + key::KeyParts,
+          R: 'a + key::KeyRole,
+{
+    /// Returns the third-party certifications issued by the specified
+    /// key, and valid at the specified time.
+    ///
+    /// This function returns the certifications issued by the
+    /// specified key.  Specifically, it returns a certification if:
+    ///
+    ///   - it is well formed,
+    ///   - it is live with respect to the reference time,
+    ///   - it conforms to the policy, and
+    ///   - the signature is cryptographically valid.
+    ///
+    /// This method is implemented on a [`KeyAmalgamation`] and not
+    /// a [`ValidKeyAmalgamation`], because a third-party
+    /// certification does not require the key to be self signed.
+    ///
+    /// # Examples
+    ///
+    /// Alice has certified that a certificate belongs to Bob on two
+    /// occasions.  Whereas
+    /// [`KeyAmalgamation::valid_certifications_by_key`] returns
+    /// both certifications,
+    /// [`KeyAmalgamation::active_certifications_by_key`] only
+    /// returns the most recent certification.
+    ///
+    /// ```rust
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::cert::prelude::*;
+    /// # use openpgp::packet::signature::SignatureBuilder;
+    /// # use openpgp::packet::UserID;
+    /// use openpgp::policy::StandardPolicy;
+    /// # use openpgp::types::SignatureType;
+    ///
+    /// const P: &StandardPolicy = &StandardPolicy::new();
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let epoch = std::time::SystemTime::now()
+    /// #     - std::time::Duration::new(100, 0);
+    /// # let t0 = epoch;
+    /// #
+    /// # let (alice, _) = CertBuilder::new()
+    /// #     .set_creation_time(t0)
+    /// #     .add_userid("<alice@example.org>")
+    /// #     .generate()
+    /// #     .unwrap();
+    /// let alice: Cert = // ...
+    /// # alice;
+    /// #
+    /// # let bob_userid = "<bob@example.org>";
+    /// # let (bob, _) = CertBuilder::new()
+    /// #     .set_creation_time(t0)
+    /// #     .add_userid(bob_userid)
+    /// #     .generate()
+    /// #     .unwrap();
+    /// let bob: Cert = // ...
+    /// # bob;
+    ///
+    /// # // Alice has not certified Bob's User ID.
+    /// # let ka = bob.primary_key();
+    /// # assert_eq!(
+    /// #     ka.active_certifications_by_key(
+    /// #         P, t0, alice.primary_key().key()).count(),
+    /// #     0);
+    /// #
+    /// # // Have Alice certify Bob's certificate.
+    /// # let mut alice_signer = alice
+    /// #     .keys()
+    /// #     .with_policy(P, None)
+    /// #     .for_certification()
+    /// #     .next().expect("have a certification-capable key")
+    /// #     .key()
+    /// #     .clone()
+    /// #     .parts_into_secret().expect("have unencrypted key material")
+    /// #     .into_keypair().expect("have unencrypted key material");
+    /// #
+    /// # let mut bob = bob;
+    /// # for i in 1..=2usize {
+    /// #     let ti = t0 + std::time::Duration::new(i as u64, 0);
+    /// #
+    /// #     let certification = SignatureBuilder::new(SignatureType::DirectKey)
+    /// #         .set_signature_creation_time(ti)?
+    /// #         .sign_direct_key(
+    /// #             &mut alice_signer,
+    /// #             bob.primary_key().key())?;
+    /// #     bob = bob.insert_packets(certification)?;
+    /// #
+    /// #     let ka = bob.primary_key();
+    /// #     assert_eq!(
+    /// #         ka.valid_certifications_by_key(
+    /// #             P, ti, alice.primary_key().key()).count(),
+    /// #         i);
+    /// #
+    /// #     assert_eq!(
+    /// #         ka.active_certifications_by_key(
+    /// #             P, ti, alice.primary_key().key()).count(),
+    /// #         1);
+    /// # }
+    /// let bob_pk = bob.primary_key();
+    ///
+    /// let valid_certifications = bob_pk.valid_certifications_by_key(
+    ///     P, None, alice.primary_key().key());
+    /// // Alice certified Bob's certificate twice.
+    /// assert_eq!(valid_certifications.count(), 2);
+    ///
+    /// let active_certifications = bob_pk.active_certifications_by_key(
+    ///     P, None, alice.primary_key().key());
+    /// // But only the most recent one is active.
+    /// assert_eq!(active_certifications.count(), 1);
+    /// # Ok(()) }
+    /// ```
+    pub fn valid_certifications_by_key<T, PK>(&self,
+                                              policy: &'a dyn Policy,
+                                              reference_time: T,
+                                              issuer: PK)
+        -> impl Iterator<Item=&Signature> + Send + Sync
+    where
+        T: Into<Option<time::SystemTime>>,
+        PK: Into<&'a Key<key::PublicParts,
+                         key::UnspecifiedRole>>,
+    {
+        let reference_time = reference_time.into();
+        let issuer = issuer.into();
+
+        let primary = self.primary();
+
+        self.valid_certifications_by_key_(
+            policy, reference_time, issuer, false,
+            move |sig| {
+                if primary {
+                    sig.clone().verify_direct_key(
+                        issuer,
+                        self.component().role_as_primary())
+                } else {
+                    sig.clone().verify_subkey_binding(
+                        issuer,
+                        self.cert.primary_key().key(),
+                        self.component().role_as_subordinate())
+                }
+            })
+    }
+
+    /// Returns any active third-party certifications issued by the
+    /// specified key.
+    ///
+    /// This function is like
+    /// [`KeyAmalgamation::valid_certifications_by_key`], but it
+    /// only returns active certifications.  Active certifications are
+    /// the most recent valid certifications with respect to the
+    /// reference time.
+    ///
+    /// Although there is normally only a single active certification,
+    /// there can be multiple certifications with the same timestamp.
+    /// In this case, all of them are returned.
+    ///
+    /// Unlike self-signatures, multiple third-party certifications
+    /// issued by the same key at the same time can be sensible.  For
+    /// instance, Alice may fully trust a CA for user IDs in a
+    /// particular domain, and partially trust it for everything else.
+    /// This can only be expressed using multiple certifications.
+    ///
+    /// This method is implemented on a [`KeyAmalgamation`] and not
+    /// a [`ValidKeyAmalgamation`], because a third-party
+    /// certification does not require the user ID to be self signed.
+    ///
+    /// # Examples
+    ///
+    /// See the examples for
+    /// [`KeyAmalgamation::valid_certifications_by_key`].
+    pub fn active_certifications_by_key<T, PK>(&self,
+                                               policy: &'a dyn Policy,
+                                               reference_time: T,
+                                               issuer: PK)
+        -> impl Iterator<Item=&Signature> + Send + Sync
+    where
+        T: Into<Option<time::SystemTime>>,
+        PK: Into<&'a Key<key::PublicParts,
+                         key::UnspecifiedRole>>,
+    {
+        let reference_time = reference_time.into();
+        let issuer = issuer.into();
+
+        let primary = self.primary();
+
+        self.valid_certifications_by_key_(
+            policy, reference_time, issuer, true,
+            move |sig| {
+                if primary {
+                    sig.clone().verify_direct_key(
+                        issuer,
+                        self.component().role_as_primary())
+                } else {
+                    sig.clone().verify_subkey_binding(
+                        issuer,
+                        self.cert.primary_key().key(),
+                        &self.component().role_as_subordinate())
+                }
+            })
+    }
+}
+
 /// A `KeyAmalgamation` plus a `Policy` and a reference time.
 ///
 /// In the same way that a [`ValidComponentAmalgamation`] extends a
@@ -2325,9 +2529,13 @@ impl<'a, P, R, R2> ValidKeyAmalgamation<'a, P, R, R2>
 
 #[cfg(test)]
 mod test {
+    use std::time::Duration;
+    use std::time::UNIX_EPOCH;
+
     use crate::policy::StandardPolicy as P;
     use crate::cert::prelude::*;
     use crate::packet::Packet;
+    use crate::packet::signature::SignatureBuilder;
 
     use super::*;
 
@@ -2465,6 +2673,322 @@ mod test {
             let ka = ka.with_policy(p, t + std::time::Duration::new(1, 0))?;
             assert!(ka.alive().is_err());
         }
+
+        Ok(())
+    }
+
+    #[test]
+    fn key_amalgamation_certifications_by_key() -> Result<()> {
+        // Alice and Bob certify Carol's certificate.  We then check
+        // that valid_certifications_by_key and
+        // active_certifications_by_key return them.
+        let p = &crate::policy::StandardPolicy::new();
+
+        // $ date -u -d '2024-01-02 13:00' +%s
+        let t0 = UNIX_EPOCH + Duration::new(1704200400, 0);
+        // $ date -u -d '2024-01-02 14:00' +%s
+        let t1 = UNIX_EPOCH + Duration::new(1704204000, 0);
+        // $ date -u -d '2024-01-02 15:00' +%s
+        let t2 = UNIX_EPOCH + Duration::new(1704207600, 0);
+
+        let (alice, _) = CertBuilder::new()
+            .set_creation_time(t0)
+            .add_userid("<alice@example.example>")
+            .generate()
+            .unwrap();
+        let alice_primary = alice.primary_key().key();
+
+        let (bob, _) = CertBuilder::new()
+            .set_creation_time(t0)
+            .add_userid("<bob@example.example>")
+            .generate()
+            .unwrap();
+        let bob_primary = bob.primary_key().key();
+
+        let carol_userid = "<carol@example.example>";
+        let (carol, _) = CertBuilder::new()
+            .set_creation_time(t0)
+            .add_userid(carol_userid)
+            .generate()
+            .unwrap();
+
+        let ka = alice.primary_key();
+        assert_eq!(
+            ka.valid_certifications_by_key(p, None, alice_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, None, alice_primary).count(),
+            0);
+
+        // Alice has not certified Bob's User ID.
+        let ka = bob.primary_key();
+        assert_eq!(
+            ka.valid_certifications_by_key(p, None, alice_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, None, alice_primary).count(),
+            0);
+
+        // Alice has not certified Carol's User ID.
+        let ka = carol.primary_key();
+        assert_eq!(
+            ka.valid_certifications_by_key(p, None, alice_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, None, alice_primary).count(),
+            0);
+
+
+        // Have Alice certify Carol's certificate at t1.
+        let mut alice_signer = alice_primary
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::DirectKey)
+            .set_signature_creation_time(t1)?
+            .sign_direct_key(
+                &mut alice_signer,
+                carol.primary_key().key())?;
+        let carol = carol.insert_packets(certification.clone())?;
+
+        // Check that it is returned.
+        let ka = carol.primary_key();
+        assert_eq!(ka.certifications().count(), 1);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t0, alice_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t0, alice_primary).count(),
+            0);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t1, alice_primary).count(),
+            1);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t1, alice_primary).count(),
+            1);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t1, bob_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t1, bob_primary).count(),
+            0);
+
+
+        // Have Alice certify Carol's certificate at t1 (again).
+        // Since both certifications were created at t1, they should
+        // both be returned.
+        let mut alice_signer = alice_primary
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::DirectKey)
+            .set_signature_creation_time(t1)?
+            .sign_direct_key(
+                &mut alice_signer,
+                carol.primary_key().key())?;
+        let carol = carol.insert_packets(certification.clone())?;
+
+        // Check that it is returned.
+        let ka = carol.primary_key();
+        assert_eq!(ka.certifications().count(), 2);
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t0, alice_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t0, alice_primary).count(),
+            0);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t1, alice_primary).count(),
+            2);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t1, alice_primary).count(),
+            2);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t2, alice_primary).count(),
+            2);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t2, alice_primary).count(),
+            2);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t0, bob_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t0, bob_primary).count(),
+            0);
+
+
+        // Have Alice certify Carol's certificate at t2.  Now we only
+        // have one active certification.
+        let mut alice_signer = alice_primary
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::DirectKey)
+            .set_signature_creation_time(t2)?
+            .sign_direct_key(
+                &mut alice_signer,
+                carol.primary_key().key())?;
+        let carol = carol.insert_packets(certification.clone())?;
+
+        // Check that it is returned.
+        let ka = carol.primary_key();
+        assert_eq!(ka.certifications().count(), 3);
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t0, alice_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t0, alice_primary).count(),
+            0);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t1, alice_primary).count(),
+            2);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t1, alice_primary).count(),
+            2);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t2, alice_primary).count(),
+            3);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t2, alice_primary).count(),
+            1);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t0, bob_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t0, bob_primary).count(),
+            0);
+
+
+        // Have Bob certify Carol's certificate at t1 and have it expire at t2.
+        let mut bob_signer = bob.primary_key()
+            .key()
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::DirectKey)
+            .set_signature_creation_time(t1)?
+            .set_signature_validity_period(t2.duration_since(t1)?)?
+            .sign_direct_key(
+                &mut bob_signer,
+                carol.primary_key().key())?;
+        let carol = carol.insert_packets(certification.clone())?;
+
+        // Check that it is returned.
+        let ka = carol.primary_key();
+        assert_eq!(ka.certifications().count(), 4);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t0, alice_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t0, alice_primary).count(),
+            0);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t1, alice_primary).count(),
+            2);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t1, alice_primary).count(),
+            2);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t2, alice_primary).count(),
+            3);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t2, alice_primary).count(),
+            1);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t0, bob_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t0, bob_primary).count(),
+            0);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t1, bob_primary).count(),
+            1);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t1, bob_primary).count(),
+            1);
+
+        // It expired.
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t2, bob_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t2, bob_primary).count(),
+            0);
+
+
+        // Have Bob certify Carol's certificate at t1 again.  This
+        // time don't have it expire.
+        let mut bob_signer = bob.primary_key()
+            .key()
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::DirectKey)
+            .set_signature_creation_time(t1)?
+            .sign_direct_key(
+                &mut bob_signer,
+                carol.primary_key().key())?;
+        let carol = carol.insert_packets(certification.clone())?;
+
+        // Check that it is returned.
+        let ka = carol.primary_key();
+        assert_eq!(ka.certifications().count(), 5);
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t0, alice_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t0, alice_primary).count(),
+            0);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t1, alice_primary).count(),
+            2);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t1, alice_primary).count(),
+            2);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t2, alice_primary).count(),
+            3);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t2, alice_primary).count(),
+            1);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t0, bob_primary).count(),
+            0);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t0, bob_primary).count(),
+            0);
+
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t1, bob_primary).count(),
+            2);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t1, bob_primary).count(),
+            2);
+
+        // One of the certifications expired.
+        assert_eq!(
+            ka.valid_certifications_by_key(p, t2, bob_primary).count(),
+            1);
+        assert_eq!(
+            ka.active_certifications_by_key(p, t2, bob_primary).count(),
+            1);
 
         Ok(())
     }
