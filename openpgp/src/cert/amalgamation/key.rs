@@ -960,6 +960,7 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
 
         self.valid_certifications_by_key_(
             policy, reference_time, issuer, false,
+            self.certifications(),
             move |sig| {
                 if primary {
                     sig.clone().verify_direct_key(
@@ -1018,6 +1019,7 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
 
         self.valid_certifications_by_key_(
             policy, reference_time, issuer, true,
+            self.certifications(),
             move |sig| {
                 if primary {
                     sig.clone().verify_direct_key(
@@ -1025,6 +1027,120 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
                         self.component().role_as_primary())
                 } else {
                     sig.clone().verify_subkey_binding(
+                        issuer,
+                        self.cert.primary_key().key(),
+                        &self.component().role_as_subordinate())
+                }
+            })
+    }
+
+    /// Returns the third-party revocations issued by the specified
+    /// key, and valid at the specified time.
+    ///
+    /// This function returns the revocations issued by the specified
+    /// key.  Specifically, it returns a revocation if:
+    ///
+    ///   - it is well formed,
+    ///   - it is a [hard revocation](crate::types::RevocationType),
+    ///     or it is live with respect to the reference time,
+    ///   - it conforms to the policy, and
+    ///   - the signature is cryptographically valid.
+    ///
+    /// This method is implemented on a [`KeyAmalgamation`] and not
+    /// a [`ValidKeyAmalgamation`], because a third-party
+    /// revocation does not require the key to be self signed.
+    ///
+    /// # Examples
+    ///
+    /// Alice revoked Bob's certificate.
+    ///
+    /// ```rust
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::cert::prelude::*;
+    /// # use openpgp::Packet;
+    /// # use openpgp::packet::signature::SignatureBuilder;
+    /// # use openpgp::packet::UserID;
+    /// use openpgp::policy::StandardPolicy;
+    /// # use openpgp::types::ReasonForRevocation;
+    /// # use openpgp::types::SignatureType;
+    ///
+    /// const P: &StandardPolicy = &StandardPolicy::new();
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let epoch = std::time::SystemTime::now()
+    /// #     - std::time::Duration::new(100, 0);
+    /// # let t0 = epoch;
+    /// # let t1 = epoch + std::time::Duration::new(1, 0);
+    /// #
+    /// # let (alice, _) = CertBuilder::new()
+    /// #     .set_creation_time(t0)
+    /// #     .add_userid("<alice@example.org>")
+    /// #     .generate()
+    /// #     .unwrap();
+    /// let alice: Cert = // ...
+    /// # alice;
+    /// #
+    /// # let bob_userid = "<bob@example.org>";
+    /// # let (bob, _) = CertBuilder::new()
+    /// #     .set_creation_time(t0)
+    /// #     .add_userid(bob_userid)
+    /// #     .generate()
+    /// #     .unwrap();
+    /// let bob: Cert = // ...
+    /// # bob;
+    ///
+    /// # // Have Alice certify Bob's certificate.
+    /// # let mut alice_signer = alice
+    /// #     .keys()
+    /// #     .with_policy(P, None)
+    /// #     .for_certification()
+    /// #     .next().expect("have a certification-capable key")
+    /// #     .key()
+    /// #     .clone()
+    /// #     .parts_into_secret().expect("have unencrypted key material")
+    /// #     .into_keypair().expect("have unencrypted key material");
+    /// #
+    /// # let certification = SignatureBuilder::new(SignatureType::KeyRevocation)
+    /// #     .set_signature_creation_time(t1)?
+    /// #     .set_reason_for_revocation(
+    /// #         ReasonForRevocation::KeyRetired, b"")?
+    /// #     .sign_direct_key(
+    /// #         &mut alice_signer,
+    /// #         bob.primary_key().key())?;
+    /// # let bob = bob.insert_packets(certification)?;
+    /// let ka = bob.primary_key();
+    ///
+    /// let revs = ka.valid_third_party_revocations_by_key(
+    ///     P, None, alice.primary_key().key());
+    /// // Alice revoked Bob's certificate.
+    /// assert_eq!(revs.count(), 1);
+    /// # Ok(()) }
+    /// ```
+    pub fn valid_third_party_revocations_by_key<T, PK>(&self,
+                                                       policy: &'a dyn Policy,
+                                                       reference_time: T,
+                                                       issuer: PK)
+        -> impl Iterator<Item=&Signature> + Send + Sync
+    where
+        T: Into<Option<time::SystemTime>>,
+        PK: Into<&'a Key<key::PublicParts,
+                         key::UnspecifiedRole>>,
+    {
+        let issuer = issuer.into();
+        let reference_time = reference_time.into();
+
+        let primary = self.primary();
+
+        self.valid_certifications_by_key_(
+            policy, reference_time, issuer, false,
+            self.other_revocations(),
+            move |sig| {
+                if primary {
+                    sig.clone().verify_primary_key_revocation(
+                        issuer,
+                        self.component().role_as_primary())
+                } else {
+                    sig.clone().verify_subkey_revocation(
                         issuer,
                         self.cert.primary_key().key(),
                         &self.component().role_as_subordinate())
@@ -2536,6 +2652,8 @@ mod test {
     use crate::cert::prelude::*;
     use crate::packet::Packet;
     use crate::packet::signature::SignatureBuilder;
+    use crate::types::ReasonForRevocation;
+    use crate::types::RevocationType;
 
     use super::*;
 
@@ -2991,5 +3109,251 @@ mod test {
             1);
 
         Ok(())
+    }
+
+    fn key_amalgamation_valid_third_party_revocations_by_key(
+        reason: ReasonForRevocation)
+        -> Result<()>
+    {
+        // Hard revocations are returned independent of the reference
+        // time and independent of their expiration.  They are always
+        // live.
+        let soft = reason.revocation_type() == RevocationType::Soft;
+
+        // Alice and Bob revoke Carol's certificate.  We then check
+        // that valid_third_party_revocations_by_key returns them.
+        let p = &crate::policy::StandardPolicy::new();
+
+        // $ date -u -d '2024-01-02 13:00' +%s
+        let t0 = UNIX_EPOCH + Duration::new(1704200400, 0);
+        // $ date -u -d '2024-01-02 14:00' +%s
+        let t1 = UNIX_EPOCH + Duration::new(1704204000, 0);
+        // $ date -u -d '2024-01-02 15:00' +%s
+        let t2 = UNIX_EPOCH + Duration::new(1704207600, 0);
+
+        let (alice, _) = CertBuilder::new()
+            .set_creation_time(t0)
+            .add_userid("<alice@example.example>")
+            .generate()
+            .unwrap();
+        let alice_primary = alice.primary_key().key();
+
+        let (bob, _) = CertBuilder::new()
+            .set_creation_time(t0)
+            .add_userid("<bob@example.example>")
+            .generate()
+            .unwrap();
+        let bob_primary = bob.primary_key().key();
+
+        let carol_userid = "<carol@example.example>";
+        let (carol, _) = CertBuilder::new()
+            .set_creation_time(t0)
+            .add_userid(carol_userid)
+            .generate()
+            .unwrap();
+
+        let ka = alice.primary_key();
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, None, alice_primary).count(),
+            0);
+
+        // Alice has not revoked Bob's certificate.
+        let ka = bob.primary_key();
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, None, alice_primary).count(),
+            0);
+
+        // Alice has not revoked Carol's certificate.
+        let ka = carol.primary_key();
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, None, alice_primary).count(),
+            0);
+
+
+        // Have Alice revoke Carol's revoke at t1.
+        let mut alice_signer = alice_primary
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let rev = SignatureBuilder::new(SignatureType::KeyRevocation)
+            .set_signature_creation_time(t1)?
+            .set_reason_for_revocation(
+                reason, b"")?
+            .sign_direct_key(
+                &mut alice_signer,
+                carol.primary_key().key())?;
+        let carol = carol.insert_packets(rev)?;
+
+        // Check that it is returned.
+        let ka = carol.primary_key();
+        assert_eq!(ka.other_revocations().count(), 1);
+
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t0, alice_primary).count(),
+            if soft { 0 } else { 1 });
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t1, alice_primary).count(),
+            1);
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t1, bob_primary).count(),
+            0);
+
+
+        // Have Alice revoke Carol's certificate at t1 (again).
+        let mut alice_signer = alice_primary
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let rev = SignatureBuilder::new(SignatureType::KeyRevocation)
+            .set_signature_creation_time(t1)?
+            .set_reason_for_revocation(reason, b"")?
+            .sign_direct_key(
+                &mut alice_signer,
+                carol.primary_key().key())?;
+        let carol = carol.insert_packets(rev)?;
+
+        // Check that it is returned.
+        let ka = carol.primary_key();
+        assert_eq!(ka.other_revocations().count(), 2);
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t0, alice_primary).count(),
+            if soft { 0 } else { 2 });
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t1, alice_primary).count(),
+            2);
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t2, alice_primary).count(),
+            2);
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t0, bob_primary).count(),
+            0);
+
+
+        // Have Alice revoke Carol's certificate at t2.
+        let mut alice_signer = alice_primary
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let rev = SignatureBuilder::new(SignatureType::KeyRevocation)
+            .set_signature_creation_time(t2)?
+            .set_reason_for_revocation(reason, b"")?
+            .sign_direct_key(
+                &mut alice_signer,
+                carol.primary_key().key())?;
+        let carol = carol.insert_packets(rev)?;
+
+        // Check that it is returned.
+        let ka = carol.primary_key();
+        assert_eq!(ka.other_revocations().count(), 3);
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t0, alice_primary).count(),
+            if soft { 0 } else { 3 });
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t1, alice_primary).count(),
+            if soft { 2 } else { 3 });
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t2, alice_primary).count(),
+            3);
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t0, bob_primary).count(),
+            0);
+
+
+        // Have Bob revoke Carol's certificate at t1 and have it expire at t2.
+        let mut bob_signer = bob.primary_key()
+            .key()
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let rev = SignatureBuilder::new(SignatureType::KeyRevocation)
+            .set_signature_creation_time(t1)?
+            .set_signature_validity_period(t2.duration_since(t1)?)?
+            .set_reason_for_revocation(reason, b"")?
+            .sign_direct_key(
+                &mut bob_signer,
+                carol.primary_key().key())?;
+        let carol = carol.insert_packets(rev)?;
+
+        // Check that it is returned.
+        let ka = carol.primary_key();
+        assert_eq!(ka.other_revocations().count(), 4);
+
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t0, alice_primary).count(),
+            if soft { 0 } else { 3 });
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t1, alice_primary).count(),
+            if soft { 2 } else { 3 });
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t2, alice_primary).count(),
+            3);
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t0, bob_primary).count(),
+            if soft { 0 } else { 1 });
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t1, bob_primary).count(),
+            1);
+        // It expired.
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t2, bob_primary).count(),
+            if soft { 0 } else { 1 });
+
+
+        // Have Bob revoke Carol's certificate at t1 again.  This
+        // time don't have it expire.
+        let mut bob_signer = bob.primary_key()
+            .key()
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let rev = SignatureBuilder::new(SignatureType::KeyRevocation)
+            .set_signature_creation_time(t1)?
+            .set_reason_for_revocation(reason, b"")?
+            .sign_direct_key(
+                &mut bob_signer,
+                carol.primary_key().key())?;
+        let carol = carol.insert_packets(rev)?;
+
+        // Check that it is returned.
+        let ka = carol.primary_key();
+        assert_eq!(
+            ka.other_revocations().count(), 5);
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t0, alice_primary).count(),
+            if soft { 0 } else { 3 });
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t1, alice_primary).count(),
+            if soft { 2 } else { 3 });
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t2, alice_primary).count(),
+            3);
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t0, bob_primary).count(),
+            if soft { 0 } else { 2 });
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t1, bob_primary).count(),
+            2);
+        // One of the revocations expired.
+        assert_eq!(
+            ka.valid_third_party_revocations_by_key(p, t2, bob_primary).count(),
+            if soft { 1 } else { 2 });
+
+        Ok(())
+    }
+
+    #[test]
+    fn key_amalgamation_valid_third_party_revocations_by_key_soft()
+        -> Result<()>
+    {
+        key_amalgamation_valid_third_party_revocations_by_key(
+            ReasonForRevocation::KeyRetired)
+    }
+
+    #[test]
+    fn key_amalgamation_valid_third_party_revocations_by_key_hard()
+        -> Result<()>
+    {
+        key_amalgamation_valid_third_party_revocations_by_key(
+            ReasonForRevocation::KeyCompromised)
     }
 }

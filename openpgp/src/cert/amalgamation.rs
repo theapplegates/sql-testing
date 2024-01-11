@@ -255,6 +255,7 @@ use crate::{
         KeyServerPreferences,
         RevocationKey,
         RevocationStatus,
+        RevocationType,
         SignatureType,
         SymmetricAlgorithm,
     },
@@ -903,23 +904,24 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
     // [`KeyAmalgamation::valid_certifications_by_key`],
     // [`UserIDAmalgamation::active_certifications_by_key`], and
     // [`KeyAmalgamation::active_certifications_by_key`].
-    fn valid_certifications_by_key_<F>(
+    fn valid_certifications_by_key_<'b, F>(
         &self,
         policy: &'a dyn Policy,
         reference_time: Option<time::SystemTime>,
         issuer: &'a packet::Key<packet::key::PublicParts,
                                 packet::key::UnspecifiedRole>,
         only_active: bool,
+        certifications: impl Iterator<Item=&'b Signature> + Send + Sync,
         verify_certification: F)
-        -> impl Iterator<Item=&Signature> + Send + Sync
+        -> impl Iterator<Item=&'b Signature> + Send + Sync
     where
         F: Fn(&Signature) -> Result<()>
     {
         let reference_time = reference_time.unwrap_or_else(crate::now);
         let issuer_handle = issuer.key_handle();
+        let issuer_handle = &issuer_handle;
 
-        let mut certifications: Vec<(&Signature, _)> = self
-            .certifications_by_key(&[ issuer_handle ])
+        let mut certifications: Vec<(&Signature, _)> = certifications
             .filter_map(|certification| {
                 // Extract the signature's creation time.  Ignore
                 // certifications without a creation time: those are
@@ -928,15 +930,44 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
                     .signature_creation_time()
                     .map(|ct| (certification, ct))
             })
-            .filter(|(_certification, ct)| {
-                // Skip certifications created after the reference
-                // time.
-                *ct <= reference_time
+            .filter(|(certification, _ct)| {
+                // Filter out certifications that definitely aren't
+                // from `issuer`.
+                certification.get_issuers().into_iter().any(|sig_issuer| {
+                    sig_issuer.aliases(issuer_handle)
+                })
             })
-            .filter(|(certification, ct)| {
+            .map(|(certification, ct)| {
+                let hard = if matches!(certification.typ(),
+                                       SignatureType::KeyRevocation
+                                       | SignatureType::SubkeyRevocation
+                                       | SignatureType::CertificationRevocation)
+                {
+                    certification.reason_for_revocation()
+                        .map(|(reason, _text)| {
+                            reason.revocation_type() == RevocationType::Hard
+                        })
+                        // Interpret an unspecified reason as a hard
+                        // revocation.
+                        .unwrap_or(true)
+                } else {
+                    false
+                };
+
+                (certification, ct, hard)
+            })
+            .filter(|(_certification, ct, hard)| {
+                // Skip certifications created after the reference
+                // time, unless they are hard revocations.
+                *ct <= reference_time || *hard
+            })
+            .filter(|(certification, ct, hard)| {
                 // Check that the certification is not expired as of
                 // the reference time.
-                if let Some(validity)
+                if *hard {
+                    // Hard revocations don't expire.
+                    true
+                } else if let Some(validity)
                     = certification.signature_validity_period()
                 {
                     if validity == Duration::new(0, 0) {
@@ -962,18 +993,19 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
                     true
                 }
             })
-            .filter(|(_certification, ct)| {
+            .filter(|(_certification, ct, hard)| {
                 // Make sure the certification was created after the
-                // certificate.
-                self.cert.primary_key().creation_time() <= *ct
+                // certificate, unless they are hard revocations.
+                self.cert.primary_key().creation_time() <= *ct || *hard
             })
-            .filter(|(certification, _ct)| {
+            .filter(|(certification, _ct, _hard)| {
                 // Make sure the certification conforms to the policy.
                 policy
                     .signature(certification,
                                HashAlgoSecurity::CollisionResistance)
                     .is_ok()
             })
+            .map(|(certification, ct, _hard)| (certification, ct))
             .collect();
 
         // Sort the certifications by creation time so that the newest
@@ -1192,6 +1224,7 @@ impl<'a> UserIDAmalgamation<'a> {
 
         self.valid_certifications_by_key_(
             policy, reference_time, issuer, false,
+            self.certifications(),
             |sig| {
                 sig.clone().verify_userid_binding(
                     issuer,
@@ -1242,8 +1275,125 @@ impl<'a> UserIDAmalgamation<'a> {
 
         self.valid_certifications_by_key_(
             policy, reference_time, issuer, true,
+            self.certifications(),
             |sig| {
                 sig.clone().verify_userid_binding(
+                    issuer,
+                    self.cert.primary_key().key(),
+                    self.userid())
+            })
+    }
+
+    /// Returns the third-party revocations issued by the specified
+    /// key, and valid at the specified time.
+    ///
+    /// This function returns the revocations issued by the specified
+    /// key.  Specifically, it returns a revocation if:
+    ///
+    ///   - it is well formed,
+    ///   - it is live with respect to the reference time,
+    ///   - it conforms to the policy, and
+    ///   - the signature is cryptographically valid.
+    ///
+    /// This method is implemented on a [`UserIDAmalgamation`] and not
+    /// a [`ValidUserIDAmalgamation`], because a third-party
+    /// revocation does not require the user ID to be self signed.
+    ///
+    /// # Examples
+    ///
+    /// Alice revokes a user ID on Bob's certificate.
+    ///
+    /// ```rust
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::cert::prelude::*;
+    /// # use openpgp::Packet;
+    /// # use openpgp::packet::signature::SignatureBuilder;
+    /// # use openpgp::packet::UserID;
+    /// use openpgp::policy::StandardPolicy;
+    /// # use openpgp::types::ReasonForRevocation;
+    /// # use openpgp::types::SignatureType;
+    ///
+    /// const P: &StandardPolicy = &StandardPolicy::new();
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let epoch = std::time::SystemTime::now()
+    /// #     - std::time::Duration::new(100, 0);
+    /// # let t0 = epoch;
+    /// # let t1 = epoch + std::time::Duration::new(1, 0);
+    /// #
+    /// # let (alice, _) = CertBuilder::new()
+    /// #     .set_creation_time(t0)
+    /// #     .add_userid("<alice@example.org>")
+    /// #     .generate()
+    /// #     .unwrap();
+    /// let alice: Cert = // ...
+    /// # alice;
+    /// #
+    /// # let bob_userid = "<bob@example.org>";
+    /// # let (bob, _) = CertBuilder::new()
+    /// #     .set_creation_time(t0)
+    /// #     .add_userid(bob_userid)
+    /// #     .generate()
+    /// #     .unwrap();
+    /// let bob: Cert = // ...
+    /// # bob;
+    ///
+    /// # // Alice has not certified Bob's User ID.
+    /// # let ua = bob.userids().next().expect("have a user id");
+    /// # assert_eq!(
+    /// #     ua.active_certifications_by_key(
+    /// #         P, t0, alice.primary_key().key()).count(),
+    /// #     0);
+    /// #
+    /// # // Have Alice certify Bob's certificate.
+    /// # let mut alice_signer = alice
+    /// #     .keys()
+    /// #     .with_policy(P, None)
+    /// #     .for_certification()
+    /// #     .next().expect("have a certification-capable key")
+    /// #     .key()
+    /// #     .clone()
+    /// #     .parts_into_secret().expect("have unencrypted key material")
+    /// #     .into_keypair().expect("have unencrypted key material");
+    /// #
+    /// # let certification = SignatureBuilder::new(SignatureType::CertificationRevocation)
+    /// #     .set_signature_creation_time(t1)?
+    /// #     .set_reason_for_revocation(
+    /// #         ReasonForRevocation::UIDRetired, b"")?
+    /// #     .sign_userid_binding(
+    /// #         &mut alice_signer,
+    /// #         bob.primary_key().key(),
+    /// #         &UserID::from(bob_userid))?;
+    /// # let bob = bob.insert_packets([
+    /// #     Packet::from(UserID::from(bob_userid)),
+    /// #     Packet::from(certification),
+    /// # ])?;
+    /// let ua = bob.userids().next().expect("have user id");
+    ///
+    /// let revs = ua.valid_third_party_revocations_by_key(
+    ///     P, None, alice.primary_key().key());
+    /// // Alice revoked the User ID.
+    /// assert_eq!(revs.count(), 1);
+    /// # Ok(()) }
+    /// ```
+    pub fn valid_third_party_revocations_by_key<T, PK>(&self,
+                                                       policy: &'a dyn Policy,
+                                                       reference_time: T,
+                                                       issuer: PK)
+        -> impl Iterator<Item=&Signature> + Send + Sync
+    where
+        T: Into<Option<time::SystemTime>>,
+        PK: Into<&'a packet::Key<packet::key::PublicParts,
+                                 packet::key::UnspecifiedRole>>,
+    {
+        let reference_time = reference_time.into();
+        let issuer = issuer.into();
+
+        self.valid_certifications_by_key_(
+            policy, reference_time, issuer, false,
+            self.other_revocations(),
+            |sig| {
+                sig.clone().verify_userid_revocation(
                     issuer,
                     self.cert.primary_key().key(),
                     self.userid())
@@ -2182,9 +2332,11 @@ mod test {
     use std::time::UNIX_EPOCH;
 
     use crate::policy::StandardPolicy as P;
+    use crate::Packet;
     use crate::packet::signature::SignatureBuilder;
     use crate::packet::UserID;
     use crate::types::SignatureType;
+    use crate::types::ReasonForRevocation;
 
     // derive(Clone) doesn't work with generic parameters that don't
     // implement clone.  Make sure that our custom implementations
@@ -2530,6 +2682,200 @@ mod test {
         // One of the certifications expired.
         assert_eq!(ua.valid_certifications_by_key(p, t2, bob_primary).count(), 1);
         assert_eq!(ua.active_certifications_by_key(p, t2, bob_primary).count(), 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn user_id_amalgamation_third_party_revocations_by_key() -> Result<()> {
+        // Alice and Bob revoke Carol's User ID.  We then check
+        // that valid_third_party_revocations_by_key returns them.
+        let p = &crate::policy::StandardPolicy::new();
+
+        // $ date -u -d '2024-01-02 13:00' +%s
+        let t0 = UNIX_EPOCH + Duration::new(1704200400, 0);
+        // $ date -u -d '2024-01-02 14:00' +%s
+        let t1 = UNIX_EPOCH + Duration::new(1704204000, 0);
+        // $ date -u -d '2024-01-02 15:00' +%s
+        let t2 = UNIX_EPOCH + Duration::new(1704207600, 0);
+
+        let (alice, _) = CertBuilder::new()
+            .set_creation_time(t0)
+            .add_userid("<alice@example.example>")
+            .generate()
+            .unwrap();
+        let alice_primary = alice.primary_key().key();
+
+        let (bob, _) = CertBuilder::new()
+            .set_creation_time(t0)
+            .add_userid("<bob@example.example>")
+            .generate()
+            .unwrap();
+        let bob_primary = bob.primary_key().key();
+
+        let carol_userid = "<carol@example.example>";
+        let (carol, _) = CertBuilder::new()
+            .set_creation_time(t0)
+            .add_userid(carol_userid)
+            .generate()
+            .unwrap();
+        let carol_userid = UserID::from(carol_userid);
+
+        let ua = alice.userids().next().expect("have a user id");
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, None, alice_primary).count(), 0);
+
+        // Alice has not certified Bob's User ID.
+        let ua = bob.userids().next().expect("have a user id");
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, None, alice_primary).count(), 0);
+
+        // Alice has not certified Carol's User ID.
+        let ua = carol.userids().next().expect("have a user id");
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, None, alice_primary).count(), 0);
+
+
+        // Have Alice revoke Carol's certificate at t1.
+        let mut alice_signer = alice_primary
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::CertificationRevocation)
+            .set_signature_creation_time(t1)?
+            .set_reason_for_revocation(
+                ReasonForRevocation::UIDRetired, b"")?
+            .sign_userid_binding(
+                &mut alice_signer,
+                carol.primary_key().key(),
+                &carol_userid)?;
+        let carol = carol.insert_packets([
+            Packet::from(carol_userid.clone()),
+            Packet::from(certification.clone()),
+        ])?;
+
+        // Check that it is returned.
+        let ua = carol.userids().next().expect("have a user id");
+        assert_eq!(ua.other_revocations().count(), 1);
+
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t0, alice_primary).count(), 0);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t1, alice_primary).count(), 1);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t1, bob_primary).count(), 0);
+
+
+        // Have Alice certify Carol's certificate at t1 (again).
+        // Since both certifications were created at t1, they should
+        // both be returned.
+        let mut alice_signer = alice_primary
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::CertificationRevocation)
+            .set_signature_creation_time(t1)?
+            .set_reason_for_revocation(ReasonForRevocation::UIDRetired, b"")?
+            .sign_userid_binding(
+                &mut alice_signer,
+                carol.primary_key().key(),
+                &carol_userid)?;
+        let carol = carol.insert_packets([
+            Packet::from(carol_userid.clone()),
+            Packet::from(certification.clone()),
+        ])?;
+
+        // Check that it is returned.
+        let ua = carol.userids().next().expect("have a user id");
+        assert_eq!(ua.other_revocations().count(), 2);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t0, alice_primary).count(), 0);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t1, alice_primary).count(), 2);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t2, alice_primary).count(), 2);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t0, bob_primary).count(), 0);
+
+
+        // Have Alice certify Carol's certificate at t2.  Now we only
+        // have one active certification.
+        let mut alice_signer = alice_primary
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::CertificationRevocation)
+            .set_signature_creation_time(t2)?
+            .set_reason_for_revocation(ReasonForRevocation::UIDRetired, b"")?
+            .sign_userid_binding(
+                &mut alice_signer,
+                carol.primary_key().key(),
+                &carol_userid)?;
+        let carol = carol.insert_packets([
+            Packet::from(carol_userid.clone()),
+            Packet::from(certification.clone()),
+        ])?;
+
+        // Check that it is returned.
+        let ua = carol.userids().next().expect("have a user id");
+        assert_eq!(ua.other_revocations().count(), 3);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t0, alice_primary).count(), 0);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t1, alice_primary).count(), 2);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t2, alice_primary).count(), 3);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t0, bob_primary).count(), 0);
+
+
+        // Have Bob certify Carol's certificate at t1 and have it expire at t2.
+        let mut bob_signer = bob.primary_key()
+            .key()
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::CertificationRevocation)
+            .set_signature_creation_time(t1)?
+            .set_signature_validity_period(t2.duration_since(t1)?)?
+            .set_reason_for_revocation(ReasonForRevocation::UIDRetired, b"")?
+            .sign_userid_binding(
+                &mut bob_signer,
+                carol.primary_key().key(),
+                &carol_userid)?;
+        let carol = carol.insert_packets([
+            Packet::from(carol_userid.clone()),
+            Packet::from(certification.clone()),
+        ])?;
+
+        // Check that it is returned.
+        let ua = carol.userids().next().expect("have a user id");
+        assert_eq!(ua.other_revocations().count(), 4);
+
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t0, alice_primary).count(), 0);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t1, alice_primary).count(), 2);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t2, alice_primary).count(), 3);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t0, bob_primary).count(), 0);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t1, bob_primary).count(), 1);
+        // It expired.
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t2, bob_primary).count(), 0);
+
+
+        // Have Bob certify Carol's certificate at t1 again.  This
+        // time don't have it expire.
+        let mut bob_signer = bob.primary_key()
+            .key()
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::CertificationRevocation)
+            .set_signature_creation_time(t1)?
+            .set_reason_for_revocation(ReasonForRevocation::UIDRetired, b"")?
+            .sign_userid_binding(
+                &mut bob_signer,
+                carol.primary_key().key(),
+                &carol_userid)?;
+        let carol = carol.insert_packets([
+            Packet::from(carol_userid.clone()),
+            Packet::from(certification.clone()),
+        ])?;
+
+        // Check that it is returned.
+        let ua = carol.userids().next().expect("have a user id");
+        assert_eq!(ua.other_revocations().count(), 5);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t0, alice_primary).count(), 0);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t1, alice_primary).count(), 2);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t2, alice_primary).count(), 3);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t0, bob_primary).count(), 0);
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t1, bob_primary).count(), 2);
+        // One of the certifications expired.
+        assert_eq!(ua.valid_third_party_revocations_by_key(p, t2, bob_primary).count(), 1);
 
         Ok(())
     }
