@@ -107,6 +107,8 @@ impl std::str::FromStr for KeyID {
         // A KeyID is exactly 8 bytes long.
         if bytes.len() == 8 {
             Ok(KeyID::from_bytes(&bytes[..]))
+        } else if bytes.len() == 4 {
+            Err(Error::ShortKeyID(s.to_string()).into())
         } else {
             // Maybe a fingerprint was given.  Try to parse it and
             // convert it to a KeyID.
@@ -456,8 +458,19 @@ mod test {
         "GB3751F1587DAEF1".parse::<KeyID>().unwrap_err();
         "EFB3751F1587DAEF1".parse::<KeyID>().unwrap_err();
         "%FB3751F1587DAEF1".parse::<KeyID>().unwrap_err();
-        assert_match!(KeyID::Invalid(_) = "587DAEF1".parse().unwrap());
-        assert_match!(KeyID::Invalid(_) = "0x587DAEF1".parse().unwrap());
+    }
+
+    #[test]
+    fn from_hex_short_keyid() {
+        for s in &[ "FB3751F1", "0xFB3751F1", "fb3751f1",  "0xfb3751f1" ] {
+            match s.parse::<KeyID>() {
+                Ok(_) => panic!("Failed to reject short Key ID."),
+                Err(err) => {
+                    let err = err.downcast_ref::<Error>().unwrap();
+                    assert!(matches!(err, Error::ShortKeyID(_)));
+                }
+            }
+        }
     }
 
     #[test]

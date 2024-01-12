@@ -345,6 +345,10 @@ pub enum Error {
             })
             .unwrap_or_else(|| "".into()))]
     PolicyViolation(String, Option<std::time::SystemTime>),
+
+    /// Short key IDs are insecure, and not supported.
+    #[error("Short key IDs are insecure, and not supported: {0}")]
+    ShortKeyID(String),
 }
 
 assert_send_and_sync!(Error);
