@@ -657,14 +657,12 @@ impl UserID {
             }
         }
 
-        let something = !value.is_empty();
-        if something {
-            value.push_str(" <");
+        if !value.is_empty() {
+            value.push(' ');
         }
+        value.push('<');
         value.push_str(address);
-        if something {
-            value.push('>');
-        }
+        value.push('>');
 
         if check_address {
             // Make sure the combined thing is valid.
@@ -1315,7 +1313,7 @@ mod tests {
           Some("First Last"), Some("Comment"), Some("name@example.org"), None);
         c("First Last <name@example.org>",
           Some("First Last"), None, Some("name@example.org"), None);
-        c("name@example.org",
+        c("<name@example.org>",
           None, None, Some("name@example.org"), None);
     }
 
@@ -1411,7 +1409,7 @@ mod tests {
     fn from_address() {
         assert_eq!(UserID::from_address(None, None, "foo@bar.com")
                        .unwrap().value(),
-                   b"foo@bar.com");
+                   b"<foo@bar.com>");
         assert!(UserID::from_address(None, None, "foo@@bar.com").is_err());
         assert_eq!(UserID::from_address("Foo Q. Bar".into(), None, "foo@bar.com")
                       .unwrap().value(),
