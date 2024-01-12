@@ -230,6 +230,7 @@ use crate::{
     cert::prelude::*,
     crypto::{Signer, hash::{Hash, Digest}},
     Error,
+    KeyHandle,
     packet::{
         Signature,
         Unknown,
@@ -844,6 +845,35 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
     /// The component's third-party certifications.
     pub fn certifications(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync {
         self.bundle().certifications().iter()
+    }
+
+    /// Returns third-party certifications that appear to issued by
+    /// any of the specified keys.
+    ///
+    /// A certification is returned if one of the provided key handles
+    /// matches an [Issuer subpacket] or [Issuer Fingerprint
+    /// subpacket] in the certification.
+    ///
+    ///   [Issuer subpacket]: https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.3.5
+    ///   [Issuer Fingerprint subpacket]: https://www.ietf.org/archive/id/draft-ietf-openpgp-crypto-refresh-13.html#name-issuer-fingerprint
+    ///
+    /// This function does not check that a certification is valid.
+    /// It can't.  To check that a certification was actually issued
+    /// by a specific key, we also need a policy and the public key,
+    /// which we don't have.  To only get valid certifications, use
+    /// [`UserIDAmalgamation::valid_certifications_by_key`] or
+    /// [`UserIDAmalgamation::active_certifications_by_key`] instead
+    /// of this function.
+    pub fn certifications_by_key<'b>(&'b self, issuers: &'b [ KeyHandle ])
+        -> impl Iterator<Item=&'a Signature> + Send + Sync + 'b
+    {
+        self.certifications().filter(|certification| {
+            certification.get_issuers().into_iter().any(|certification_issuer| {
+                issuers.iter().any(|issuer| {
+                    certification_issuer.aliases(issuer)
+                })
+            })
+        })
     }
 
     /// The component's revocations that were issued by the
@@ -1851,8 +1881,12 @@ impl<'a, C> crate::cert::Preferences<'a>
 
 #[cfg(test)]
 mod test {
+    use super::*;
+
     use crate::policy::StandardPolicy as P;
-    use crate::cert::prelude::*;
+    use crate::packet::signature::SignatureBuilder;
+    use crate::packet::UserID;
+    use crate::types::SignatureType;
 
     // derive(Clone) doesn't work with generic parameters that don't
     // implement clone.  Make sure that our custom implementations
@@ -1895,5 +1929,93 @@ mod test {
 
         let _ = cert.user_attributes().map(|ua| ua.user_attribute())
             .collect::<Vec<_>>();
+    }
+
+    #[test]
+    fn component_amalgamation_certifications_by_key() -> Result<()> {
+        // Alice and Bob certify Carol's certificate.  We then check
+        // that certifications_by_key returns them.
+        let (alice, _) = CertBuilder::new()
+            .add_userid("<alice@example.example>")
+            .generate()
+            .unwrap();
+
+        let (bob, _) = CertBuilder::new()
+            .add_userid("<bob@example.example>")
+            .generate()
+            .unwrap();
+
+        let carol_userid = "<carol@example.example>";
+        let (carol, _) = CertBuilder::new()
+            .add_userid(carol_userid)
+            .generate()
+            .unwrap();
+
+        let ua = alice.userids().next().expect("have a user id");
+        assert_eq!(ua.certifications_by_key(&[ alice.key_handle() ]).count(), 0);
+
+        // Alice has not certified Bob's User ID.
+        let ua = bob.userids().next().expect("have a user id");
+        assert_eq!(ua.certifications_by_key(&[ alice.key_handle() ]).count(), 0);
+
+        // Alice has not certified Carol's User ID.
+        let ua = carol.userids().next().expect("have a user id");
+        assert_eq!(ua.certifications_by_key(&[ alice.key_handle() ]).count(), 0);
+
+
+        // Have Alice certify Carol's certificate.
+        let mut alice_signer = alice.primary_key()
+            .key()
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::GenericCertification)
+            .sign_userid_binding(
+                &mut alice_signer,
+                carol.primary_key().key(),
+                &UserID::from(carol_userid))?;
+        let carol = carol.insert_packets(certification)?;
+
+        // Check that it is returned.
+        let ua = carol.userids().next().expect("have a user id");
+        assert_eq!(ua.certifications().count(), 1);
+        assert_eq!(ua.certifications_by_key(&[ alice.key_handle() ]).count(), 1);
+        assert_eq!(ua.certifications_by_key(&[ bob.key_handle() ]).count(), 0);
+
+
+        // Have Bob certify Carol's certificate.
+        let mut bob_signer = bob.primary_key()
+            .key()
+            .clone()
+            .parts_into_secret().expect("have unencrypted key material")
+            .into_keypair().expect("have unencrypted key material");
+        let certification = SignatureBuilder::new(SignatureType::GenericCertification)
+            .sign_userid_binding(
+                &mut bob_signer,
+                carol.primary_key().key(),
+                &UserID::from(carol_userid))?;
+        let carol = carol.insert_packets(certification)?;
+
+        // Check that it is returned.
+        let ua = carol.userids().next().expect("have a user id");
+        assert_eq!(ua.certifications().count(), 2);
+        assert_eq!(ua.certifications_by_key(&[ alice.key_handle() ]).count(), 1);
+        assert_eq!(ua.certifications_by_key(&[ bob.key_handle() ]).count(), 1);
+
+        // Again.
+        let certification = SignatureBuilder::new(SignatureType::GenericCertification)
+            .sign_userid_binding(
+                &mut bob_signer,
+                carol.primary_key().key(),
+                &UserID::from(carol_userid))?;
+        let carol = carol.insert_packets(certification)?;
+
+        // Check that it is returned.
+        let ua = carol.userids().next().expect("have a user id");
+        assert_eq!(ua.certifications().count(), 3);
+        assert_eq!(ua.certifications_by_key(&[ alice.key_handle() ]).count(), 1);
+        assert_eq!(ua.certifications_by_key(&[ bob.key_handle() ]).count(), 2);
+
+        Ok(())
     }
 }

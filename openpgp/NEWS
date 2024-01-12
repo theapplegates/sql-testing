@@ -3,6 +3,9 @@
 #+TITLE: sequoia-openpgp NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 1.18.0
+** New functionality
+   - ComponentAmalgamation::certifications_by_key
 * Changes in 1.17.0
 ** Notable fixes
    - Sequoia now ignores some formatting errors when reading secret
