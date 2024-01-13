@@ -337,6 +337,43 @@ macro_rules! create_conversions {
             }
         }
 
+        macro_rules! f_try {
+            ( <$from_parts:ty, $from_role:ty> -> <SecretParts, $to_role:ty> ) => {
+                impl<$($l ),*> TryFrom<$Key<$($l, )* $from_parts, $from_role>> for $Key<$($l, )* SecretParts, $to_role>
+                {
+                    type Error = anyhow::Error;
+                    fn try_from(p: $Key<$($l, )* $from_parts, $from_role>) -> Result<Self> {
+                        // First, just change the role.
+                        let k: $Key<$($l, )* $from_parts, $to_role> = p.into();
+                        // Now change the parts.
+                        k.try_into()
+                    }
+                }
+
+                impl<$($l ),*> TryFrom<&$($l)* $Key<$($l, )* $from_parts, $from_role>> for &$($l)* $Key<$($l, )* SecretParts, $to_role>
+                {
+                    type Error = anyhow::Error;
+                    fn try_from(p: &$($l)* $Key<$($l, )* $from_parts, $from_role>) -> Result<Self> {
+                        // First, just change the role.
+                        let k: &$($l)* $Key<$($l, )* $from_parts, $to_role> = p.into();
+                        // Now change the parts.
+                        k.try_into()
+                    }
+                }
+
+                impl<$($l ),*> TryFrom<&$($l)* mut $Key<$($l, )* $from_parts, $from_role>> for &$($l)* mut $Key<$($l, )* SecretParts, $to_role>
+                {
+                    type Error = anyhow::Error;
+                    fn try_from(p: &$($l)* mut $Key<$($l, )* $from_parts, $from_role>) -> Result<Self> {
+                        // First, just change the role.
+                        let k: &$($l)* mut $Key<$($l, )* $from_parts, $to_role> = p.into();
+                        // Now change the parts.
+                        k.try_into()
+                    }
+                }
+            }
+        }
+
         // The calls that are comment out are the calls for the
         // combinations where either the KeyParts or the KeyRole does not
         // change.
@@ -345,8 +382,8 @@ macro_rules! create_conversions {
         //f!(<PublicParts, PrimaryRole> -> <PublicParts, SubordinateRole>);
         //f!(<PublicParts, PrimaryRole> -> <PublicParts, UnspecifiedRole>);
         //f!(<PublicParts, PrimaryRole> -> <SecretParts, PrimaryRole>);
-        f!(<PublicParts, PrimaryRole> -> <SecretParts, SubordinateRole>);
-        f!(<PublicParts, PrimaryRole> -> <SecretParts, UnspecifiedRole>);
+        f_try!(<PublicParts, PrimaryRole> -> <SecretParts, SubordinateRole>);
+        f_try!(<PublicParts, PrimaryRole> -> <SecretParts, UnspecifiedRole>);
         //f!(<PublicParts, PrimaryRole> -> <UnspecifiedParts, PrimaryRole>);
         f!(<PublicParts, PrimaryRole> -> <UnspecifiedParts, SubordinateRole>);
         f!(<PublicParts, PrimaryRole> -> <UnspecifiedParts, UnspecifiedRole>);
@@ -354,9 +391,9 @@ macro_rules! create_conversions {
         //f!(<PublicParts, SubordinateRole> -> <PublicParts, PrimaryRole>);
         //f!(<PublicParts, SubordinateRole> -> <PublicParts, SubordinateRole>);
         //f!(<PublicParts, SubordinateRole> -> <PublicParts, UnspecifiedRole>);
-        f!(<PublicParts, SubordinateRole> -> <SecretParts, PrimaryRole>);
+        f_try!(<PublicParts, SubordinateRole> -> <SecretParts, PrimaryRole>);
         //f!(<PublicParts, SubordinateRole> -> <SecretParts, SubordinateRole>);
-        f!(<PublicParts, SubordinateRole> -> <SecretParts, UnspecifiedRole>);
+        f_try!(<PublicParts, SubordinateRole> -> <SecretParts, UnspecifiedRole>);
         f!(<PublicParts, SubordinateRole> -> <UnspecifiedParts, PrimaryRole>);
         //f!(<PublicParts, SubordinateRole> -> <UnspecifiedParts, SubordinateRole>);
         f!(<PublicParts, SubordinateRole> -> <UnspecifiedParts, UnspecifiedRole>);
@@ -364,8 +401,8 @@ macro_rules! create_conversions {
         //f!(<PublicParts, UnspecifiedRole> -> <PublicParts, PrimaryRole>);
         //f!(<PublicParts, UnspecifiedRole> -> <PublicParts, SubordinateRole>);
         //f!(<PublicParts, UnspecifiedRole> -> <PublicParts, UnspecifiedRole>);
-        f!(<PublicParts, UnspecifiedRole> -> <SecretParts, PrimaryRole>);
-        f!(<PublicParts, UnspecifiedRole> -> <SecretParts, SubordinateRole>);
+        f_try!(<PublicParts, UnspecifiedRole> -> <SecretParts, PrimaryRole>);
+        f_try!(<PublicParts, UnspecifiedRole> -> <SecretParts, SubordinateRole>);
         //f!(<PublicParts, UnspecifiedRole> -> <SecretParts, UnspecifiedRole>);
         f!(<PublicParts, UnspecifiedRole> -> <UnspecifiedParts, PrimaryRole>);
         f!(<PublicParts, UnspecifiedRole> -> <UnspecifiedParts, SubordinateRole>);
@@ -405,8 +442,8 @@ macro_rules! create_conversions {
         f!(<UnspecifiedParts, PrimaryRole> -> <PublicParts, SubordinateRole>);
         f!(<UnspecifiedParts, PrimaryRole> -> <PublicParts, UnspecifiedRole>);
         //f!(<UnspecifiedParts, PrimaryRole> -> <SecretParts, PrimaryRole>);
-        f!(<UnspecifiedParts, PrimaryRole> -> <SecretParts, SubordinateRole>);
-        f!(<UnspecifiedParts, PrimaryRole> -> <SecretParts, UnspecifiedRole>);
+        f_try!(<UnspecifiedParts, PrimaryRole> -> <SecretParts, SubordinateRole>);
+        f_try!(<UnspecifiedParts, PrimaryRole> -> <SecretParts, UnspecifiedRole>);
         //f!(<UnspecifiedParts, PrimaryRole> -> <UnspecifiedParts, PrimaryRole>);
         //f!(<UnspecifiedParts, PrimaryRole> -> <UnspecifiedParts, SubordinateRole>);
         //f!(<UnspecifiedParts, PrimaryRole> -> <UnspecifiedParts, UnspecifiedRole>);
@@ -414,9 +451,9 @@ macro_rules! create_conversions {
         f!(<UnspecifiedParts, SubordinateRole> -> <PublicParts, PrimaryRole>);
         //f!(<UnspecifiedParts, SubordinateRole> -> <PublicParts, SubordinateRole>);
         f!(<UnspecifiedParts, SubordinateRole> -> <PublicParts, UnspecifiedRole>);
-        f!(<UnspecifiedParts, SubordinateRole> -> <SecretParts, PrimaryRole>);
+        f_try!(<UnspecifiedParts, SubordinateRole> -> <SecretParts, PrimaryRole>);
         //f!(<UnspecifiedParts, SubordinateRole> -> <SecretParts, SubordinateRole>);
-        f!(<UnspecifiedParts, SubordinateRole> -> <SecretParts, UnspecifiedRole>);
+        f_try!(<UnspecifiedParts, SubordinateRole> -> <SecretParts, UnspecifiedRole>);
         //f!(<UnspecifiedParts, SubordinateRole> -> <UnspecifiedParts, PrimaryRole>);
         //f!(<UnspecifiedParts, SubordinateRole> -> <UnspecifiedParts, SubordinateRole>);
         //f!(<UnspecifiedParts, SubordinateRole> -> <UnspecifiedParts, UnspecifiedRole>);
@@ -424,8 +461,8 @@ macro_rules! create_conversions {
         f!(<UnspecifiedParts, UnspecifiedRole> -> <PublicParts, PrimaryRole>);
         f!(<UnspecifiedParts, UnspecifiedRole> -> <PublicParts, SubordinateRole>);
         //f!(<UnspecifiedParts, UnspecifiedRole> -> <PublicParts, UnspecifiedRole>);
-        f!(<UnspecifiedParts, UnspecifiedRole> -> <SecretParts, PrimaryRole>);
-        f!(<UnspecifiedParts, UnspecifiedRole> -> <SecretParts, SubordinateRole>);
+        f_try!(<UnspecifiedParts, UnspecifiedRole> -> <SecretParts, PrimaryRole>);
+        f_try!(<UnspecifiedParts, UnspecifiedRole> -> <SecretParts, SubordinateRole>);
         //f!(<UnspecifiedParts, UnspecifiedRole> -> <SecretParts, UnspecifiedRole>);
         //f!(<UnspecifiedParts, UnspecifiedRole> -> <UnspecifiedParts, PrimaryRole>);
         //f!(<UnspecifiedParts, UnspecifiedRole> -> <UnspecifiedParts, SubordinateRole>);

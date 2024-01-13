@@ -418,10 +418,13 @@ impl<'a> TSK<'a> {
 
         // Serializes public or secret key depending on the filter.
         let serialize_key =
-            |o: &mut dyn std::io::Write, key: &'a key::UnspecifiedSecret,
+            |o: &mut dyn std::io::Write, key: &'a key::UnspecifiedKey,
              tag_public, tag_secret|
         {
-            let tag = if key.has_secret() && (self.filter)(key) {
+            // We check for secrets here.
+            let tag = if key.has_secret()
+                && (self.filter)(key.try_into().expect("checked for secrets"))
+            {
                 tag_secret
             } else {
                 tag_public
@@ -465,10 +468,16 @@ impl<'a> TSK<'a> {
                     PacketRef::PublicKey(key.into()).serialize(o),
                 Tag::PublicSubkey =>
                     PacketRef::PublicSubkey(key.into()).serialize(o),
-                Tag::SecretKey =>
-                    PacketRef::SecretKey(key.into()).serialize(o),
-                Tag::SecretSubkey =>
-                    PacketRef::SecretSubkey(key.into()).serialize(o),
+                Tag::SecretKey => {
+                    PacketRef::SecretKey(
+                        key.try_into().expect("checked for secrets"))
+                        .serialize(o)
+                }
+                Tag::SecretSubkey => {
+                    PacketRef::SecretSubkey(
+                        key.try_into().expect("checked for secrets"))
+                    .serialize(o)
+                }
                 _ => unreachable!(),
             }
         };
@@ -568,9 +577,10 @@ impl<'a> MarshalInto for TSK<'a> {
 
         // Serializes public or secret key depending on the filter.
         let serialized_len_key
-            = |key: &'a key::UnspecifiedSecret, tag_public, tag_secret|
+            = |key: &'a key::UnspecifiedKey, tag_public, tag_secret|
         {
-            let tag = if key.has_secret() && (self.filter)(key) {
+            // We check for secrets here.
+            let tag = if key.has_secret() && (self.filter)(key.try_into().expect("have secrets")) {
                 tag_secret
             } else {
                 tag_public
@@ -589,8 +599,14 @@ impl<'a> MarshalInto for TSK<'a> {
             let packet = match tag {
                 Tag::PublicKey => PacketRef::PublicKey(key.into()),
                 Tag::PublicSubkey => PacketRef::PublicSubkey(key.into()),
-                Tag::SecretKey => PacketRef::SecretKey(key.into()),
-                Tag::SecretSubkey => PacketRef::SecretSubkey(key.into()),
+                Tag::SecretKey => {
+                    PacketRef::SecretKey(
+                        key.try_into().expect("checked for secrets"))
+                }
+                Tag::SecretSubkey => {
+                    PacketRef::SecretSubkey(
+                        key.try_into().expect("checked for secrets"))
+                }
                 _ => unreachable!(),
             };
 
