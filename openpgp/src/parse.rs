@@ -1099,15 +1099,12 @@ impl S2K {
     }
 }
 
-impl<'a> Parse<'a, S2K> for S2K {
-    /// Reads an S2K from `reader`.
-    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
-        let bio = buffered_reader::Generic::with_cookie(
-            reader, None, Cookie::default());
+impl_parse_with_buffered_reader!(
+    S2K,
+    |bio: Box<dyn BufferedReader<Cookie>>| -> Result<Self> {
         let mut parser = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::parse_v4(&mut parser)
-    }
-}
+    });
 
 impl Header {
     pub(crate) fn parse<R: BufferedReader<C>, C: fmt::Debug + Send + Sync> (bio: &mut R)
@@ -1123,18 +1120,11 @@ impl Header {
     }
 }
 
-impl<'a> Parse<'a, Header> for Header {
-    /// Parses an OpenPGP packet's header as described in [Section 4.2
-    /// of RFC 4880].
-    ///
-    ///   [Section 4.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-4.2
-    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self>
-    {
-        let mut reader = buffered_reader::Generic::with_cookie(
-            reader, None, Cookie::default());
+impl_parse_with_buffered_reader!(
+    Header,
+    |mut reader| -> Result<Self> {
         Header::parse(&mut reader)
-    }
-}
+    });
 
 impl BodyLength {
     /// Decodes a new format body length as described in [Section
@@ -2209,8 +2199,9 @@ fn one_pass_sig_parser_test () {
     }
 }
 
-impl<'a> Parse<'a, OnePassSig3> for OnePassSig3 {
-    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
+impl_parse_with_buffered_reader!(
+    OnePassSig3,
+    |reader| -> Result<Self> {
         OnePassSig::from_reader(reader).map(|p| match p {
             OnePassSig::V3(p) => p,
             // XXX: Once we have a second variant.
@@ -2218,8 +2209,7 @@ impl<'a> Parse<'a, OnePassSig3> for OnePassSig3 {
             // p => Err(Error::InvalidOperation(
             //     format!("Not a OnePassSig::V3 packet: {:?}", p)).into()),
         })
-    }
-}
+    });
 
 #[test]
 fn one_pass_sig_test () {
@@ -3169,15 +3159,12 @@ impl MPI {
     }
 }
 
-impl<'a> Parse<'a, MPI> for MPI {
-    // Reads an MPI from `reader`.
-    fn from_reader<R: io::Read + Send + Sync>(reader: R) -> Result<Self> {
-        let bio = buffered_reader::Generic::with_cookie(
-            reader, None, Cookie::default());
+impl_parse_with_buffered_reader!(
+    MPI,
+    |bio: Box<dyn BufferedReader<Cookie>>| -> Result<Self> {
         let mut parser = PacketHeaderParser::new_naked(bio.into_boxed());
         Self::parse("(none_len)", "(none)", &mut parser)
-    }
-}
+    });
 
 impl ProtectedMPI {
     /// Parses an OpenPGP MPI containing secrets.
@@ -3223,8 +3210,9 @@ impl PKESK3 {
     }
 }
 
-impl<'a> Parse<'a, PKESK3> for PKESK3 {
-    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
+impl_parse_with_buffered_reader!(
+    PKESK3,
+    |reader| -> Result<Self> {
         PKESK::from_reader(reader).map(|p| match p {
             PKESK::V3(p) => p,
             // XXX: Once we have a second variant.
@@ -3232,8 +3220,7 @@ impl<'a> Parse<'a, PKESK3> for PKESK3 {
             // p => Err(Error::InvalidOperation(
             //     format!("Not a PKESKv3 packet: {:?}", p)).into()),
         })
-    }
-}
+    });
 
 impl<'a> Parse<'a, Packet> for Packet {
     fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
