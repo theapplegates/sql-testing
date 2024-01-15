@@ -1059,6 +1059,13 @@ assert_send_and_sync!(VerifierBuilder<'_>);
 impl<'a> Parse<'a, VerifierBuilder<'a>>
     for VerifierBuilder<'a>
 {
+    fn from_buffered_reader<R>(reader: R) -> Result<VerifierBuilder<'a>>
+    where
+        R: BufferedReader<Cookie> + 'a,
+    {
+        VerifierBuilder::new(reader)
+    }
+
     fn from_reader<R>(reader: R) -> Result<VerifierBuilder<'a>>
         where R: io::Read + 'a + Send + Sync,
     {
@@ -1460,6 +1467,13 @@ assert_send_and_sync!(DetachedVerifierBuilder<'_>);
 impl<'a> Parse<'a, DetachedVerifierBuilder<'a>>
     for DetachedVerifierBuilder<'a>
 {
+    fn from_buffered_reader<R>(reader: R) -> Result<DetachedVerifierBuilder<'a>>
+    where
+        R: BufferedReader<Cookie> + 'a,
+    {
+        DetachedVerifierBuilder::new(reader)
+    }
+
     fn from_reader<R>(reader: R) -> Result<DetachedVerifierBuilder<'a>>
         where R: io::Read + 'a + Send + Sync,
     {
@@ -1817,6 +1831,13 @@ assert_send_and_sync!(DecryptorBuilder<'_>);
 impl<'a> Parse<'a, DecryptorBuilder<'a>>
     for DecryptorBuilder<'a>
 {
+    fn from_buffered_reader<R>(reader: R) -> Result<DecryptorBuilder<'a>>
+    where
+        R: BufferedReader<Cookie> + 'a,
+    {
+        DecryptorBuilder::new(reader)
+    }
+
     fn from_reader<R>(reader: R) -> Result<DecryptorBuilder<'a>>
         where R: io::Read + 'a + Send + Sync,
     {

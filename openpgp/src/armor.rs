@@ -627,6 +627,15 @@ impl<'a> Reader<'a> {
             mode, Default::default())
     }
 
+    /// Constructs a new `Reader` from the given `BufferedReader`.
+    pub fn from_buffered_reader<R, M>(reader: R, mode: M) -> Result<Self>
+    where
+        R: BufferedReader<Cookie> + 'a,
+        M: Into<Option<ReaderMode>>,
+    {
+        Ok(Self::from_cookie_reader(reader.into_boxed(), mode, Default::default()))
+    }
+
     /// Constructs a new `Reader` from the given `io::Read`er.
     ///
     /// [ASCII Armor], designed to protect OpenPGP data in transit,

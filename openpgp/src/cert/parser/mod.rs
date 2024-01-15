@@ -3,6 +3,7 @@ use std::mem;
 use std::vec;
 use std::path::Path;
 
+use buffered_reader::BufferedReader;
 use lalrpop_util::ParseError;
 
 use crate::{
@@ -11,6 +12,7 @@ use crate::{
     packet::Tag,
     Packet,
     parse::{
+        Cookie,
         Parse,
         PacketParserResult,
         PacketParser
@@ -594,6 +596,14 @@ impl<'a> From<Vec<Packet>> for CertParser<'a> {
 
 impl<'a> Parse<'a, CertParser<'a>> for CertParser<'a>
 {
+    /// Initializes a `CertParser` from a `BufferedReader`.
+    fn from_buffered_reader<R>(reader: R) -> Result<CertParser<'a>>
+    where
+        R: BufferedReader<Cookie> + 'a,
+    {
+        Ok(Self::from(PacketParser::from_buffered_reader(reader)?))
+    }
+
     /// Initializes a `CertParser` from a `Read`er.
     fn from_reader<R: 'a + io::Read + Send + Sync>(reader: R) -> Result<Self> {
         Ok(Self::from(PacketParser::from_reader(reader)?))

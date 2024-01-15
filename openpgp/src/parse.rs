@@ -281,6 +281,20 @@ pub(crate) const RECOVERY_THRESHOLD: usize = 32 * 1024;
 /// This is a uniform interface to parse packets, messages, keys, and
 /// related data structures.
 pub trait Parse<'a, T> {
+    /// Reads from the given buffered reader.
+    fn from_buffered_reader<R>(reader: R) -> Result<T>
+    where
+        R: BufferedReader<Cookie> + 'a,
+    {
+        // XXXv2: Make this function the mandatory one instead of
+        // Parse::from_reader.
+
+        // Currently, we express the default implementation over
+        // Self::from_reader, which is no worse than using from_reader
+        // directly.
+        Self::from_reader(reader)
+    }
+
     /// Reads from the given reader.
     fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<T>;
 
@@ -338,15 +352,14 @@ macro_rules! impl_parse_with_buffered_reader {
     // from_buffered_reader should be a closure that takes a
     // BufferedReader and returns a Result<Self>.
     ($typ: ident, $from_buffered_reader: expr) => {
-        impl $typ {
-            fn from_buffered_reader<'a, B>(br: B) -> Result<Self>
-            where B: 'a + BufferedReader<Cookie>,
-            {
-                Ok($from_buffered_reader(br.into_boxed())?)
-            }
-        }
-
         impl<'a> Parse<'a, $typ> for $typ {
+            fn from_buffered_reader<R>(reader: R) -> Result<Self>
+            where
+                R: BufferedReader<Cookie> + 'a,
+            {
+                Ok($from_buffered_reader(reader.into_boxed())?)
+            }
+
             fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
                 let br = buffered_reader::Generic::with_cookie(
                     reader, None, Cookie::default());
@@ -3222,10 +3235,11 @@ impl_parse_with_buffered_reader!(
         })
     });
 
-impl<'a> Parse<'a, Packet> for Packet {
-    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
+impl_parse_with_buffered_reader!(
+    Packet,
+    |br| -> Result<Self> {
         let ppr =
-            PacketParserBuilder::from_reader(reader)
+            PacketParserBuilder::from_buffered_reader(br)
             ?.buffer_unread_content().build()?;
 
         let (p, ppr) = match ppr {
@@ -3244,8 +3258,7 @@ impl<'a> Parse<'a, Packet> for Packet {
                 Err(Error::InvalidOperation(
                     "Excess data after packet".into()).into()),
         }
-    }
-}
+    });
 
 // State that lives for the life of the packet parser, not the life of
 // an individual packet.
@@ -3968,6 +3981,17 @@ impl<'a> PacketParserResult<'a> {
 }
 
 impl<'a> Parse<'a, PacketParserResult<'a>> for PacketParser<'a> {
+    /// Starts parsing an OpenPGP object stored in a `BufferedReader` object.
+    ///
+    /// This function returns a `PacketParser` for the first packet in
+    /// the stream.
+    fn from_buffered_reader<R>(reader: R) -> Result<PacketParserResult<'a>>
+    where
+        R: BufferedReader<Cookie> + 'a,
+    {
+        PacketParserBuilder::from_buffered_reader(reader)?.build()
+    }
+
     /// Starts parsing an OpenPGP message stored in a `std::io::Read` object.
     ///
     /// This function returns a `PacketParser` for the first packet in

@@ -99,6 +99,17 @@ pub struct PacketParserBuilder<'a> {
 assert_send_and_sync!(PacketParserBuilder<'_>);
 
 impl<'a> Parse<'a, PacketParserBuilder<'a>> for PacketParserBuilder<'a> {
+    /// Starts parsing an OpenPGP object stored in a `BufferedReader` object.
+    ///
+    /// This function returns a `PacketParser` for the first packet in
+    /// the stream.
+    fn from_buffered_reader<R>(reader: R) -> Result<PacketParserBuilder<'a>>
+    where
+        R: BufferedReader<Cookie> + 'a,
+    {
+        PacketParserBuilder::from_cookie_reader(reader.into_boxed())
+    }
+
     /// Creates a `PacketParserBuilder` for an OpenPGP message stored
     /// in a `std::io::Read` object.
     fn from_reader<R: io::Read + 'a + Send + Sync>(reader: R) -> Result<Self> {

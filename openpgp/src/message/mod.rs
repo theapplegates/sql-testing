@@ -29,13 +29,15 @@ use std::fmt;
 use std::io;
 use std::path::Path;
 
+use buffered_reader::BufferedReader;
+
 use crate::Result;
 use crate::Error;
 use crate::Packet;
 use crate::PacketPile;
 use crate::packet::Literal;
 use crate::packet::Tag;
-use crate::parse::Parse;
+use crate::parse::{Cookie, Parse};
 
 mod lexer;
 lalrpop_util::lalrpop_mod!(#[allow(clippy::all, deprecated)] grammar, "/message/grammar.rs");
@@ -343,6 +345,18 @@ impl fmt::Debug for Message {
 }
 
 impl<'a> Parse<'a, Message> for Message {
+    /// Reads a `Message` from the specified reader.
+    ///
+    /// See [`Message::try_from`] for more details.
+    ///
+    ///   [`Message::try_from`]: Message::try_from()
+    fn from_buffered_reader<R>(reader: R) -> Result<Message>
+    where
+        R: BufferedReader<Cookie> + 'a,
+    {
+        Self::try_from(PacketPile::from_buffered_reader(reader)?)
+    }
+
     /// Reads a `Message` from the specified reader.
     ///
     /// See [`Message::try_from`] for more details.

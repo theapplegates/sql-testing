@@ -120,6 +120,17 @@ impl fmt::Debug for PacketPile {
 }
 
 impl<'a> Parse<'a, PacketPile> for PacketPile {
+    /// Deserializes the OpenPGP message stored in the file named by
+    /// `path`.
+    ///
+    /// See `from_reader` for more details and caveats.
+    fn from_buffered_reader<R>(reader: R) -> Result<PacketPile>
+    where
+        R: BufferedReader<Cookie> + 'a,
+    {
+        PacketPile::from_cookie_reader(reader.into_boxed())
+    }
+
     /// Deserializes the OpenPGP message stored in a `std::io::Read`
     /// object.
     ///

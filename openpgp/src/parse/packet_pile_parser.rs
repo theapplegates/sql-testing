@@ -218,6 +218,13 @@ impl<'a> TryFrom<PacketParserBuilder<'a>> for PacketPileParser<'a> {
 }
 
 impl<'a> Parse<'a, PacketPileParser<'a>> for PacketPileParser<'a> {
+    fn from_buffered_reader<R>(reader: R) -> Result<PacketPileParser<'a>>
+    where
+        R: BufferedReader<Cookie> + 'a
+    {
+        PacketPileParser::from_cookie_reader(reader.into_boxed())
+    }
+
     /// Creates a `PacketPileParser` to parse the OpenPGP message stored
     /// in the `io::Read` object.
     fn from_reader<R: io::Read + 'a + Send + Sync>(reader: R)

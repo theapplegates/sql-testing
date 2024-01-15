@@ -459,8 +459,11 @@ impl<'a> Parse<'a, RawCert<'a>> for RawCert<'a> {
     /// Returns the first RawCert encountered in the reader.
     ///
     /// Returns an error if there are multiple certificates.
-    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
-        let mut parser = RawCertParser::from_reader(reader)?;
+    fn from_buffered_reader<R>(reader: R) -> Result<RawCert<'a>>
+    where
+        R: BufferedReader<Cookie> + 'a
+    {
+        let mut parser = RawCertParser::from_buffered_reader(reader)?;
         if let Some(cert_result) = parser.next() {
             if parser.next().is_some() {
                 Err(Error::MalformedCert(
@@ -472,6 +475,14 @@ impl<'a> Parse<'a, RawCert<'a>> for RawCert<'a> {
         } else {
             Err(Error::MalformedCert("No data".into()).into())
         }
+    }
+
+    /// Returns the first RawCert encountered in the reader.
+    ///
+    /// Returns an error if there are multiple certificates.
+    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
+        let br = Generic::with_cookie(reader, None, Cookie::default());
+        Self::from_buffered_reader(br)
     }
 }
 
@@ -655,6 +666,14 @@ impl<'a> RawCertParser<'a> {
 
 impl<'a> Parse<'a, RawCertParser<'a>> for RawCertParser<'a>
 {
+    /// Initializes a `RawCertParser` from a `BufferedReader`.
+    fn from_buffered_reader<R>(reader: R) -> Result<RawCertParser<'a>>
+    where
+        R: BufferedReader<Cookie> + 'a
+    {
+        RawCertParser::new(reader)
+    }
+
     /// Initializes a `RawCertParser` from a `Read`er.
     fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
         RawCertParser::new(Generic::with_cookie(reader, None, Default::default()))

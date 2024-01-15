@@ -141,6 +141,8 @@ use std::fmt;
 use std::ops::{Deref, DerefMut};
 use std::time;
 
+use buffered_reader::BufferedReader;
+
 use crate::{
     crypto::{
         Signer,
@@ -165,7 +167,7 @@ use crate::{
     KeyHandle,
     policy::Policy,
 };
-use crate::parse::{Parse, PacketParserResult, PacketParser};
+use crate::parse::{Cookie, Parse, PacketParserResult, PacketParser};
 use crate::types::{
     AEADAlgorithm,
     CompressionAlgorithm,
@@ -769,6 +771,19 @@ impl std::str::FromStr for Cert {
 }
 
 impl<'a> Parse<'a, Cert> for Cert {
+    /// Parses and returns a certificate.
+    ///
+    /// The reader must return an OpenPGP-encoded certificate.
+    ///
+    /// If `reader` contains multiple certificates, this returns an
+    /// error.  Use [`CertParser`] if you want to parse a keyring.
+    fn from_buffered_reader<R>(reader: R) -> Result<Cert>
+    where
+        R: BufferedReader<Cookie> + 'a,
+    {
+        Cert::try_from(PacketParser::from_buffered_reader(reader)?)
+    }
+
     /// Parses and returns a certificate.
     ///
     /// The reader must return an OpenPGP-encoded certificate.
