@@ -143,8 +143,11 @@ impl<'a> Encoder<'a> {
         let (prelude, headers) = match self {
             Encoder::Cert(cert) =>
                 (armor::Kind::PublicKey, cert.armor_headers()),
-            Encoder::TSK(ref tsk) =>
-                (armor::Kind::SecretKey, tsk.cert.armor_headers()),
+            Encoder::TSK(tsk) => if tsk.emits_secret_key_packets() {
+                (armor::Kind::SecretKey, tsk.cert.armor_headers())
+            } else {
+                (armor::Kind::PublicKey, tsk.cert.armor_headers())
+            },
         };
 
         // Convert the Vec<String> into Vec<(&str, &str)>
@@ -202,7 +205,11 @@ impl<'a> MarshalInto for Encoder<'a> {
 
         let word = match self {
             Self::Cert(_) => "PUBLIC",
-            Self::TSK(_) => "PRIVATE",
+            Self::TSK(tsk) => if tsk.emits_secret_key_packets() {
+                "PRIVATE"
+            } else {
+                "PUBLIC"
+            },
         }.len();
 
         "-----BEGIN PGP ".len() + word + " KEY BLOCK-----\n\n".len()

@@ -280,6 +280,17 @@ impl<'a> TSK<'a> {
         }
     }
 
+    /// Returns whether we're emitting secret (sub)key packets when
+    /// serializing.
+    ///
+    /// Computes whether we have secrets, taking the filter into
+    /// account, and whether we are emitting stubs.  This can be used
+    /// to determine the correct armor label to use.
+    pub(crate) fn emits_secret_key_packets(&self) -> bool {
+        self.emit_stubs
+            || self.cert.keys().secret().any(|skb| (self.filter)(skb.key()))
+    }
+
     /// Filters which secret keys to export using the given predicate.
     ///
     /// Note that the given filter replaces any existing filter.
@@ -983,6 +994,29 @@ mod test {
                tsk_0.as_tsk().set_filter(no_secrets),
                true);
 
+        Ok(())
+    }
+
+    #[test]
+    fn issue_1075() -> Result<()> {
+        let cert = Cert::from_bytes(crate::tests::key("testy.pgp"))?;
+        let tsk = Cert::from_bytes(crate::tests::key("testy-private.pgp"))?;
+
+        // Filters out secrets.
+        let no_secrets = |_| false;
+
+        assert!(! cert.as_tsk().emits_secret_key_packets());
+        assert!(cert.as_tsk().emit_secret_key_stubs(true)
+                .emits_secret_key_packets());
+        assert!(tsk.as_tsk().emits_secret_key_packets());
+        assert!(! tsk.as_tsk().set_filter(no_secrets)
+                .emits_secret_key_packets());
+
+        assert!(cert.armored().to_vec()? != tsk.as_tsk().armored().to_vec()?);
+        assert_eq!(cert.armored().to_vec()?,
+                   cert.as_tsk().armored().to_vec()?);
+        assert_eq!(cert.armored().to_vec()?,
+                   tsk.as_tsk().set_filter(no_secrets).armored().to_vec()?);
         Ok(())
     }
 }
