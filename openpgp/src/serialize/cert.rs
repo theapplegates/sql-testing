@@ -935,9 +935,11 @@ mod test {
             ($a: expr, $b: expr, $expectation: expr) => {{
                 let a = $a;
                 let b = $b;
-                let serialized_eq = a.to_vec()? == b.to_vec()?;
                 let eq = a == b;
+                let serialized_eq = a.to_vec()? == b.to_vec()?;
+                let armored_eq = a.armored().to_vec()? == b.armored().to_vec()?;
                 assert_eq!(serialized_eq, eq);
+                assert_eq!(armored_eq, eq);
                 assert_eq!(eq, $expectation);
             }};
         }
