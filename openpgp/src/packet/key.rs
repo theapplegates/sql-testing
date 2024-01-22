@@ -1173,10 +1173,8 @@ impl<R> Key4<SecretParts, R>
 
     /// Creates a new OpenPGP secret key packet for an existing Ed25519 key.
     ///
-    /// The ECDH key will use hash algorithm `hash` and symmetric
-    /// algorithm `sym`.  If one or both are `None` secure defaults
-    /// will be used.  The key will have it's creation date set to
-    /// `ctime` or the current time if `None` is given.
+    /// The key will have it's creation date set to `ctime` or the current
+    /// time if `None` is given.
     pub fn import_secret_ed25519<T>(private_key: &[u8], ctime: T)
         -> Result<Self> where T: Into<Option<time::SystemTime>>
     {
