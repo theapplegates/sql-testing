@@ -14,6 +14,7 @@
    - KeyAmalgamation::valid_third_party_revocations_by_key
    - Parse::from_buffered_reader
    - armor::Reader::from_buffered_reader
+   - CertBuilder::set_exportable
 * Changes in 1.17.0
 ** Notable fixes
    - Sequoia now ignores some formatting errors when reading secret
