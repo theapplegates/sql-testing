@@ -1074,10 +1074,8 @@ impl<R> Key4<key::PublicParts, R>
     /// Creates an OpenPGP public key packet from existing Ed25519 key
     /// material.
     ///
-    /// The ECDH key will use hash algorithm `hash` and symmetric
-    /// algorithm `sym`.  If one or both are `None` secure defaults
-    /// will be used.  The key will have its creation date set to
-    /// `ctime` or the current time if `None` is given.
+    /// The key will have its creation date set to `ctime` or the
+    /// current time if `None` is given.
     pub fn import_public_ed25519<T>(public_key: &[u8], ctime: T) -> Result<Self>
         where  T: Into<Option<time::SystemTime>>
     {
