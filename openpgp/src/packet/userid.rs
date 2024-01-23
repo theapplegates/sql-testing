@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt;
 use std::str;
 use std::hash::{Hash, Hasher};
@@ -498,26 +499,22 @@ impl From<&[u8]> for UserID {
 
 impl<'a> From<&'a str> for UserID {
     fn from(u: &'a str) -> Self {
-        let b = u.as_bytes();
-        let mut v = Vec::with_capacity(b.len());
-        v.extend_from_slice(b);
-        v.into()
+        u.as_bytes().into()
     }
 }
 
 impl From<String> for UserID {
     fn from(u: String) -> Self {
-        let u = &u[..];
-        u.into()
+        u.into_bytes().into()
     }
 }
 
-impl<'a> From<::std::borrow::Cow<'a, str>> for UserID {
-    fn from(u: ::std::borrow::Cow<'a, str>) -> Self {
-        let b = u.as_bytes();
-        let mut v = Vec::with_capacity(b.len());
-        v.extend_from_slice(b);
-        v.into()
+impl<'a> From<Cow<'a, str>> for UserID {
+    fn from(u: Cow<'a, str>) -> Self {
+        match u {
+            Cow::Owned(u) => u.into(),
+            Cow::Borrowed(u) => u.into(),
+        }
     }
 }
 
