@@ -11,6 +11,65 @@ use crate::serialize::{
 
 
 impl Cert {
+    /// Returns whether the certificate should be exported.
+    ///
+    /// A certificate should only be exported if it has at least one
+    /// exportable direct key signature, or there is at least one user
+    /// ID with at least one exportable self signature.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::cert::prelude::*;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// // By default, certificates are exportable.
+    /// let (cert, _) =
+    ///     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    ///         .generate()?;
+    /// assert!(cert.exportable());
+    ///
+    /// // Setting the exportable flag to false makes them
+    /// // not-exportable.
+    /// let (cert, _) =
+    ///     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    ///         .set_exportable(false)
+    ///         .generate()?;
+    /// assert!(! cert.exportable());
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[allow(clippy::if_same_then_else)]
+    pub fn exportable(&self) -> bool {
+        let pk = self.primary_key();
+
+        if pk.self_signatures().chain(pk.self_revocations())
+            .any(|sig| sig.exportable().is_ok())
+        {
+            // Exportable direct key signature.  Export it.
+            true
+        } else if self.userids().any(|userid| {
+            userid.self_signatures()
+                .chain(userid.self_revocations())
+                .any(|sig| sig.exportable().is_ok())
+        }) {
+            // User ID with exportable self signature.  Export it.
+            true
+        } else if self.user_attributes().any(|ua| {
+            ua.self_signatures()
+                .chain(ua.self_revocations())
+                .any(|sig| sig.exportable().is_ok())
+        }) {
+            // User attribute with exportable self signature.  Export
+            // it.
+            true
+        } else {
+            // Don't export it.
+            false
+        }
+    }
+
     /// Serializes or exports the Cert.
     ///
     /// If `export` is true, then non-exportable signatures are not
