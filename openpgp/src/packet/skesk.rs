@@ -336,6 +336,7 @@ impl PartialEq for SKESK5 {
     fn eq(&self, other: &SKESK5) -> bool {
         self.skesk4.version == other.skesk4.version
             && self.skesk4.sym_algo == other.skesk4.sym_algo
+            && self.aead_algo == other.aead_algo
             && self.aead_digest == other.aead_digest
             // Treat S2K, IV, and ESK as opaque blob.
             && {
