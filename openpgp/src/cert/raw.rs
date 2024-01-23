@@ -54,9 +54,7 @@
 //!
 //!     if cert.fingerprint() == fpr {
 //!         // Found it!  Try to convert it to a Cert.
-//!         if let cert = Cert::try_from(cert) {
-//!             return cert;
-//!         }
+//!         return Cert::try_from(cert);
 //!     }
 //! }
 //!
