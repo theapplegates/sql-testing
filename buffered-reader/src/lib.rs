@@ -940,6 +940,28 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     /// ```text
     /// let inner = Box::new(br).into_inner();
     /// ```
+    ///
+    /// Note: if `Self` is not actually owned, e.g., you passed a
+    /// reference, then this returns `None` as it is not possible to
+    /// consume the outer buffered reader.  Consider:
+    ///
+    /// ```
+    /// # use buffered_reader::BufferedReader;
+    /// # use buffered_reader::Limitor;
+    /// # use buffered_reader::Memory;
+    /// #
+    /// # const DATA : &[u8] = b"01234567890123456789suffix";
+    /// #
+    /// let mut mem = Memory::new(DATA);
+    /// let mut limitor = Limitor::new(mem, 20);
+    /// let mut br = Box::new(&mut limitor);
+    /// // br doesn't owned limitor, so it can't consume it.
+    /// assert!(matches!(br.into_inner(), None));
+    ///
+    /// let mut mem = Memory::new(DATA);
+    /// let mut limitor = Limitor::new(mem, 20);
+    /// let mut br = Box::new(limitor);
+    /// assert!(matches!(br.into_inner(), Some(_)));
     fn into_inner<'a>(self: Box<Self>) -> Option<Box<dyn BufferedReader<C> + 'a>>
         where Self: 'a;
 
@@ -1102,6 +1124,110 @@ impl <'a, C: fmt::Debug + Sync + Send> BufferedReader<C> for Box<dyn BufferedRea
 
     fn cookie_mut(&mut self) -> &mut C {
         self.as_mut().cookie_mut()
+    }
+}
+
+/// Make a `&mut T` where `T` implements `BufferedReader` look like a
+/// BufferedReader.
+impl <'a, T, C> BufferedReader<C> for &'a mut T
+where
+    T: BufferedReader<C>,
+    C: fmt::Debug + Sync + Send + 'a
+{
+    fn buffer(&self) -> &[u8] {
+        (**self).buffer()
+    }
+
+    fn data(&mut self, amount: usize) -> Result<&[u8], io::Error> {
+        (**self).data(amount)
+    }
+
+    fn data_hard(&mut self, amount: usize) -> Result<&[u8], io::Error> {
+        (**self).data_hard(amount)
+    }
+
+    fn data_eof(&mut self) -> Result<&[u8], io::Error> {
+        (**self).data_eof()
+    }
+
+    fn consume(&mut self, amount: usize) -> &[u8] {
+        (**self).consume(amount)
+    }
+
+    fn data_consume(&mut self, amount: usize)
+                    -> Result<&[u8], std::io::Error> {
+        (**self).data_consume(amount)
+    }
+
+    fn data_consume_hard(&mut self, amount: usize) -> Result<&[u8], io::Error> {
+        (**self).data_consume_hard(amount)
+    }
+
+    fn consummated(&mut self) -> bool {
+        (**self).consummated()
+    }
+
+    fn read_be_u16(&mut self) -> Result<u16, std::io::Error> {
+        (**self).read_be_u16()
+    }
+
+    fn read_be_u32(&mut self) -> Result<u32, std::io::Error> {
+        (**self).read_be_u32()
+    }
+
+    fn read_to(&mut self, terminal: u8) -> Result<&[u8], std::io::Error>
+    {
+        (**self).read_to(terminal)
+    }
+
+    fn steal(&mut self, amount: usize) -> Result<Vec<u8>, std::io::Error> {
+        (**self).steal(amount)
+    }
+
+    fn steal_eof(&mut self) -> Result<Vec<u8>, std::io::Error> {
+        (**self).steal_eof()
+    }
+
+    fn drop_eof(&mut self) -> Result<bool, std::io::Error> {
+        (**self).drop_eof()
+    }
+
+    fn get_mut(&mut self) -> Option<&mut dyn BufferedReader<C>> {
+        (**self).get_mut()
+    }
+
+    fn get_ref(&self) -> Option<&dyn BufferedReader<C>> {
+        (**self).get_ref()
+    }
+
+    fn into_boxed<'b>(self) -> Box<dyn BufferedReader<C> + 'b>
+        where Self: 'b
+    {
+        Box::new(self)
+    }
+
+    fn as_boxed<'b>(self) -> Box<dyn BufferedReader<C> + 'b>
+        where Self: 'b
+    {
+        Box::new(self)
+    }
+
+    fn into_inner<'b>(self: Box<Self>) -> Option<Box<dyn BufferedReader<C> + 'b>>
+            where Self: 'b
+    {
+        None
+    }
+
+    fn cookie_set(&mut self, cookie: C) -> C {
+        (**self).cookie_set(cookie)
+    }
+
+    fn cookie_ref(&self) -> &C {
+        (**self).cookie_ref()
+    }
+
+    fn cookie_mut(&mut self) -> &mut C {
+        (**self).cookie_mut()
     }
 }
 
@@ -1296,5 +1422,60 @@ mod test {
         assert_eq!(amount, 50_000);
         assert_eq!(&sink[..], BUFFERED_READER_TEST_DATA);
         Ok(())
+    }
+
+    #[test]
+    fn mutable_reference() {
+        use crate::Memory;
+        const DATA : &[u8] = b"01234567890123456789suffix";
+
+        /// API that consumes the memory reader.
+        fn parse_ten_bytes<B: BufferedReader<()>>(mut r: B) {
+            let d = r.data_consume_hard(10).unwrap();
+            assert!(d.len() >= 10);
+            assert_eq!(&d[..10], &DATA[..10]);
+            drop(r); // We consumed the reader.
+        }
+
+        let mut mem = Memory::new(DATA);
+        parse_ten_bytes(&mut mem);
+        parse_ten_bytes(&mut mem);
+        let suffix = mem.data_eof().unwrap();
+        assert_eq!(suffix, b"suffix");
+
+        let mut mem = Memory::new(DATA);
+        let mut limitor = Limitor::new(&mut mem, 20);
+        parse_ten_bytes(&mut limitor);
+        parse_ten_bytes(&mut limitor);
+        assert!(limitor.eof());
+        drop(limitor);
+        let suffix = mem.data_eof().unwrap();
+        assert_eq!(suffix, b"suffix");
+    }
+
+    #[test]
+    fn mutable_reference_inner() {
+        use crate::Memory;
+        const DATA : &[u8] = b"01234567890123456789suffix";
+
+        /// API that consumes the memory reader.
+        fn parse_ten_bytes<B: BufferedReader<()>>(mut r: B) {
+            let d = r.data_consume_hard(10).unwrap();
+            assert!(d.len() >= 10);
+            assert_eq!(&d[..10], &DATA[..10]);
+            drop(r); // We consumed the reader.
+        }
+
+        let mut mem = Memory::new(DATA);
+        let mut limitor = Limitor::new(&mut mem, 20);
+        parse_ten_bytes(&mut limitor);
+        parse_ten_bytes(&mut limitor);
+        assert!(limitor.eof());
+
+        // Check that get_mut returns `mem` by reading from the inner
+        // and checking that we get more data.
+        let mem = limitor.get_mut().expect("have inner");
+        let suffix = mem.data_eof().unwrap();
+        assert_eq!(suffix, b"suffix");
     }
 }
