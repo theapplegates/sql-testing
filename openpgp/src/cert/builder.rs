@@ -516,6 +516,37 @@ impl CertBuilder<'_> {
     /// non-exportable certificate, then all of the signatures that it
     /// creates include the an [Exportable Certification] subpacket
     /// that is set to `false`.
+    ///
+    /// [Exportable Certification]: https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.3.11
+    ///
+    /// # Examples
+    ///
+    /// When exporting a non-exportable certificate, nothing will be
+    /// exported.  This is also the case when the output is ASCII
+    /// armored.
+    ///
+    /// ```
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::Result;
+    /// use openpgp::cert::prelude::*;
+    /// use openpgp::parse::Parse;
+    /// use openpgp::serialize::Serialize;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// let (cert, _) =
+    ///     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    ///         .set_exportable(false)
+    ///         .generate()?;
+    /// let mut exported = Vec::new();
+    /// cert.armored().export(&mut exported)?;
+    ///
+    /// let certs = CertParser::from_bytes(&exported)?
+    ///     .collect::<Result<Vec<Cert>>>()?;
+    /// assert_eq!(certs.len(), 0);
+    /// assert_eq!(exported.len(), 0, "{}", String::from_utf8_lossy(&exported));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn set_exportable(mut self, exportable: bool) -> Self {
         self.exportable = exportable;
         self
@@ -1584,7 +1615,9 @@ mod tests {
     use crate::Fingerprint;
     use crate::packet::signature::subpacket::{SubpacketTag, SubpacketValue};
     use crate::types::PublicKeyAlgorithm;
+    use crate::parse::Parse;
     use crate::policy::StandardPolicy as P;
+    use crate::serialize::Serialize;
 
     #[test]
     fn all_opts() {
@@ -1961,6 +1994,114 @@ mod tests {
         let vc = c.with_policy(p, None)?;
         assert_eq!(vc.primary_userid()?.value(), b"bar");
         assert_eq!(count_primary_user_things(c), 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn non_exportable_cert() -> Result<()> {
+        // Make sure that when we export a non-exportable cert,
+        // nothing is exported.
+
+        let (cert, _) =
+            CertBuilder::general_purpose(None, Some("alice@example.org"))
+            .set_exportable(false)
+            .generate()?;
+
+        let (bob, _) =
+            CertBuilder::general_purpose(None, Some("bob@example.org"))
+            .generate()?;
+
+        // Have Bob certify Alice's primary User ID with an exportable
+        // signature.  This shouldn't make Alice's certificate
+        // exportable.
+        let mut keypair = bob.primary_key().key().clone()
+            .parts_into_secret()?.into_keypair()?;
+        let certification = cert.userids().nth(0).unwrap()
+            .certify(&mut keypair, &cert,
+                     SignatureType::PositiveCertification,
+                     None, None)?;
+        let cert = cert.insert_packets(certification)?;
+
+        macro_rules! check {
+            ($cert: expr, $export: ident, $expected: expr) => {
+                let mut exported = Vec::new();
+                $cert.$export(&mut exported)?;
+
+                let certs = CertParser::from_bytes(&exported)?
+                    .collect::<Result<Vec<Cert>>>()?;
+
+                assert_eq!(certs.len(), $expected);
+
+                if $expected == 0 {
+                    assert_eq!(exported.len(), 0,
+                               "{}", String::from_utf8_lossy(&exported));
+                } else {
+                    assert!(exported.len() > 0);
+                }
+            }
+        }
+
+        // Binary cert:
+        check!(cert, export, 0);
+        check!(cert, serialize, 1);
+
+        // Binary TSK:
+        check!(cert.as_tsk(), export, 0);
+        check!(cert.as_tsk(), serialize, 1);
+
+        // Armored cert:
+        check!(cert.armored(), export, 0);
+        check!(cert.armored(), serialize, 1);
+
+        // Armored TSK:
+        check!(cert.as_tsk().armored(), export, 0);
+        check!(cert.as_tsk().armored(), serialize, 1);
+
+        // Have Alice add a exportable self signature.  Now her's
+        // certificate should be exportable.
+        let mut keypair = cert.primary_key().key().clone()
+            .parts_into_secret()?.into_keypair()?;
+        let certification = cert.userids().nth(0).unwrap()
+            .certify(&mut keypair, &cert,
+                     SignatureType::PositiveCertification,
+                     None, None)?;
+        let cert = cert.insert_packets(certification)?;
+
+        macro_rules! check {
+            ($cert: expr, $export: ident, $expected: expr) => {
+                let mut exported = Vec::new();
+                $cert.$export(&mut exported)?;
+
+                let certs = CertParser::from_bytes(&exported)?
+                    .collect::<Result<Vec<Cert>>>()?;
+
+                assert_eq!(certs.len(), $expected);
+
+                if $expected == 0 {
+                    assert_eq!(exported.len(), 0,
+                               "{}", String::from_utf8_lossy(&exported));
+                } else {
+                    assert!(exported.len() > 0);
+                }
+            }
+        }
+
+        // Binary cert:
+        check!(cert, export, 1);
+        check!(cert, serialize, 1);
+
+        // Binary TSK:
+        check!(cert.as_tsk(), export, 1);
+        check!(cert.as_tsk(), serialize, 1);
+
+        // Armored cert:
+        check!(cert.armored(), export, 1);
+        check!(cert.armored(), serialize, 1);
+
+        // Armored TSK:
+        check!(cert.as_tsk().armored(), export, 1);
+        check!(cert.as_tsk().armored(), serialize, 1);
 
         Ok(())
     }

@@ -140,6 +140,16 @@ impl<'a> Encoder<'a> {
 
     fn serialize_common(&self, o: &mut dyn io::Write, export: bool)
                         -> Result<()> {
+        if export {
+            let exportable = match self {
+                Encoder::Cert(cert) => cert.exportable(),
+                Encoder::TSK(tsk) => tsk.cert.exportable(),
+            };
+            if ! exportable {
+                return Ok(());
+            }
+        }
+
         let (prelude, headers) = match self {
             Encoder::Cert(cert) =>
                 (armor::Kind::PublicKey, cert.armor_headers()),

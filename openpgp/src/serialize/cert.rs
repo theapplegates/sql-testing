@@ -91,6 +91,10 @@ impl Cert {
     fn serialize_common(&self, o: &mut dyn std::io::Write, export: bool)
                         -> Result<()>
     {
+        if export && ! self.exportable() {
+            return Ok(())
+        }
+
         let primary = self.primary_key();
         PacketRef::PublicKey(primary.key())
             .serialize(o)?;
@@ -551,6 +555,10 @@ impl<'a> TSK<'a> {
                 _ => unreachable!(),
             }
         };
+
+        if export && ! self.cert.exportable() {
+            return Ok(())
+        }
 
         let primary = self.cert.primary_key();
         serialize_key(o, primary.key().into(),
