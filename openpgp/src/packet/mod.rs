@@ -610,6 +610,18 @@ pub struct Common {
 }
 assert_send_and_sync!(Common);
 
+impl Common {
+    /// Returns a default version of `Common`.
+    ///
+    /// This is equivalent to using `Common::from`, but the function
+    /// is constant.
+    pub(crate) const fn new() -> Self {
+        Common {
+            dummy: std::marker::PhantomData
+        }
+    }
+}
+
 #[cfg(test)]
 impl Arbitrary for Common {
     fn arbitrary(_: &mut Gen) -> Self {

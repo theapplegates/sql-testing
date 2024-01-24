@@ -16,6 +16,7 @@
    - armor::Reader::from_buffered_reader
    - Cert::exportable
    - CertBuilder::set_exportable
+   - UserID::from_static_bytes
 * Changes in 1.17.0
 ** Notable fixes
    - Sequoia now ignores some formatting errors when reading secret

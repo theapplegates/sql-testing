@@ -472,20 +472,44 @@ pub struct UserID {
     ///   [RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.11
     ///
     /// Use `UserID::default()` to get a UserID with a default settings.
-    value: Vec<u8>,
+    value: Cow<'static, [u8]>,
 
-    hash_algo_security: HashAlgoSecurity,
+    hash_algo_security: OnceCell<HashAlgoSecurity>,
 
     parsed: OnceCell<ConventionallyParsedUserID>,
 }
 assert_send_and_sync!(UserID);
 
+impl UserID {
+    /// Returns a User ID.
+    ///
+    /// This is equivalent to using `UserID::from`, but the function
+    /// is constant, and the slice must have a static lifetime.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use sequoia_openpgp::packet::UserID;
+    ///
+    /// const TRUST_ROOT_USERID: UserID
+    ///     = UserID::from_static_bytes(b"Local Trust Root");
+    /// ```
+    pub const fn from_static_bytes(u: &'static [u8]) -> Self {
+        UserID {
+            common: packet::Common::new(),
+            hash_algo_security: OnceCell::new(),
+            value: Cow::Borrowed(u),
+            parsed: OnceCell::new(),
+        }
+    }
+}
+
 impl From<Vec<u8>> for UserID {
     fn from(u: Vec<u8>) -> Self {
         UserID {
             common: Default::default(),
-            hash_algo_security: UserID::determine_hash_algo_security(&u),
-            value: u,
+            hash_algo_security: Default::default(),
+            value: Cow::Owned(u),
             parsed: Default::default(),
         }
     }
@@ -570,7 +594,7 @@ impl Clone for UserID {
     fn clone(&self) -> Self {
         UserID {
             common: self.common.clone(),
-            hash_algo_security: self.hash_algo_security,
+            hash_algo_security: self.hash_algo_security.clone(),
             value: self.value.clone(),
             parsed: if let Some(p) = self.parsed.get() {
                 OnceCell::with_value(p.clone())
@@ -729,6 +753,10 @@ impl UserID {
     ///   [HashAlgoSecurity]: crate::policy::HashAlgoSecurity
     pub fn hash_algo_security(&self) -> HashAlgoSecurity {
         self.hash_algo_security
+            .get_or_init(|| {
+                UserID::determine_hash_algo_security(&self.value)
+            })
+            .clone()
     }
 
     // See documentation for hash_algo_security.
@@ -846,7 +874,7 @@ impl UserID {
     ///   [`UserID::comment`]: UserID::comment()
     ///   [conventional User ID]: #conventional-user-ids
     pub fn value(&self) -> &[u8] {
-        self.value.as_slice()
+        &self.value
     }
 
     fn do_parse(&self) -> Result<&ConventionallyParsedUserID> {
