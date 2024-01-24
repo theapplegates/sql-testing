@@ -38,6 +38,7 @@ use crate::{
 /// # fn main() -> sequoia_openpgp::Result<()> {
 /// # use sequoia_openpgp as openpgp;
 /// use openpgp::KeyHandle;
+/// use openpgp::KeyID;
 /// use openpgp::Packet;
 /// use openpgp::parse::Parse;
 ///
@@ -59,12 +60,10 @@ use crate::{
 /// if let Packet::Signature(sig) = p {
 ///     let issuers = sig.get_issuers();
 ///     assert_eq!(issuers.len(), 2);
-///     assert_eq!(&issuers[0],
-///                &KeyHandle::Fingerprint(
-///                    "C03F A641 1B03 AE12 5764  6118 7223 B566 78E0 2528"
-///                        .parse()?));
-///     assert_eq!(&issuers[1],
-///                &KeyHandle::KeyID("7223 B566 78E0 2528".parse()?));
+///     let kh: KeyHandle
+///         = "C03F A641 1B03 AE12 5764  6118 7223 B566 78E0 2528".parse()?;
+///     assert!(&issuers[0].aliases(&kh));
+///     assert!(&issuers[1].aliases(&kh));
 /// } else {
 ///     unreachable!("It's a signature!");
 /// }
