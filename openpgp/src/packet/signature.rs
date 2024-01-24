@@ -4212,18 +4212,20 @@ mod test {
         // of the deduplicating nature of the merge.
         let merged = sig.clone().merge(malicious.clone())?;
         let issuers = merged.get_issuers();
+        let keyid_issuers = merged.issuers().collect::<Vec<&KeyID>>();
         assert_eq!(issuers.len(), 3);
         assert!(issuers.contains(&KeyHandle::from(&fp)));
-        assert!(issuers.contains(&KeyHandle::from(&keyid)));
-        assert!(issuers.contains(&KeyHandle::from(&dummy)));
+        assert!(keyid_issuers.contains(&&keyid));
+        assert!(keyid_issuers.contains(&&dummy));
 
         // Same, but the other way around.
         let merged = malicious.clone().merge(sig.clone())?;
         let issuers = merged.get_issuers();
+        let keyid_issuers = merged.issuers().collect::<Vec<_>>();
         assert_eq!(issuers.len(), 3);
         assert!(issuers.contains(&KeyHandle::from(&fp)));
-        assert!(issuers.contains(&KeyHandle::from(&keyid)));
-        assert!(issuers.contains(&KeyHandle::from(&dummy)));
+        assert!(keyid_issuers.contains(&&keyid));
+        assert!(keyid_issuers.contains(&&dummy));
 
         // Try to displace the issuer information using garbage
         // packets.
@@ -4247,16 +4249,18 @@ mod test {
         // the merge prefers plausible packets.
         let merged = sig.clone().merge(malicious.clone())?;
         let issuers = merged.get_issuers();
+        let keyid_issuers = merged.issuers().collect::<Vec<_>>();
         assert_eq!(issuers.len(), 2);
         assert!(issuers.contains(&KeyHandle::from(&fp)));
-        assert!(issuers.contains(&KeyHandle::from(&keyid)));
+        assert!(keyid_issuers.contains(&&keyid));
 
         // Same, but the other way around.
         let merged = malicious.clone().merge(sig.clone())?;
         let issuers = merged.get_issuers();
+        let keyid_issuers = merged.issuers().collect::<Vec<_>>();
         assert_eq!(issuers.len(), 2);
         assert!(issuers.contains(&KeyHandle::from(&fp)));
-        assert!(issuers.contains(&KeyHandle::from(&keyid)));
+        assert!(keyid_issuers.contains(&&keyid));
 
         // Try to displace the issuer information by using random keyids.
         let mut malicious = sig.clone();
@@ -4280,14 +4284,16 @@ mod test {
 
         let merged = verified.clone().merge(malicious.clone())?;
         let issuers = merged.get_issuers();
+        let keyid_issuers = merged.issuers().collect::<Vec<_>>();
         assert!(issuers.contains(&KeyHandle::from(&fp)));
-        assert!(issuers.contains(&KeyHandle::from(&keyid)));
+        assert!(keyid_issuers.contains(&&keyid));
 
         // Same, but the other way around.
         let merged = malicious.clone().merge(verified.clone())?;
         let issuers = merged.get_issuers();
+        let keyid_issuers = merged.issuers().collect::<Vec<_>>();
         assert!(issuers.contains(&KeyHandle::from(&fp)));
-        assert!(issuers.contains(&KeyHandle::from(&keyid)));
+        assert!(keyid_issuers.contains(&&keyid));
 
         Ok(())
     }
