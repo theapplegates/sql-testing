@@ -2226,6 +2226,11 @@ impl crate::packet::Signature {
     /// and the Issuer Fingerprint subpacket in both the hashed
     /// subpacket area and the unhashed subpacket area.
     ///
+    /// If you are only looking for the issuer subpackets use
+    /// [`SubpacketAreas::issuers`], or if you are looking only for
+    /// the issuer fingerprint subpackets use
+    /// [`SubpacketAreas::issuer_fingerprints`].
+    ///
     /// The issuers are sorted so that the `Fingerprints` come before
     /// `KeyID`s.  The `Fingerprint`s and `KeyID`s are not further
     /// sorted, but are returned in the order that they are
