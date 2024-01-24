@@ -1794,7 +1794,6 @@ impl Cert {
         }
 
         let primary_fp: KeyHandle = self.key_handle();
-        let primary_keyid = KeyHandle::KeyID(primary_fp.clone().into());
 
         'outer: for (unknown_idx, mut sig) in bad_sigs {
             // Did we find a new place for sig?
@@ -1805,8 +1804,7 @@ impl Cert {
                 sig.get_issuers();
             let is_selfsig =
                 issuers.is_empty()
-                || issuers.contains(&primary_fp)
-                || issuers.contains(&primary_keyid);
+                || issuers.iter().any(|kh| kh.aliases(&primary_fp));
 
             macro_rules! check_one {
                 ($desc:expr, $sigs:expr, $sig:expr,
@@ -2091,9 +2089,8 @@ impl Cert {
 
         // Split signatures on unknown components.
         let primary_fp: KeyHandle = self.key_handle();
-        let primary_keyid = KeyHandle::KeyID(primary_fp.clone().into());
         for c in self.unknowns.iter_mut() {
-            parser::split_sigs(&primary_fp, &primary_keyid, c);
+            parser::split_sigs(&primary_fp, c);
         }
 
         // Sort again.  We may have moved signatures to the right

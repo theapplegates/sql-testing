@@ -883,21 +883,20 @@ impl<'a> CertParser<'a> {
             Some(cert)
         }).and_then(|mut cert| {
             let primary_fp: KeyHandle = cert.key_handle();
-            let primary_keyid = KeyHandle::KeyID(primary_fp.clone().into());
 
             // The parser puts all of the signatures on the
             // certifications field.  Split them now.
 
-            split_sigs(&primary_fp, &primary_keyid, &mut cert.primary);
+            split_sigs(&primary_fp, &mut cert.primary);
 
             for b in cert.userids.iter_mut() {
-                split_sigs(&primary_fp, &primary_keyid, b);
+                split_sigs(&primary_fp, b);
             }
             for b in cert.user_attributes.iter_mut() {
-                split_sigs(&primary_fp, &primary_keyid, b);
+                split_sigs(&primary_fp, b);
             }
             for b in cert.subkeys.iter_mut() {
-                split_sigs(&primary_fp, &primary_keyid, b);
+                split_sigs(&primary_fp, b);
             }
 
             let cert = cert.canonicalize();
@@ -923,7 +922,7 @@ impl<'a> CertParser<'a> {
 
 /// Splits the signatures in b.certifications into the correct
 /// vectors.
-pub(crate) fn split_sigs<C>(primary: &KeyHandle, primary_keyid: &KeyHandle,
+pub(crate) fn split_sigs<C>(primary: &KeyHandle,
                             b: &mut ComponentBundle<C>)
 {
     let mut self_signatures = Vec::with_capacity(0);
@@ -934,11 +933,8 @@ pub(crate) fn split_sigs<C>(primary: &KeyHandle, primary_keyid: &KeyHandle,
     for sig in mem::replace(&mut b.certifications, Vec::with_capacity(0)) {
         let typ = sig.typ();
 
-        let issuers =
-            sig.get_issuers();
-        let is_selfsig =
-            issuers.contains(primary)
-            || issuers.contains(primary_keyid);
+        let issuers = sig.get_issuers();
+        let is_selfsig = issuers.iter().any(|kh| kh.aliases(primary));
 
         use crate::SignatureType::*;
         if typ == KeyRevocation
