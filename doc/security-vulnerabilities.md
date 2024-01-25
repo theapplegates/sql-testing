@@ -163,12 +163,12 @@ distribution, or integrate it into their software.
 ## Applications
 
   - pEpEngine
-    - https://gitea.pep.foundation/pEp.foundation/pEpEngine
+    - https://codeberg.org/pEp/pEpEngine
     - Maintainers:
-      - Volker Birk <vb@pep.foundation>
+      - Volker Birk <vb@pep-project.org>
         AAB978A882B9A6E793960B071ADFC82AC3586C14
-      - Luca Saiu <positron@pep.foundation>
-        08C6A9408241E6ED99A0A2767A6B35253722954D
+      - Luca Saiu <positron@pep-project.org>
+        C6CEFDA5AC078B88763DCF4DAA22EB64FB14DF25
 
   - Hagrid
     - https://gitlab.com/keys.openpgp.org/hagrid
