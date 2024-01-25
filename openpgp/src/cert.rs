@@ -1394,7 +1394,9 @@ impl Cert {
     /// ```
     #[deprecated(
         since = "1.18.0",
-        note = "Use Cert::into_packets2 or cert.into_tsk().into_packets()")]
+        note = "Use Cert::into_packets2() to strip secret key material \
+                or cert.into_tsk().into_packets() to serialize any \
+                secret key material")]
     pub fn into_packets(self) -> impl Iterator<Item=Packet> + Send + Sync {
         fn rewrite(mut p: impl Iterator<Item=Packet> + Send + Sync)
             -> impl Iterator<Item=Packet> + Send + Sync
