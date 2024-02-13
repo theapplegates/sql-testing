@@ -64,15 +64,7 @@ impl Asymmetric for super::Backend {
         let secret = Privkey::create("Curve25519", "", &mut rng)?;
         let mut public = [0u8; 32];
         public.copy_from_slice(&secret.pubkey()?.get_x25519_key()?);
-        let mut secret: Protected = secret.get_x25519_key()?.into();
-
-        // Clamp the scalar.  X25519 does the clamping implicitly, but
-        // OpenPGP's ECDH over Curve25519 requires the secret to be
-        // clamped.
-        secret[0] &= 0b1111_1000;
-        secret[31] &= !0b1000_0000;
-        secret[31] |= 0b0100_0000;
-
+        let secret: Protected = secret.get_x25519_key()?.into();
         Ok((secret, public))
     }
 
