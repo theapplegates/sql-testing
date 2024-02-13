@@ -51,6 +51,22 @@ pub trait Asymmetric {
     /// Returns a tuple containing the secret and public key.
     fn x25519_generate_key() -> Result<(Protected, [u8; 32])>;
 
+    /// Clamp the X25519 secret key scalar.
+    ///
+    /// X25519 does the clamping implicitly, but OpenPGP's ECDH over
+    /// Curve25519 requires the secret to be clamped.  To increase
+    /// compatibility with OpenPGP implementations that do not
+    /// implicitly clamp the secrets before use, we do that before we
+    /// store the secrets in OpenPGP data structures.
+    ///
+    /// Note: like every function in this trait, this function expects
+    /// `secret` to be in native byte order.
+    fn x25519_clamp_secret(secret: &mut Protected) {
+        secret[0] &= 0b1111_1000;
+        secret[31] &= !0b1000_0000;
+        secret[31] |= 0b0100_0000;
+    }
+
     /// Computes the public key for a given secret key.
     fn x25519_derive_public(secret: &Protected) -> Result<[u8; 32]>;
 

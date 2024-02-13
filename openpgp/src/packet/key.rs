@@ -1139,6 +1139,10 @@ impl<R> Key4<SecretParts, R>
     /// algorithm `sym`.  If one or both are `None` secure defaults
     /// will be used.  The key will have it's creation date set to
     /// `ctime` or the current time if `None` is given.
+    ///
+    /// The given `private_key` is expected to be in the native X25519
+    /// representation, i.e. as opaque byte string of length 32.  It
+    /// is transformed into OpenPGP's representation during import.
     pub fn import_secret_cv25519<H, S, T>(private_key: &[u8],
                                           hash: H, sym: S, ctime: T)
         -> Result<Self> where H: Into<Option<HashAlgorithm>>,
@@ -1150,6 +1154,22 @@ impl<R> Key4<SecretParts, R>
         let mut private_key = Protected::from(private_key);
         let public_key = Backend::x25519_derive_public(&private_key)?;
 
+        // Clamp the X25519 secret key scalar.
+        //
+        // X25519 does the clamping implicitly, but OpenPGP's ECDH
+        // over Curve25519 requires the secret to be clamped.  To
+        // increase compatibility with OpenPGP implementations that do
+        // not implicitly clamp the secrets before use, we do that
+        // before we store the secrets in OpenPGP data structures.
+        Backend::x25519_clamp_secret(&mut private_key);
+
+        // Reverse the scalar.
+        //
+        // X25519 stores the secret as opaque byte string representing
+        // a little-endian scalar.  OpenPGP's ECDH over Curve25519 on
+        // the other hand stores it as big-endian scalar, as was
+        // customary in OpenPGP.  See
+        // https://lists.gnupg.org/pipermail/gnupg-devel/2018-February/033437.html.
         private_key.reverse();
 
         use crate::crypto::ecdh;
@@ -2441,10 +2461,14 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
     }
 
     #[test]
-    #[cfg(not(windows))] // see: https://gitlab.com/sequoia-pgp/sequoia/-/issues/958
-    fn cv25519_secret_is_reversed() {
-        let private_key: &[u8] = &crate::crypto::SessionKey::new(32);
-        let key: Key4<_, UnspecifiedRole> = Key4::import_secret_cv25519(private_key, None, None, None).unwrap();
+    fn cv25519_secret_is_reversed() -> Result<()> {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+
+        let (mut private_key, _) = Backend::x25519_generate_key()?;
+        Backend::x25519_clamp_secret(&mut private_key);
+
+        let key: Key4<_, UnspecifiedRole> =
+            Key4::import_secret_cv25519(&private_key, None, None, None)?;
         if let crate::packet::key::SecretKeyMaterial::Unencrypted(key) = key.secret() {
             key.map(|secret| {
                 if let mpi::SecretKeyMaterial::ECDH { scalar } = secret {
@@ -2458,6 +2482,8 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
         } else {
             unreachable!();
         }
+
+        Ok(())
     }
 
     #[test]
