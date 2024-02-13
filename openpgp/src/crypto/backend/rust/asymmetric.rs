@@ -24,8 +24,6 @@ use crate::types::{Curve, HashAlgorithm, PublicKeyAlgorithm};
 
 use super::GenericArrayExt;
 
-const CURVE25519_SIZE: usize = 32;
-
 impl TryFrom<&Protected> for Box<ed25519_dalek::SigningKey> {
     type Error = anyhow::Error;
 
@@ -557,62 +555,17 @@ impl<R> Key4<SecretParts, R>
     /// EdDSA or ECDSA key is generated.  Giving `for_signing == true` and
     /// `curve == Cv25519` will produce an error. Likewise
     /// `for_signing == false` and `curve == Ed25519` will produce an error.
-    pub fn generate_ecc(for_signing: bool, curve: Curve) -> Result<Self> {
-        let hash = crate::crypto::ecdh::default_ecdh_kdf_hash(&curve);
-        let sym = crate::crypto::ecdh::default_ecdh_kek_cipher(&curve);
+    pub(crate) fn generate_ecc_backend(for_signing: bool, curve: Curve)
+                                       -> Result<(PublicKeyAlgorithm,
+                                                  mpi::PublicKey,
+                                                  mpi::SecretKeyMaterial)>
+    {
+        match (&curve, for_signing) {
+            (Curve::Ed25519, true) =>
+                unreachable!("handled in Key4::generate_ecc"),
 
-        let (algo, public, private) = match (&curve, for_signing) {
-            (Curve::Ed25519, true) => {
-                use ed25519_dalek::SigningKey;
-
-                use rand::rngs::OsRng as OsRng;
-
-                let key = SigningKey::generate(&mut OsRng);
-
-                let secret: Protected = key.to_bytes().as_ref().into();
-
-                // Mark MPI as compressed point with 0x40 prefix. See
-                // https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-07#section-13.2.
-                let mut compressed_public = [0u8; 1 + CURVE25519_SIZE];
-                compressed_public[0] = 0x40;
-                compressed_public[1..].copy_from_slice(key.verifying_key().as_bytes());
-
-                (
-                    PublicKeyAlgorithm::EdDSA,
-                    mpi::PublicKey::EdDSA { curve, q: mpi::MPI::new(&compressed_public) },
-                    mpi::SecretKeyMaterial::EdDSA { scalar: secret.into() },
-                )
-            }
-
-            (Curve::Cv25519, false) => {
-                let (mut private, public) =
-                    super::Backend::x25519_generate_key()?;
-
-                // x25519-dalek since v 2.0.0-rc.3 does not return clamped
-                // integers from Static Secrets but clamps them on usage.
-                // See: https://github.com/dalek-cryptography/x25519-dalek/blob/main/CHANGELOG.md#200-rc3
-                //
-                // Clamp the scalar.  X25519 does the clamping implicitly, but
-                // OpenPGP's ECDH over Curve25519 requires the secret to be
-                // clamped.
-                private[0] &= 0b1111_1000;
-                private[31] &= !0b1000_0000;
-                private[31] |= 0b0100_0000;
-
-                private.reverse();
-
-                let public_mpis = mpi::PublicKey::ECDH {
-                    curve: Curve::Cv25519,
-                    q: MPI::new_compressed_point(&public),
-                    hash,
-                    sym,
-                };
-                let private_mpis = mpi::SecretKeyMaterial::ECDH {
-                    scalar: private.into(),
-                };
-
-                (PublicKeyAlgorithm::ECDH, public_mpis, private_mpis)
-            }
+            (Curve::Cv25519, false) =>
+                unreachable!("handled in Key4::generate_ecc"),
 
             (Curve::NistP256, true) => {
                 use p256::{EncodedPoint, SecretKey};
@@ -629,7 +582,7 @@ impl<R> Key4<SecretParts, R>
                     scalar: Vec::from(secret.to_bytes().as_slice()).into(),
                 };
 
-                (PublicKeyAlgorithm::ECDSA, public_mpis, private_mpis)
+                Ok((PublicKeyAlgorithm::ECDSA, public_mpis, private_mpis))
             },
 
             (Curve::NistP256, false) => {
@@ -640,23 +593,22 @@ impl<R> Key4<SecretParts, R>
                 let public = EncodedPoint::from(secret.public_key());
 
                 let public_mpis = mpi::PublicKey::ECDH {
-                    curve,
                     q: MPI::new(public.as_bytes()),
-                    hash,
-                    sym,
+                    hash:
+                    crate::crypto::ecdh::default_ecdh_kdf_hash(&curve),
+                    sym:
+                    crate::crypto::ecdh::default_ecdh_kek_cipher(&curve),
+                    curve,
                 };
                 let private_mpis = mpi::SecretKeyMaterial::ECDH {
                     scalar: Vec::from(secret.to_bytes().as_slice()).into(),
                 };
 
-                (PublicKeyAlgorithm::ECDH, public_mpis, private_mpis)
+                Ok((PublicKeyAlgorithm::ECDH, public_mpis, private_mpis))
             },
 
-            _ => {
-                return Err(Error::UnsupportedEllipticCurve(curve).into());
-            }
-        };
-        Self::with_secret(crate::now(), algo, public, private.into())
+            _ => Err(Error::UnsupportedEllipticCurve(curve).into()),
+        }
     }
 }
 

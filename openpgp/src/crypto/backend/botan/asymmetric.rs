@@ -504,9 +504,11 @@ impl<R> Key4<SecretParts, R>
     /// EdDSA or ECDSA key is generated.  Giving `for_signing == true` and
     /// `curve == Cv25519` will produce an error. Likewise
     /// `for_signing == false` and `curve == Ed25519` will produce an error.
-    pub fn generate_ecc(for_signing: bool, curve: Curve) -> Result<Self> {
-        use crate::PublicKeyAlgorithm::*;
-
+    pub(crate) fn generate_ecc_backend(for_signing: bool, curve: Curve)
+                                       -> Result<(PublicKeyAlgorithm,
+                                                  mpi::PublicKey,
+                                                  mpi::SecretKeyMaterial)>
+    {
         let mut rng = RandomNumberGenerator::new_userspace()?;
         let hash = crate::crypto::ecdh::default_ecdh_kdf_hash(&curve);
         let sym = crate::crypto::ecdh::default_ecdh_kek_cipher(&curve);
@@ -520,50 +522,12 @@ impl<R> Key4<SecretParts, R>
                 Err(Error::UnsupportedEllipticCurve(curve).into()),
         };
 
-        let (mpis, secret, pk_algo) = match (curve.clone(), for_signing) {
-            (Curve::Ed25519, true) => {
-                let secret = Privkey::create("Ed25519", "", &mut rng)?;
-                let (public, secret) = secret.get_ed25519_key()?;
+        match (curve.clone(), for_signing) {
+            (Curve::Ed25519, true) =>
+                unreachable!("handled in Key4::generate_ecc"),
 
-                let public_mpis = PublicKey::EdDSA {
-                    curve: Curve::Ed25519,
-                    q: MPI::new_compressed_point(&public),
-                };
-                let private_mpis = mpi::SecretKeyMaterial::EdDSA {
-                    scalar: secret.into(),
-                };
-
-                (public_mpis, private_mpis.into(), EdDSA)
-            },
-
-            (Curve::Cv25519, false) => {
-                let secret = Privkey::create("Curve25519", "", &mut rng)?;
-                let public = secret.pubkey()?.get_x25519_key()?;
-                let mut secret: Protected = secret.get_x25519_key()?.into();
-
-                // Clamp the scalar.  X25519 does the clamping
-                // implicitly, but OpenPGP's ECDH over Curve25519
-                // requires the secret to be clamped.
-                secret[0] &= 0b1111_1000;
-                secret[31] &= !0b1000_0000;
-                secret[31] |= 0b0100_0000;
-
-                // Reverse the scalar.  See
-                // https://lists.gnupg.org/pipermail/gnupg-devel/2018-February/033437.html.
-                secret.reverse();
-
-                let public_mpis = PublicKey::ECDH {
-                    curve: Curve::Cv25519,
-                    q: MPI::new_compressed_point(&public),
-                    hash,
-                    sym,
-                };
-                let private_mpis = mpi::SecretKeyMaterial::ECDH {
-                    scalar: secret.into(),
-                };
-
-                (public_mpis, private_mpis.into(), ECDH)
-            },
+            (Curve::Cv25519, false) =>
+                unreachable!("handled in Key4::generate_ecc"),
 
             (Curve::NistP256, true) |
             (Curve::NistP384, true) |
@@ -582,7 +546,7 @@ impl<R> Key4<SecretParts, R>
                     scalar: secret.get_field("x")?.try_into()?,
                 };
 
-                (public_mpis, private_mpis.into(), ECDSA)
+                Ok((PublicKeyAlgorithm::ECDSA, public_mpis, private_mpis))
             },
 
             (Curve::NistP256, false) |
@@ -604,19 +568,11 @@ impl<R> Key4<SecretParts, R>
                     scalar: secret.get_field("x")?.try_into()?,
                 };
 
-                (public_mpis, private_mpis.into(), ECDH)
+                Ok((PublicKeyAlgorithm::ECDH, public_mpis, private_mpis))
             },
 
-            (cv, _) => {
-                return Err(Error::UnsupportedEllipticCurve(cv).into());
-            }
-        };
-
-        Self::with_secret(
-            crate::now(),
-            pk_algo,
-            mpis,
-            secret)
+            _ => Err(Error::UnsupportedEllipticCurve(curve).into()),
+        }
     }
 }
 

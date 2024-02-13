@@ -20,8 +20,6 @@ use crate::types::{Curve, HashAlgorithm};
 use num_bigint_dig::{traits::ModInverse, BigInt, BigUint};
 use win_crypto_ng as cng;
 
-const CURVE25519_SIZE: usize = 32;
-
 impl TryFrom<&Protected> for Box<ed25519_dalek::SigningKey> {
     type Error = anyhow::Error;
 
@@ -844,16 +842,21 @@ where
     /// and `curve == Cv25519` will produce an error.  Similar for
     /// `for_signing == false` and `curve == Ed25519`.
     /// signing/encryption
-    pub fn generate_ecc(for_signing: bool, curve: Curve) -> Result<Self> {
-        use crate::PublicKeyAlgorithm::*;
-
+    pub(crate) fn generate_ecc_backend(for_signing: bool, curve: Curve)
+                                       -> Result<(PublicKeyAlgorithm,
+                                                  mpi::PublicKey,
+                                                  mpi::SecretKeyMaterial)>
+    {
         use cng::asymmetric::{ecc, Export};
-        use cng::asymmetric::{AsymmetricKey, AsymmetricAlgorithmId, Ecdh};
+        use cng::asymmetric::{AsymmetricKey, AsymmetricAlgorithmId};
 
-        let hash = crate::crypto::ecdh::default_ecdh_kdf_hash(&curve);
-        let sym = crate::crypto::ecdh::default_ecdh_kek_cipher(&curve);
+        match (curve.clone(), for_signing) {
+            (Curve::Ed25519, true) =>
+                unreachable!("handled in Key4::generate_ecc"),
 
-        let (algo, public, private) = match (curve.clone(), for_signing) {
+            (Curve::Cv25519, false) =>
+                unreachable!("handled in Key4::generate_ecc"),
+
             (Curve::NistP256, ..) | (Curve::NistP384, ..) | (Curve::NistP521, ..) => {
                 let cng_curve = match curve {
                     Curve::NistP256 => ecc::NamedCurve::NistP256,
@@ -881,72 +884,27 @@ where
                 let scalar = mpi::MPI::new(blob.d());
 
                 if for_signing {
-                    (
-                        ECDSA,
+                    Ok((
+                        PublicKeyAlgorithm::ECDSA,
                         mpi::PublicKey::ECDSA { curve, q },
                         mpi::SecretKeyMaterial::ECDSA { scalar: scalar.into() },
-                    )
+                    ))
                 } else {
-                    (
-                        ECDH,
+                    let hash =
+                        crate::crypto::ecdh::default_ecdh_kdf_hash(&curve);
+                    let sym =
+                        crate::crypto::ecdh::default_ecdh_kek_cipher(&curve);
+
+                    Ok((
+                        PublicKeyAlgorithm::ECDH,
                         mpi::PublicKey::ECDH { curve, q, hash, sym },
                         mpi::SecretKeyMaterial::ECDH { scalar: scalar.into() },
-                    )
+                    ))
                 }
             },
-            (Curve::Cv25519, false) => {
-                let blob = AsymmetricKey::builder(Ecdh(ecc::Curve25519)).build()?.export()?;
 
-                // Mark MPI as compressed point with 0x40 prefix. See
-                // https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-07#section-13.2.
-                let mut public = [0u8; 1 + CURVE25519_SIZE];
-                public[0] = 0x40;
-                public[1..].copy_from_slice(blob.x());
-
-                // Reverse the scalar.  See
-                // https://lists.gnupg.org/pipermail/gnupg-devel/2018-February/033437.html.
-                let mut private: Protected = blob.d().into();
-                private.reverse();
-
-                (
-                    ECDH,
-                    mpi::PublicKey::ECDH {
-                        curve,
-                        q: mpi::MPI::new(&public),
-                        hash,
-                        sym,
-                    },
-                    mpi::SecretKeyMaterial::ECDH { scalar: private.into() }
-                )
-            },
-            (Curve::Ed25519, true) => {
-                // CNG doesn't support EdDSA, use ed25519-dalek instead
-                use ed25519_dalek::SigningKey;
-
-                let mut rng = cng::random::RandomNumberGenerator::system_preferred();
-                let key = SigningKey::generate(&mut rng);
-
-                let secret: Protected = key.to_bytes().as_ref().into();
-
-                // Mark MPI as compressed point with 0x40 prefix. See
-                // https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-07#section-13.2.
-                let mut compressed_public = [0u8; 1 + CURVE25519_SIZE];
-                compressed_public[0] = 0x40;
-                compressed_public[1..].copy_from_slice(key.verifying_key().as_bytes());
-
-                (
-                    EdDSA,
-                    mpi::PublicKey::EdDSA { curve, q: mpi::MPI::new(&compressed_public) },
-                    mpi::SecretKeyMaterial::EdDSA { scalar: secret.into() },
-                )
-            },
-            // TODO: Support Brainpool curves
-            (curve, ..) => {
-                return Err(Error::UnsupportedEllipticCurve(curve).into());
-            }
-        };
-
-        Self::with_secret(crate::now(), algo, public, private.into())
+            _ => Err(Error::UnsupportedEllipticCurve(curve).into()),
+        }
     }
 }
 

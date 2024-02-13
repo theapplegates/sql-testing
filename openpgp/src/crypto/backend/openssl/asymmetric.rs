@@ -533,54 +533,11 @@ where
     /// EdDSA or ECDSA key is generated.  Giving `for_signing == true` and
     /// `curve == Cv25519` will produce an error. Likewise
     /// `for_signing == false` and `curve == Ed25519` will produce an error.
-    pub fn generate_ecc(for_signing: bool, curve: Curve) -> Result<Self> {
-        if for_signing && curve == Curve::Cv25519 {
-            return Err(crate::Error::UnsupportedEllipticCurve(curve.clone()).into());
-        }
-
-        if !for_signing && curve == Curve::Ed25519 {
-            return Err(crate::Error::UnsupportedEllipticCurve(curve.clone()).into());
-        }
-
-        if curve == Curve::Cv25519 || curve == Curve::Ed25519 {
-            let key = if curve == Curve::Cv25519 {
-                openssl::pkey::PKey::generate_x25519()?
-            } else {
-                openssl::pkey::PKey::generate_ed25519()?
-            };
-
-            let hash = crate::crypto::ecdh::default_ecdh_kdf_hash(&curve);
-            let sym = crate::crypto::ecdh::default_ecdh_kek_cipher(&curve);
-
-            let q = MPI::new_compressed_point(&key.raw_public_key()?);
-            let mut scalar: Protected = key.raw_private_key().map(|key| key.into())?;
-
-            if curve == Curve::Cv25519 {
-                scalar.reverse();
-            }
-            let scalar = scalar.into();
-
-            let (algo, public, private) = if for_signing {
-                (
-                    PublicKeyAlgorithm::EdDSA,
-                    mpi::PublicKey::EdDSA { curve, q },
-                    mpi::SecretKeyMaterial::EdDSA { scalar },
-                )
-            } else {
-                (
-                    PublicKeyAlgorithm::ECDH,
-                    mpi::PublicKey::ECDH {
-                        curve,
-                        q,
-                        hash,
-                        sym,
-                    },
-                    mpi::SecretKeyMaterial::ECDH { scalar },
-                )
-            };
-            return Self::with_secret(crate::now(), algo, public, private.into());
-        }
-
+    pub(crate) fn generate_ecc_backend(for_signing: bool, curve: Curve)
+                                       -> Result<(PublicKeyAlgorithm,
+                                                  mpi::PublicKey,
+                                                  mpi::SecretKeyMaterial)>
+    {
         let nid = match curve {
             Curve::NistP256 => Nid::X9_62_PRIME256V1,
             Curve::NistP384 => Nid::SECP384R1,
@@ -602,14 +559,14 @@ where
         )?);
         let scalar = key.private_key().to_vec().into();
 
-        let (algo, public, private) = if for_signing {
-            (
+        if for_signing {
+            Ok((
                 PublicKeyAlgorithm::ECDSA,
                 mpi::PublicKey::ECDSA { curve, q },
                 mpi::SecretKeyMaterial::ECDSA { scalar },
-            )
+            ))
         } else {
-            (
+            Ok((
                 PublicKeyAlgorithm::ECDH,
                 mpi::PublicKey::ECDH {
                     curve,
@@ -618,9 +575,7 @@ where
                     sym,
                 },
                 mpi::SecretKeyMaterial::ECDH { scalar },
-            )
-        };
-
-        Self::with_secret(crate::now(), algo, public, private.into())
+            ))
+        }
     }
 }

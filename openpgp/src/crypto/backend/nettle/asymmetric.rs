@@ -417,53 +417,19 @@ impl<R> Key4<SecretParts, R>
     /// EdDSA or ECDSA key is generated.  Giving `for_signing == true` and
     /// `curve == Cv25519` will produce an error. Likewise
     /// `for_signing == false` and `curve == Ed25519` will produce an error.
-    pub fn generate_ecc(for_signing: bool, curve: Curve) -> Result<Self> {
-        use crate::PublicKeyAlgorithm::*;
-
+    pub(crate) fn generate_ecc_backend(for_signing: bool, curve: Curve)
+                                       -> Result<(PublicKeyAlgorithm,
+                                                  mpi::PublicKey,
+                                                  mpi::SecretKeyMaterial)>
+    {
         let mut rng = Yarrow::default();
-        let hash = crate::crypto::ecdh::default_ecdh_kdf_hash(&curve);
-        let sym = crate::crypto::ecdh::default_ecdh_kek_cipher(&curve);
 
-        let (mpis, secret, pk_algo) = match (curve.clone(), for_signing) {
-            (Curve::Ed25519, true) => {
-                let mut public = [0; ed25519::ED25519_KEY_SIZE];
-                let private: Protected =
-                    ed25519::private_key(&mut rng).into();
-                ed25519::public_key(&mut public, &private)?;
+        match (curve.clone(), for_signing) {
+            (Curve::Ed25519, true) =>
+                unreachable!("handled in Key4::generate_ecc"),
 
-                let public_mpis = PublicKey::EdDSA {
-                    curve: Curve::Ed25519,
-                    q: MPI::new_compressed_point(&public),
-                };
-                let private_mpis = mpi::SecretKeyMaterial::EdDSA {
-                    scalar: private.into(),
-                };
-                let sec = private_mpis.into();
-
-                (public_mpis, sec, EdDSA)
-            }
-
-            (Curve::Cv25519, false) => {
-                let (mut private, public) =
-                    super::Backend::x25519_generate_key()?;
-
-                // Reverse the scalar.  See
-                // https://lists.gnupg.org/pipermail/gnupg-devel/2018-February/033437.html.
-                private.reverse();
-
-                let public_mpis = PublicKey::ECDH {
-                    curve: Curve::Cv25519,
-                    q: MPI::new_compressed_point(&public),
-                    hash,
-                    sym,
-                };
-                let private_mpis = mpi::SecretKeyMaterial::ECDH {
-                    scalar: private.into(),
-                };
-                let sec = private_mpis.into();
-
-                (public_mpis, sec, ECDH)
-            }
+            (Curve::Cv25519, false) =>
+                unreachable!("handled in Key4::generate_ecc"),
 
             (Curve::NistP256, true)  | (Curve::NistP384, true)
             | (Curve::NistP521, true) => {
@@ -493,9 +459,8 @@ impl<R> Key4<SecretParts, R>
                 let private_mpis = mpi::SecretKeyMaterial::ECDSA{
                     scalar: private.as_bytes().into(),
                 };
-                let sec = private_mpis.into();
 
-                (public_mpis, sec, ECDSA)
+                Ok((PublicKeyAlgorithm::ECDSA, public_mpis, private_mpis))
             }
 
             (Curve::NistP256, false)  | (Curve::NistP384, false)
@@ -524,28 +489,21 @@ impl<R> Key4<SecretParts, R>
                     let public = ecdh::point_mul_g(&private);
                     let (pub_x, pub_y) = public.as_bytes();
                     let public_mpis = mpi::PublicKey::ECDH{
-                        curve,
                         q: MPI::new_point(&pub_x, &pub_y, field_sz),
-                        hash,
-                        sym,
+                        hash:
+                        crate::crypto::ecdh::default_ecdh_kdf_hash(&curve),
+                        sym:
+                        crate::crypto::ecdh::default_ecdh_kek_cipher(&curve),
+                        curve,
                     };
                     let private_mpis = mpi::SecretKeyMaterial::ECDH{
                         scalar: private.as_bytes().into(),
                     };
-                    let sec = private_mpis.into();
 
-                    (public_mpis, sec, ECDH)
+                    Ok((PublicKeyAlgorithm::ECDH, public_mpis, private_mpis))
                 }
 
-            (cv, _) => {
-                return Err(Error::UnsupportedEllipticCurve(cv).into());
-            }
-        };
-
-        Self::with_secret(
-            crate::now(),
-            pk_algo,
-            mpis,
-            secret)
+            _ => Err(Error::UnsupportedEllipticCurve(curve).into()),
+        }
     }
 }

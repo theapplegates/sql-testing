@@ -1213,6 +1213,76 @@ impl<R> Key4<SecretParts, R>
             }.into())
     }
 
+    /// Generates a new ECC key over `curve`.
+    ///
+    /// If `for_signing` is false a ECDH key, if it's true either a
+    /// EdDSA or ECDSA key is generated.  Giving `for_signing == true` and
+    /// `curve == Cv25519` will produce an error. Likewise
+    /// `for_signing == false` and `curve == Ed25519` will produce an error.
+    pub fn generate_ecc(for_signing: bool, curve: Curve) -> Result<Self> {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+
+        let (pk_algo, public, secret) = match (curve, for_signing) {
+            (Curve::Ed25519, true) => {
+                let (secret, public) = Backend::ed25519_generate_key()?;
+
+                (
+                    PublicKeyAlgorithm::EdDSA,
+                    mpi::PublicKey::EdDSA {
+                        curve: Curve::Ed25519,
+                        q: mpi::MPI::new_compressed_point(&public),
+                    },
+                    mpi::SecretKeyMaterial::EdDSA {
+                        scalar: secret.into(),
+                    },
+                )
+            },
+
+            (Curve::Cv25519, false) => {
+                let (mut secret, public) = Backend::x25519_generate_key()?;
+
+                // Clamp the X25519 secret key scalar.
+                //
+                // X25519 does the clamping implicitly, but OpenPGP's ECDH over
+                // Curve25519 requires the secret to be clamped.  To increase
+                // compatibility with OpenPGP implementations that do not
+                // implicitly clamp the secrets before use, we do that before we
+                // store the secrets in OpenPGP data structures.
+                Backend::x25519_clamp_secret(&mut secret);
+
+                // Reverse the scalar.
+                //
+                // X25519 stores the secret as opaque byte string
+                // representing a little-endian scalar.  OpenPGP's
+                // ECDH over Curve25519 on the other hand stores it as
+                // big-endian scalar, as was customary in OpenPGP.
+                // See
+                // https://lists.gnupg.org/pipermail/gnupg-devel/2018-February/033437.html.
+                secret.reverse();
+
+                (
+                    PublicKeyAlgorithm::ECDH,
+                    mpi::PublicKey::ECDH {
+                        curve: Curve::Cv25519,
+                        q: mpi::MPI::new_compressed_point(&public),
+                        hash: crate::crypto::ecdh::default_ecdh_kdf_hash(
+                            &Curve::Cv25519),
+                        sym: crate::crypto::ecdh::default_ecdh_kek_cipher(
+                            &Curve::Cv25519),
+                    },
+                    mpi::SecretKeyMaterial::ECDH {
+                        scalar: secret.into(),
+                    },
+                )
+            },
+
+            (curve, for_signing) =>
+                Self::generate_ecc_backend(for_signing, curve)?,
+        };
+
+        Self::with_secret(crate::now(), pk_algo, public, secret.into())
+    }
+
     /// Generates a new DSA key with a public modulus of size `p_bits`.
     ///
     /// Note: In order to comply with FIPS 186-4, and to increase

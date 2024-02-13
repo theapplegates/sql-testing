@@ -163,7 +163,11 @@ impl<R> Key4<SecretParts, R>
     /// EdDSA or ECDSA key is generated.  Giving `for_signing == true` and
     /// `curve == Cv25519` will produce an error. Likewise
     /// `for_signing == false` and `curve == Ed25519` will produce an error.
-    pub fn generate_ecc(for_signing: bool, curve: Curve) -> Result<Self> {
+    pub(crate) fn generate_ecc_backend(for_signing: bool, curve: Curve)
+                                       -> Result<(PublicKeyAlgorithm,
+                                                  mpi::PublicKey,
+                                                  mpi::SecretKeyMaterial)>
+    {
         Err(Error::InvalidOperation("not implemented".into()).into())
     }
 }
