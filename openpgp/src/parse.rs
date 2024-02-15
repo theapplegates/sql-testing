@@ -6704,4 +6704,40 @@ heLBX8Pq0kUBwQz2iFAzRwOdgTBvH5KsDU9lmE
             .into_keypair()?;
         Ok(())
     }
+
+    /// Tests that junk pseudo-packets have a proper map when
+    /// buffering is turned on.
+    #[test]
+    #[cfg(feature = "compression-deflate")]
+    fn parse_junk_with_mapping() -> Result<()> {
+        let silly = "-----BEGIN PGP MESSAGE-----
+
+yCsBO81bKqlfklugX5yRX5qTopuXX6KbWpFZXKJXUlGSetb4dXm+gYFBCRcA
+=IHpt
+-----END PGP MESSAGE-----
+";
+        let mut ppr = PacketParserBuilder::from_bytes(silly)?
+            .map(true).buffer_unread_content().build()?;
+        let mut i = 0;
+        while let PacketParserResult::Some(pp) = ppr {
+            assert!(pp.map().unwrap().iter().count() > 0);
+            for f in pp.map().unwrap().iter() {
+                eprintln!("{:?}", f);
+            }
+            ppr = match pp.recurse() {
+                Ok((_, ppr)) => {
+                    i += 1;
+                    ppr
+                },
+                Err(_) => {
+                    // The third packet is a junk pseudo-packet, and
+                    // recursing will fail.
+                    assert_eq!(i, 2);
+                    break;
+                },
+            }
+        }
+        Ok(())
+    }
+
 }
