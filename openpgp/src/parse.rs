@@ -538,7 +538,10 @@ impl<'a> PacketHeaderParser<'a> {
     // completely and correctly parsed.  If a failure occurs while
     // parsing the header, use `fail()` instead.
     fn ok(mut self, packet: Packet) -> Result<PacketParser<'a>> {
+        tracer!(TRACE, "PacketHeaderParser::ok",
+                self.reader.cookie_ref().level.unwrap_or(0));
         let total_out = self.reader.total_out();
+        t!("total_out = {}", total_out);
 
         if self.state.settings.map {
             // Steal the body for the map.
@@ -548,6 +551,7 @@ impl<'a> PacketHeaderParser<'a> {
             } else {
                 self.reader.steal(total_out)?
             };
+            t!("got {} bytes of body for the map", body.len());
             if body.len() > total_out {
                 self.field("body", body.len() - total_out);
             }
