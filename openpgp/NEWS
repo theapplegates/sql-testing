@@ -9,6 +9,10 @@
      secret scalar to make the generated secret key packet more
      compatible with implementations that do not implicitly do the
      clamping before decryption.
+   - Sequoia built with the OpenSSL backend will now use the correct
+     representation of points on Weierstrass curves.  OpenPGP uses the
+     uncompressed representation.  Previously, the OpenSSL backend
+     used the compressed representation by mistake.
 ** New functionality
    - Curve::variants
 * Changes in 1.18.0

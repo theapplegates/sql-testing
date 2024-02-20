@@ -53,7 +53,7 @@ where
 
     let q = mpi::MPI::new(&key.public_key().to_bytes(
         &group,
-        PointConversionForm::COMPRESSED,
+        PointConversionForm::UNCOMPRESSED,
         &mut ctx,
     )?);
 

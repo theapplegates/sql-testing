@@ -548,7 +548,7 @@ where
 
         let q = MPI::new(&key.public_key().to_bytes(
             &group,
-            PointConversionForm::COMPRESSED,
+            PointConversionForm::UNCOMPRESSED,
             &mut ctx,
         )?);
         let scalar = key.private_key().to_vec().into();
