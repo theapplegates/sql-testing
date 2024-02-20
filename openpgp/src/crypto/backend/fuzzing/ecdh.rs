@@ -22,7 +22,8 @@ pub fn encrypt<R>(recipient: &Key<key::PublicParts, R>,
 #[allow(dead_code)]
 pub fn decrypt<R>(recipient: &Key<key::PublicParts, R>,
                   recipient_sec: &SecretKeyMaterial,
-                  ciphertext: &Ciphertext)
+                  ciphertext: &Ciphertext,
+                  plaintext_len: Option<usize>)
     -> Result<SessionKey>
     where R: key::KeyRole
 {
