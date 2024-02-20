@@ -2704,4 +2704,65 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
         }
         Ok(())
     }
+
+    #[test]
+    fn ecc_encoding() -> Result<()> {
+        for for_signing in [true, false] {
+            for curve in Curve::variants()
+                .filter(Curve::is_supported)
+            {
+                match curve {
+                    Curve::Cv25519 if for_signing => continue,
+                    Curve::Ed25519 if ! for_signing => continue,
+                    _ => (),
+                }
+
+                use crate::crypto::mpi::{Ciphertext, MPI, PublicKey};
+                eprintln!("curve {}, for signing {:?}", curve, for_signing);
+
+                let key: Key<SecretParts, UnspecifiedRole> =
+                    Key4::generate_ecc(for_signing, curve.clone())?.into();
+
+                let compressed = |mpi: &MPI| mpi.value()[0] == 0x40;
+                let uncompressed = |mpi: &MPI| mpi.value()[0] == 0x04;
+
+                match key.mpis() {
+                    PublicKey::ECDSA { curve: c, q } if for_signing => {
+                        assert!(c == &curve);
+                        assert!(uncompressed(q));
+                    },
+                    PublicKey::EdDSA { curve: c, q } if for_signing => {
+                        assert!(c == &curve);
+                        assert!(compressed(q));
+                    },
+                    PublicKey::ECDH { curve: c, q, .. } if ! for_signing => {
+                        assert!(c == &curve);
+                        if curve == Curve::Cv25519 {
+                            assert!(compressed(q));
+                        } else {
+                            assert!(uncompressed(q));
+                        }
+
+                        use crate::crypto::SessionKey;
+                        let sk = SessionKey::new(32);
+                        let ciphertext = key.encrypt(&sk)?;
+                        if let Ciphertext::ECDH { e, .. } = &ciphertext {
+                            if curve == Curve::Cv25519 {
+                                assert!(compressed(e));
+                            } else {
+                                assert!(uncompressed(e));
+                            }
+                        } else {
+                            panic!("unexpected ciphertext: {:?}", ciphertext);
+                        }
+                    },
+                    mpi => unreachable!(
+                        "curve {}, mpi {:?}, for signing {:?}",
+                        curve, mpi, for_signing),
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
