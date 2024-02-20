@@ -538,13 +538,7 @@ where
                                                   mpi::PublicKey,
                                                   mpi::SecretKeyMaterial)>
     {
-        let nid = match curve {
-            Curve::NistP256 => Nid::X9_62_PRIME256V1,
-            Curve::NistP384 => Nid::SECP384R1,
-            Curve::NistP521 => Nid::SECP521R1,
-            _ => return Err(crate::Error::UnsupportedEllipticCurve(curve.clone()).into()),
-        };
-
+        let nid = (&curve).try_into()?;
         let group = EcGroup::from_curve_name(nid)?;
         let key = EcKey::generate(&group)?;
 
