@@ -356,6 +356,7 @@ impl Server {
         let handler = (self.descriptor.factory)(self.descriptor.clone(), &local)?;
 
         let server = async move {
+            l.set_nonblocking(true)?;
             let socket = tokio::net::TcpListener::from_std(l).unwrap();
 
             loop {
