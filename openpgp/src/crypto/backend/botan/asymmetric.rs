@@ -504,26 +504,17 @@ impl<R> Key4<SecretParts, R>
         let mut rng = RandomNumberGenerator::new_userspace()?;
         let hash = crate::crypto::ecdh::default_ecdh_kdf_hash(&curve);
         let sym = crate::crypto::ecdh::default_ecdh_kek_cipher(&curve);
-        let field_sz_bits = match curve {
-            Curve::Ed25519 => 256, // Handled differently.
-            Curve::Cv25519 => 256, // Handled differently.
-            Curve::NistP256 => 256,
-            Curve::NistP384 => 384,
-            Curve::NistP521 => 521,
-            _ => return
-                Err(Error::UnsupportedEllipticCurve(curve).into()),
-        };
+        let field_sz_bits = curve.bits()
+            .ok_or_else(|| Error::UnsupportedEllipticCurve(curve.clone()))?;
 
-        match (curve.clone(), for_signing) {
+        match (curve, for_signing) {
             (Curve::Ed25519, true) =>
                 unreachable!("handled in Key4::generate_ecc"),
 
             (Curve::Cv25519, false) =>
                 unreachable!("handled in Key4::generate_ecc"),
 
-            (Curve::NistP256, true) |
-            (Curve::NistP384, true) |
-            (Curve::NistP521, true) => {
+            (curve, true) => {
                 let secret = Privkey::create("ECDSA", curve.botan_name()?,
                                              &mut rng)?;
                 let public = secret.pubkey()?;
@@ -541,9 +532,7 @@ impl<R> Key4<SecretParts, R>
                 Ok((PublicKeyAlgorithm::ECDSA, public_mpis, private_mpis))
             },
 
-            (Curve::NistP256, false) |
-            (Curve::NistP384, false) |
-            (Curve::NistP521, false) => {
+            (curve, false) => {
                 let secret = Privkey::create("ECDH", curve.botan_name()?,
                                              &mut rng)?;
                 let public = secret.pubkey()?;
@@ -562,8 +551,6 @@ impl<R> Key4<SecretParts, R>
 
                 Ok((PublicKeyAlgorithm::ECDH, public_mpis, private_mpis))
             },
-
-            _ => Err(Error::UnsupportedEllipticCurve(curve).into()),
         }
     }
 }
