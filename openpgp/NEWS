@@ -9,6 +9,8 @@
      secret scalar to make the generated secret key packet more
      compatible with implementations that do not implicitly do the
      clamping before decryption.
+** New functionality
+   - Curve::variants
 * Changes in 1.18.0
 ** New functionality
    - ComponentAmalgamation::certifications_by_key

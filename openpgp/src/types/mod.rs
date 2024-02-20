@@ -375,6 +375,17 @@ impl Curve {
 }
 assert_send_and_sync!(Curve);
 
+const CURVE_VARIANTS: [Curve; 7] = [
+    Curve::NistP256,
+    Curve::NistP384,
+    Curve::NistP521,
+    Curve::BrainpoolP256,
+    // XXXv2: Curve::BrainpoolP384,
+    Curve::BrainpoolP512,
+    Curve::Ed25519,
+    Curve::Cv25519,
+];
+
 impl Curve {
     /// Returns the length of public keys over this curve in bits.
     ///
@@ -635,6 +646,18 @@ impl Curve {
     pub fn is_supported(&self) -> bool {
         use crate::crypto::backend::{Backend, interface::Asymmetric};
         Backend::supports_curve(self)
+    }
+
+    /// Returns an iterator over all valid variants.
+    ///
+    /// Returns an iterator over all known variants.  This does not
+    /// include the [`Curve::Private`], or [`Curve::Unknown`]
+    /// variants, except to include BrainpoolP384 which is missing
+    /// from [`Curve`].
+    pub fn variants() -> impl Iterator<Item=Self> {
+        CURVE_VARIANTS.iter().cloned()
+            // XXXv2: Remove that hack, fix documentation.
+            .chain(std::iter::once(Curve::Unknown(BRAINPOOL_P384_OID.into())))
     }
 }
 
