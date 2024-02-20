@@ -2668,4 +2668,40 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
         }
         assert_ne!(fpr1, key.fingerprint());
     }
+
+    /// Smoke test for ECC key creation, signing and verification, and
+    /// encryption and decryption.
+    #[test]
+    fn ecc_support() -> Result<()> {
+        for for_signing in [true, false] {
+            for curve in Curve::variants()
+                .filter(Curve::is_supported)
+            {
+                match curve {
+                    Curve::Cv25519 if for_signing => continue,
+                    Curve::Ed25519 if ! for_signing => continue,
+                    _ => (),
+                }
+
+                eprintln!("curve {}, for signing {:?}", curve, for_signing);
+                let key: Key<SecretParts, UnspecifiedRole> =
+                    Key4::generate_ecc(for_signing, curve.clone())?.into();
+                let mut pair = key.into_keypair()?;
+
+                if for_signing {
+                    use crate::crypto::Signer;
+                    let hash = HashAlgorithm::default();
+                    let digest = hash.context()?.into_digest()?;
+                    let sig = pair.sign(hash, &digest)?;
+                    pair.public().verify(&sig, hash, &digest)?;
+                } else {
+                    use crate::crypto::{SessionKey, Decryptor};
+                    let sk = SessionKey::new(32);
+                    let ciphertext = pair.public().encrypt(&sk)?;
+                    assert_eq!(pair.decrypt(&ciphertext, Some(sk.len()))?, sk);
+                }
+            }
+        }
+        Ok(())
+    }
 }
