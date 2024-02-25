@@ -3030,7 +3030,7 @@ pub mod test {
     use super::*;
     use std::convert::TryFrom;
     use crate::parse::Parse;
-    use crate::policy::StandardPolicy as P;
+    use crate::policy::{NullPolicy as NP, StandardPolicy as P};
     use crate::serialize::Serialize;
     use crate::{
         crypto::Password,
@@ -3848,6 +3848,58 @@ EK8=
 =TgeJ
 -----END PGP MESSAGE-----
 ")?;
+
+        Ok(())
+    }
+
+    /// Tests samples of messages signed with the cleartext signature
+    /// framework.
+    #[test]
+    fn csf_verification() -> Result<()> {
+        struct H(Vec<Cert>, bool);
+        impl VerificationHelper for H {
+            fn get_certs(&mut self, _ids: &[crate::KeyHandle])
+                         -> Result<Vec<Cert>> {
+                Ok(std::mem::take(&mut self.0))
+            }
+
+            fn check(&mut self, m: MessageStructure)
+                     -> Result<()> {
+                for (i, layer) in m.into_iter().enumerate() {
+                    assert_eq!(i, 0);
+                    if let MessageLayer::SignatureGroup { results } = layer {
+                        assert!(! results.is_empty());
+                        for result in results {
+                            result.unwrap();
+                        }
+                        self.1 = true;
+                    } else {
+                        panic!();
+                    }
+                }
+
+                Ok(())
+            }
+        }
+
+        for (m, c) in [
+            ("InRelease", "InRelease.signers.pgp"),
+            ("InRelease.msft", "InRelease.msft.signers.pgp"),
+        ] {
+            let certs = crate::cert::CertParser::from_bytes(
+                crate::tests::key(c))?.collect::<Result<Vec<_>>>()?;
+
+            // The Microsoft cert uses SHA-1.
+            let p = &NP::new();
+            eprintln!("Parsing {}...", m);
+            let mut verifier = VerifierBuilder::from_bytes(
+                crate::tests::message(m))?
+                .with_policy(p, None, H(certs, false))?;
+            let mut b = Vec::new();
+            verifier.read_to_end(&mut b)?;
+            let h = verifier.into_helper();
+            assert!(h.1);
+        }
 
         Ok(())
     }

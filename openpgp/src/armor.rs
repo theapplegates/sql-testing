@@ -1472,6 +1472,11 @@ impl<'a> Reader<'a> {
             // and doing that will finalize the reader, which we'll
             // have to undo later on.
             self.csft = None;
+
+            // We found the signature marker, now consume any armor
+            // headers.
+            self.read_headers()?;
+
             let mut sigs: Vec<Packet> = Vec::new();
             let mut ppr = PacketParserBuilder::from_reader(self.by_ref())?
                 .dearmor(Dearmor::Disabled)
