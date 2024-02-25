@@ -199,6 +199,8 @@ impl Label {
 impl Kind {
     /// Detects the footer returning length of the footer.
     fn detect_footer(&self, blurb: &[u8]) -> Option<usize> {
+        tracer!(TRACE, "armor::Kind::detect_footer");
+        t!("Looking for footer in {:?}", String::from_utf8_lossy(blurb));
         let (leading_dashes, rest) = dash_prefix(blurb);
 
         // Skip over "END PGP "
@@ -837,6 +839,8 @@ impl<'a> Reader<'a> {
     /// Consumes the header if not already done.
     #[allow(clippy::nonminimal_bool)]
     fn initialize(&mut self) -> Result<()> {
+        tracer!(TRACE, "armor::Reader::initialize");
+        t!("self.initialized is {:?}", self.initialized);
         if self.initialized { return Ok(()) }
 
         // The range of the first 6 bits of a message is limited.
@@ -960,6 +964,7 @@ impl<'a> Reader<'a> {
 
                 // Possible ASCII-armor header.
                 if let Some((label, len)) = Label::detect_header(input) {
+                    t!("Found the label {:?}", label);
                     if label == Label::CleartextSignature && ! self.enable_csft
                     {
                         // We found a message using the Cleartext
@@ -1019,6 +1024,7 @@ impl<'a> Reader<'a> {
             }
         };
         self.source.consume(n);
+        t!("self.kind is {:?} after consuming {} bytes", self.kind, n);
 
         if found_blob {
             // Skip the rest of the initialization.
@@ -1034,6 +1040,7 @@ impl<'a> Reader<'a> {
 
     /// Reads headers and finishes the initialization.
     fn read_headers(&mut self) -> Result<()> {
+        tracer!(TRACE, "armor::Reader::read_headers");
         // We consumed the header above, but not any trailing
         // whitespace and the trailing new line.  We do that now.
         // Other data between the header and the new line are not
@@ -1046,6 +1053,7 @@ impl<'a> Reader<'a> {
             }).unwrap_or(line.len())
         };
         self.source.consume(n);
+        t!("consumed {} bytes of whitespace", n);
 
         let next_prefix =
             &self.source.data_hard(self.prefix.len())?[..self.prefix.len()];
@@ -1085,6 +1093,7 @@ impl<'a> Reader<'a> {
             // Buffer the next line.
             let line = self.source.read_to(b'\n')?;
             n = line.len();
+            t!("{}: {:?}", lines, String::from_utf8_lossy(&line));
             lines += 1;
 
             let line = str::from_utf8(line);
