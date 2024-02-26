@@ -129,6 +129,7 @@ windows-msvc-cng:
       when: never
     - !reference [.default_rules, rules]
   before_script:
+    - 'powershell Get-ChildItem env:'
     - rustc --version --verbose
     - cargo --version
   script:
@@ -166,6 +167,7 @@ windows-msvc32-cng:
       when: never
     - !reference [.default_rules, rules]
   before_script:
+    - 'powershell Get-ChildItem env:'
     - rustup target add i686-pc-windows-msvc
     - rustup show
     - rustc --version --verbose
