@@ -186,7 +186,6 @@ impl Client {
     {
         self.send(cmd.as_ref())?;
         let mut data = Vec::new();
-        let mut ok = false;
         while let Some(response) = self.next().await {
             match response? {
                 Response::Data { partial } => {
@@ -194,9 +193,8 @@ impl Client {
                     let partial = Protected::from(partial);
                     data.extend_from_slice(&partial);
                 },
-                Response::Ok { .. } =>
-                    ok = true,
-                Response::Comment { .. }
+                Response::Ok { .. }
+                | Response::Comment { .. }
                 | Response::Status { .. } =>
                     (), // Ignore.
                 Response::Error { ref message, .. } =>
@@ -206,12 +204,7 @@ impl Client {
             }
         }
 
-        if ok {
-            Ok(data.into())
-        } else {
-            Err(crate::gnupg::Error::ProtocolError(
-                "Got neither success nor error".into()).into())
-        }
+        Ok(data.into())
     }
 
     /// Lazily cancels a pending operation.
