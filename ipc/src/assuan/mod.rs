@@ -75,6 +75,20 @@ enum WriteState {
 }
 assert_send_and_sync!(WriteState);
 
+impl std::fmt::Debug for WriteState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>)
+        -> std::result::Result<(), std::fmt::Error>
+    {
+        use WriteState::*;
+        match self {
+            Ready(_) => write!(f, "WriteState::Ready"),
+            Sending(_) => write!(f, "WriteState::Sending"),
+            Transitioning => write!(f, "WriteState::Transitioning"),
+            Dead => write!(f, "WriteState::Dead"),
+        }
+    }
+}
+
 /// Percent-escapes the given string.
 pub fn escape<S: AsRef<str>>(s: S) -> String {
     let mut r = String::with_capacity(s.as_ref().len());
@@ -147,7 +161,14 @@ impl Client {
                     Ok(sink)
                 }))
             },
-            _ => unreachable!(),
+            WriteState::Dead => {
+                // We're still dead.
+                self.w = WriteState::Dead;
+                return Err(crate::gnupg::Error::OperationFailed(
+                    "Connection dropped".into()).into());
+            }
+            s => panic!("Client state machine desynchronized with servers: \
+                         in {:?}, should be in WriteState::Ready", s),
         };
 
         Ok(())
