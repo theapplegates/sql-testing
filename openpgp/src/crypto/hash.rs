@@ -467,13 +467,9 @@ impl Signature4 {
     ///
     /// Because we need to call this from SignatureFields::hash, we
     /// provide this as associated method.
-    fn hash_signature(f: &signature::SignatureFields, hash: &mut dyn Digest) {
-        use crate::serialize::MarshalInto;
-
-        // XXX: Annoyingly, we have no proper way of handling errors
-        // here.
-        let hashed_area = f.hashed_area().to_vec()
-            .unwrap_or_else(|_| Vec::new());
+    fn hash_signature(f: &signature::SignatureFields, mut hash: &mut dyn Digest)
+    {
+        use crate::serialize::{Marshal, MarshalInto};
 
         // A version 4 signature packet is laid out as follows:
         //
@@ -494,11 +490,13 @@ impl Signature4 {
         header[3] = f.hash_algo().into();
 
         // The length of the hashed area, as a 16-bit big endian number.
-        let len = hashed_area.len() as u16;
-        header[4..6].copy_from_slice(&len.to_be_bytes());
+        let hashed_area_len = f.hashed_area().serialized_len();
+        header[4..6].copy_from_slice(&(hashed_area_len as u16).to_be_bytes());
 
         hash.update(&header[..]);
-        hash.update(&hashed_area);
+        // XXX: Annoyingly, we have no proper way of handling errors
+        // here.
+        let _ = f.hashed_area().serialize(&mut hash as &mut dyn Write);
 
         // A version 4 signature trailer is:
         //
@@ -517,7 +515,7 @@ impl Signature4 {
         trailer[1] = 0xff;
         // The signature packet's length, not including the previous
         // two bytes and the length.
-        let len = (header.len() + hashed_area.len()) as u32;
+        let len = (header.len() + hashed_area_len) as u32;
         trailer[2..6].copy_from_slice(&len.to_be_bytes());
 
         hash.update(&trailer[..]);
