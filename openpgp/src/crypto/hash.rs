@@ -381,27 +381,28 @@ impl<P, R> Hash for Key4<P, R>
         // include the tag (1 byte) or the length (2 bytes).
         let len = (9 - 3) + self.mpis().serialized_len() as u16;
 
-        let mut header: Vec<u8> = Vec::with_capacity(9);
+        let mut header = [
+            // Tag.  Note: we use this whether
+            0x99u8,
 
-        // Tag.  Note: we use this whether
-        header.push(0x99);
+            // Length (2 bytes, big endian).  Fixup later.
+            0, 0,
 
-        // Length (2 bytes, big endian).
-        header.extend_from_slice(&len.to_be_bytes());
+            // Version.
+            4,
 
-        // Version.
-        header.push(4);
+            // Creation time.  Fixup later.
+            0, 0, 0, 0,
 
-        // Creation time.
-        let creation_time: u32 =
+            // Algorithm.
+            self.pk_algo().into(),
+        ];
+
+        // Fixup length and creation time and hash the header.
+        header[1..3].copy_from_slice(&len.to_be_bytes());
+        header[4..8].copy_from_slice(&u32::from(
             Timestamp::try_from(self.creation_time())
-            .unwrap_or_else(|_| Timestamp::from(0))
-            .into();
-        header.extend_from_slice(&creation_time.to_be_bytes());
-
-        // Algorithm.
-        header.push(self.pk_algo().into());
-
+            .unwrap_or_else(|_| Timestamp::from(0))).to_be_bytes());
         hash.update(&header[..]);
 
         // MPIs.
