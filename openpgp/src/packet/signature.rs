@@ -112,6 +112,7 @@
 //! [`SubpacketAreas`]: subpacket::SubpacketAreas
 //! [its documentation]: subpacket::SubpacketAreas
 
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt;
@@ -2674,9 +2675,9 @@ impl Signature {
               R: key::KeyRole,
     {
         self.hash(&mut hash);
-        let mut digest = vec![0u8; hash.digest_size()];
-        hash.digest(&mut digest)?;
-        self.verify_digest(key, digest)
+        self.verify_digest_internal(
+            key.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies the signature against `digest`.
@@ -2698,6 +2699,18 @@ impl Signature {
               R: key::KeyRole,
               D: AsRef<[u8]>,
     {
+        self.verify_digest_internal(
+            key.parts_as_public().role_as_unspecified(),
+            Some(digest.as_ref().into()))
+    }
+
+    /// Verifies the signature against `computed_digest`, or
+    /// `self.computed_digest` if the former is `None`.
+    fn verify_digest_internal(&mut self,
+                              key: &Key<key::PublicParts, key::UnspecifiedRole>,
+                              computed_digest: Option<Cow<[u8]>>)
+                              -> Result<()>
+    {
         if let Some(creation_time) = self.signature_creation_time() {
             if creation_time < key.creation_time() {
                 return Err(Error::BadSignature(
@@ -2709,7 +2722,13 @@ impl Signature {
                 "Signature has no creation time subpacket".into()).into());
         }
 
-        let result = key.verify(self.mpis(), self.hash_algo(), digest.as_ref());
+        // Either the digest has been given as argument, or it has
+        // been stashed in the signature by the packet parser, or
+        // error out.
+        let digest = computed_digest.as_ref().map(AsRef::as_ref)
+            .or(self.computed_digest())
+            .ok_or_else(|| Error::BadSignature("Hash not computed.".into()))?;
+        let result = key.verify(self.mpis(), self.hash_algo(), digest);
         if result.is_ok() {
             // Mark information in this signature as authenticated.
 
@@ -2775,13 +2794,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        if let Some(hash) = self.computed_digest.take() {
-            let result = self.verify_digest(key, &hash);
-            self.computed_digest = Some(hash);
-            result
-        } else {
-            Err(Error::BadSignature("Hash not computed.".to_string()).into())
-        }
+        self.verify_digest_internal(
+            key.parts_as_public().role_as_unspecified(), None)
     }
 
     /// Verifies the standalone signature using `key`.
@@ -2809,7 +2823,8 @@ impl Signature {
         // zero-sized string.
         let mut hash = self.hash_algo().context()?;
         self.hash_standalone(&mut hash);
-        self.verify_digest(key, &hash.into_digest()?[..])
+        self.verify_digest_internal(key.parts_as_public().role_as_unspecified(),
+                                    Some(hash.into_digest()?.into()))
     }
 
     /// Verifies the timestamp signature using `key`.
@@ -2837,7 +2852,9 @@ impl Signature {
         // zero-sized string.
         let mut hash = self.hash_algo().context()?;
         self.hash_timestamp(&mut hash);
-        self.verify_digest(key, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            key.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies the direct key signature.
@@ -2873,7 +2890,9 @@ impl Signature {
 
         let mut hash = self.hash_algo().context()?;
         self.hash_direct_key(&mut hash, pk);
-        self.verify_digest(signer, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies the primary key revocation certificate.
@@ -2909,7 +2928,9 @@ impl Signature {
 
         let mut hash = self.hash_algo().context()?;
         self.hash_direct_key(&mut hash, pk);
-        self.verify_digest(signer, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies the subkey binding.
@@ -2953,7 +2974,9 @@ impl Signature {
 
         let mut hash = self.hash_algo().context()?;
         self.hash_subkey_binding(&mut hash, pk, subkey);
-        self.verify_digest(signer, &hash.into_digest()?[..])?;
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))?;
 
         // The signature is good, but we may still need to verify the
         // back sig.
@@ -3017,7 +3040,9 @@ impl Signature {
 
         let mut hash = self.hash_algo().context()?;
         self.hash_primary_key_binding(&mut hash, pk, subkey);
-        self.verify_digest(subkey, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            subkey.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies the subkey revocation.
@@ -3056,7 +3081,9 @@ impl Signature {
 
         let mut hash = self.hash_algo().context()?;
         self.hash_subkey_binding(&mut hash, pk, subkey);
-        self.verify_digest(signer, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies the user id binding.
@@ -3096,7 +3123,9 @@ impl Signature {
 
         let mut hash = self.hash_algo().context()?;
         self.hash_userid_binding(&mut hash, pk, userid);
-        self.verify_digest(signer, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies the user id revocation certificate.
@@ -3133,7 +3162,9 @@ impl Signature {
 
         let mut hash = self.hash_algo().context()?;
         self.hash_userid_binding(&mut hash, pk, userid);
-        self.verify_digest(signer, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies an attested key signature on a user id.
@@ -3186,7 +3217,9 @@ impl Signature {
         }
 
         self.hash_userid_binding(&mut hash, pk, userid);
-        self.verify_digest(signer, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies the user attribute binding.
@@ -3226,7 +3259,9 @@ impl Signature {
 
         let mut hash = self.hash_algo().context()?;
         self.hash_user_attribute_binding(&mut hash, pk, ua);
-        self.verify_digest(signer, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies the user attribute revocation certificate.
@@ -3264,7 +3299,9 @@ impl Signature {
 
         let mut hash = self.hash_algo().context()?;
         self.hash_user_attribute_binding(&mut hash, pk, ua);
-        self.verify_digest(signer, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies an attested key signature on a user attribute.
@@ -3317,7 +3354,9 @@ impl Signature {
         }
 
         self.hash_user_attribute_binding(&mut hash, pk, ua);
-        self.verify_digest(signer, &hash.into_digest()?[..])
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 
     /// Verifies a signature of a message.
@@ -3353,13 +3392,11 @@ impl Signature {
 
         // Compute the digest.
         let mut hash = self.hash_algo().context()?;
-        let mut digest = vec![0u8; hash.digest_size()];
-
         hash.update(msg.as_ref());
         self.hash(&mut hash);
-        hash.digest(&mut digest)?;
-
-        self.verify_digest(signer, &digest[..])
+        self.verify_digest_internal(
+            signer.parts_as_public().role_as_unspecified(),
+            Some(hash.into_digest()?.into()))
     }
 }
 
