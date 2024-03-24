@@ -1805,8 +1805,12 @@ pub struct Signature4 {
     /// Signature MPIs.
     mpis: mpi::Signature,
 
+    /// The computed digest.
+    ///
     /// When used in conjunction with a one-pass signature, this is the
     /// hash computed over the enclosed message.
+    ///
+    /// This is also set when a signature is successfully verified.
     computed_digest: Option<Vec<u8>>,
 
     /// Signature level.
@@ -1962,7 +1966,8 @@ impl Signature4 {
 
     /// Gets the computed hash value.
     ///
-    /// This is set by the [`PacketParser`] when parsing the message.
+    /// This is set by the [`PacketParser`] when parsing the message,
+    /// or during successful verification of signatures.
     ///
     /// [`PacketParser`]: crate::parse::PacketParser
     pub fn computed_digest(&self) -> Option<&[u8]> {
@@ -2766,6 +2771,11 @@ impl Signature {
                       || self.additional_issuers.contains(&fp)) {
                     self.additional_issuers.push(fp);
                 }
+            }
+
+            // Finally, remember the digest.
+            if let Some(digest) = computed_digest {
+                self.set_computed_digest(Some(digest.into_owned()));
             }
         }
         result
