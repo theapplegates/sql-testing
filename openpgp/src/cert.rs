@@ -1710,6 +1710,7 @@ impl Cert {
                                 }
                             } else {
                                 // No key, we need to trust our heuristic.
+                                sig.set_computed_digest(Some(hash));
                                 $binding.$sigs.push(sig);
                             }
                         } else {
@@ -1955,6 +1956,7 @@ impl Cert {
                                    $sig.digest_prefix()[1],
                                    $sig.typ(), $desc);
 
+                                sig.set_computed_digest(Some(hash));
                                 $sigs.push($sig.clone());
                                 // The cost of missing a revocation
                                 // certificate merely because we put

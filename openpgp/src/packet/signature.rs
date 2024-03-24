@@ -1810,7 +1810,8 @@ pub struct Signature4 {
     /// When used in conjunction with a one-pass signature, this is the
     /// hash computed over the enclosed message.
     ///
-    /// This is also set when a signature is successfully verified.
+    /// This is also set when a signature is successfully verified,
+    /// and on signatures during certificate canonicalization.
     computed_digest: Option<Vec<u8>>,
 
     /// Signature level.
@@ -1967,7 +1968,8 @@ impl Signature4 {
     /// Gets the computed hash value.
     ///
     /// This is set by the [`PacketParser`] when parsing the message,
-    /// or during successful verification of signatures.
+    /// during successful verification of signatures, and on
+    /// signatures during certificate canonicalization.
     ///
     /// [`PacketParser`]: crate::parse::PacketParser
     pub fn computed_digest(&self) -> Option<&[u8]> {
