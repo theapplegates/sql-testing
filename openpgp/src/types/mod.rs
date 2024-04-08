@@ -651,9 +651,8 @@ impl Curve {
     /// Returns an iterator over all valid variants.
     ///
     /// Returns an iterator over all known variants.  This does not
-    /// include the [`Curve::Private`], or [`Curve::Unknown`]
-    /// variants, except to include BrainpoolP384 which is missing
-    /// from [`Curve`].
+    /// include the [`Curve::Unknown`] variant, except to include
+    /// BrainpoolP384 which is missing from [`Curve`].
     pub fn variants() -> impl Iterator<Item=Self> {
         CURVE_VARIANTS.iter().cloned()
             // XXXv2: Remove that hack, fix documentation.
