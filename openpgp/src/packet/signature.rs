@@ -2659,6 +2659,46 @@ impl crate::packet::Signature {
 ///
 /// <a id="verification-functions"></a>
 impl Signature {
+    /// Verifies the signature using `key`.
+    ///
+    /// Verifies the signature using `key`, using the previously
+    /// computed stored digest (see [`Signature4::computed_digest`]).
+    /// If the computed digest has not been set prior to calling this
+    /// function, it will fail.
+    ///
+    /// Because the context (i.e. what the signature covers) is hashed
+    /// and stored in the computed digest, and not handed in as part
+    /// of the signature verification, this interface must only be
+    /// used if the context can be robustly inferred.
+    ///
+    /// For example, when verifying a third-party certification while
+    /// iterating over user IDs in a certificate, this function can be
+    /// used because the context is the current certificate and user
+    /// ID, and this context has been hashed and the digest stored
+    /// during certificate canonicalization.  On the other hand, when
+    /// verifying a dangling user ID revocation signature, the context
+    /// has to be provided explicitly in a call to
+    /// [`Signature::verify_userid_revocation`].
+    ///
+    /// Note: Due to limited context, this only verifies the
+    /// cryptographic signature, and checks that the key predates the
+    /// signature.  Further constraints on the signature, like
+    /// signature type, creation and expiration time, or signature
+    /// revocations must be checked by the caller.
+    ///
+    /// Likewise, this function does not check whether `key` can make
+    /// valid signatures; it is up to the caller to make sure the key
+    /// is not revoked, not expired, has a valid self-signature, has a
+    /// subkey binding signature (if appropriate), has the signing
+    /// capability, etc.
+    pub fn verify_signature<P, R>(&mut self, key: &Key<P, R>) -> Result<()>
+        where P: key::KeyParts,
+              R: key::KeyRole,
+    {
+        self.verify_digest_internal(
+            key.parts_as_public().role_as_unspecified(), None)
+    }
+
     /// Verifies the signature against `hash`.
     ///
     /// The `hash` should only be computed over the payload, this

@@ -3,6 +3,9 @@
 #+TITLE: sequoia-openpgp NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+* Changes in 1.20.0
+** New functionality
+   - Signature::verify_signature
 * Changes in 1.19.0
 ** Notable fixes
    - Key4::import_secret_cv25519 will now clamp some bits of the given
