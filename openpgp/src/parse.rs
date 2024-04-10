@@ -2358,14 +2358,19 @@ impl Key4<key::UnspecifiedParts, key::UnspecifiedRole>
                             Some(mpi::SecretKeyChecksum::Sum16)));
                     sec.into()
                 }
-                // Encrypted & MD5 for key derivation: unsupported
-                1..=253 => {
-                    return php.fail("unsupported secret key encryption");
-                }
-                // Encrypted, S2K & SHA-1 checksum
-                254 | 255 => {
-                    let sk: SymmetricAlgorithm = php_try!(php.parse_u8("sym_algo")).into();
-                    let s2k = php_try!(S2K::parse_v4(&mut php));
+                // Encrypted, whether we support the S2K method or not.
+                _ => {
+                    let sk: SymmetricAlgorithm = match s2k_usage {
+                        254 | 255 =>
+                            php_try!(php.parse_u8("sym_algo")).into(),
+                        _ => s2k_usage.into(),
+                    };
+                    let s2k = match s2k_usage {
+                        254 | 255 => php_try!(S2K::parse_v4(&mut php)),
+                        _ => {
+                            #[allow(deprecated)] S2K::Implicit
+                        },
+                    };
                     let s2k_supported = s2k.is_supported();
                     let cipher =
                         php_try!(php.parse_bytes_eof("encrypted_mpis"))
@@ -2373,10 +2378,10 @@ impl Key4<key::UnspecifiedParts, key::UnspecifiedRole>
 
                     crate::packet::key::Encrypted::new_raw(
                         s2k, sk,
-                        if s2k_usage == 254 {
-                            Some(mpi::SecretKeyChecksum::SHA1)
-                        } else {
-                            Some(mpi::SecretKeyChecksum::Sum16)
+                        match s2k_usage {
+                            254 => Some(mpi::SecretKeyChecksum::SHA1),
+                            255 => Some(mpi::SecretKeyChecksum::Sum16),
+                            _ => Some(mpi::SecretKeyChecksum::Sum16),
                         },
                         if s2k_supported {
                             Ok(cipher)
@@ -6757,4 +6762,30 @@ yCsBO81bKqlfklugX5yRX5qTopuXX6KbWpFZXKJXUlGSetb4dXm+gYFBCRcA
         Ok(())
     }
 
+    /// Tests for issue 1095, parsing a secret key packet with an
+    /// unknown S2K mechanism.
+    #[test]
+    fn key_unknown_s2k() -> Result<()> {
+        let mut ppr = PacketParser::from_bytes(
+            crate::tests::key("hardware-backed-secret.pgp"))?;
+        let mut i = 0;
+        while let PacketParserResult::Some(pp) = ppr {
+            if i == 0 {
+                assert!(matches!(&pp.packet, Packet::SecretKey(_)));
+            }
+            if i == 3 {
+                assert!(matches!(&pp.packet, Packet::SecretSubkey(_)));
+            }
+
+            // Make sure it roundtrips.
+            let p = &pp.packet;
+            let v = p.to_vec()?;
+            let q = Packet::from_bytes(&v)?;
+            assert_eq!(p, &q);
+
+            ppr = pp.recurse()?.1;
+            i += 1;
+        }
+        Ok(())
+    }
 }

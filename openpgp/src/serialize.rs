@@ -1319,6 +1319,7 @@ impl Marshal for S2K {
                 w.write_all(&salt[..])?;
                 w.write_all(&[S2K::encode_count(hash_bytes)?])?;
             }
+            S2K::Implicit => (),
             S2K::Private { tag, parameters }
             | S2K::Unknown { tag, parameters} => {
                 w.write_all(&[*tag])?;
@@ -1339,6 +1340,7 @@ impl MarshalInto for S2K {
             &S2K::Simple{ .. } => 2,
             &S2K::Salted{ .. } => 2 + 8,
             &S2K::Iterated{ .. } => 2 + 8 + 1,
+            S2K::Implicit => 0,
             S2K::Private { parameters, .. }
             | S2K::Unknown { parameters, .. } =>
                 1 + parameters.as_ref().map(|p| p.len()).unwrap_or(0),
@@ -2001,14 +2003,21 @@ impl<P, R> Marshal for Key4<P, R>
                     mpis.serialize_with_checksum(o, SecretKeyChecksum::Sum16)
                 })?,
                 SecretKeyMaterial::Encrypted(ref e) => {
-                    // S2K usage.
-                    write_byte(o, match e.checksum() {
-                        Some(SecretKeyChecksum::SHA1) => 254,
-                        Some(SecretKeyChecksum::Sum16) => 255,
-                        None => return Err(Error::InvalidOperation(
-                            "In Key4 packets, encrypted secret keys must be \
-                             checksummed".into()).into()),
-                    })?;
+                    // S2K usage
+                    #[allow(deprecated)]
+                    if let S2K::Implicit = e.s2k() {
+                        // When the legacy implicit S2K mechanism is
+                        // in use, the symmetric algorithm octet below
+                        // takes the place of the S2K usage octet.
+                    } else {
+                        write_byte(o, match e.checksum() {
+                            Some(SecretKeyChecksum::SHA1) => 254,
+                            Some(SecretKeyChecksum::Sum16) => 255,
+                            None => return Err(Error::InvalidOperation(
+                                "In Key4 packets, encrypted secret keys must be \
+                                 checksummed".into()).into()),
+                        })?;
+                    }
                     write_byte(o, e.algo().into())?;
                     e.s2k().serialize(o)?;
                     o.write_all(e.raw_ciphertext())?;
@@ -2024,6 +2033,7 @@ impl<P, R> NetLength for Key4<P, R>
     where P: key::KeyParts,
           R: key::KeyRole,
 {
+    #[allow(deprecated)]
     fn net_len(&self) -> usize {
         let have_secret_key = P::significant_secrets() && self.has_secret();
 
@@ -2037,7 +2047,9 @@ impl<P, R> NetLength for Key4<P, R>
                         u.map(|mpis| mpis.serialized_len())
                         + 2, // Two octet checksum.
                     SecretKeyMaterial::Encrypted(ref e) =>
-                        1 + e.s2k().serialized_len()
+                        matches!(e.s2k(), S2K::Implicit)
+                        .then_some(0).unwrap_or(1)
+                        + e.s2k().serialized_len()
                         + e.raw_ciphertext().len(),
                 }
             } else {

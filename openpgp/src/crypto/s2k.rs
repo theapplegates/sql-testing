@@ -78,6 +78,18 @@ pub enum S2K {
         hash: HashAlgorithm
     },
 
+    /// Simply hashes the password using MD5
+    ///
+    /// This mechanism uses neither iteration to increase the time it
+    /// takes to derive the key from the password nor does it salt the
+    /// password, as well as using a very weak and fast hash
+    /// algorithm.  This makes dictionary attacks more feasible.
+    ///
+    /// This mechanism has been deprecated in RFC 2440. Do not use
+    /// this variant.
+    #[deprecated(note = "Use `S2K::Iterated`.")]
+    Implicit,
+
     /// Private S2K algorithm.
     Private {
         /// Tag identifying the private algorithm.
@@ -224,6 +236,7 @@ impl S2K {
                                 hash.update(&data[0..tail]);
                             }
                         }
+                        S2K::Implicit |
                         S2K::Unknown { .. } | &S2K::Private { .. } =>
                             unreachable!(),
                     }
@@ -234,6 +247,9 @@ impl S2K {
 
                 Ok(ret.into())
             }),
+            S2K::Implicit => S2K::Simple {
+                hash: HashAlgorithm::MD5,
+            }.derive_key(password, key_size),
             S2K::Unknown { tag, .. } | S2K::Private { tag, .. } =>
                 Err(Error::MalformedPacket(
                         format!("Unknown S2K type {:#x}", tag)).into()),
@@ -248,6 +264,7 @@ impl S2K {
             Simple { .. }
             | Salted { .. }
             | Iterated { .. }
+            | Implicit
             => true,
             S2K::Private { .. }
             | S2K::Unknown { .. }
@@ -353,6 +370,7 @@ impl fmt::Display for S2K {
                     salt[4], salt[5], salt[6], salt[7],
                     hash_bytes))
             }
+            S2K::Implicit => f.write_str("Implicit S2K"),
             S2K::Private { tag, parameters } =>
                 if let Some(p) = parameters.as_ref() {
                     write!(f, "Private/Experimental S2K {}:{:?}", tag, p)
