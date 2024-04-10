@@ -452,6 +452,7 @@ macro_rules! make_php_try {
                         Ok(b)
                     },
                     Err(e) => {
+                        t!("parsing failed at {}:{}: {}", file!(), line!(), e);
                         let e = match e.downcast::<io::Error>() {
                             Ok(e) =>
                                 if let io::ErrorKind::UnexpectedEof = e.kind() {
@@ -2301,6 +2302,7 @@ impl Key<key::UnspecifiedParts, key::UnspecifiedRole>
     /// Parses the body of a public key, public subkey, secret key or
     /// secret subkey packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "Key::parse", php.recursion_depth());
         make_php_try!(php);
         let tag = php.header.ctb().tag();
         assert!(tag == Tag::Reserved
@@ -2333,6 +2335,7 @@ impl Key4<key::UnspecifiedParts, key::UnspecifiedRole>
     /// Parses the body of a public key, public subkey, secret key or
     /// secret subkey packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "Key4::parse", php.recursion_depth());
         make_php_try!(php);
         let tag = php.header.ctb().tag();
         assert!(tag == Tag::Reserved
@@ -2513,6 +2516,7 @@ impl_parse_with_buffered_reader!(
 impl Trust {
     /// Parses the body of a trust packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "Trust::parse", php.recursion_depth());
         make_php_try!(php);
         let value = php_try!(php.parse_bytes_eof("value"));
         php.ok(Packet::Trust(Trust::from(value)))
@@ -2524,6 +2528,7 @@ impl_parse_with_buffered_reader!(Trust);
 impl UserID {
     /// Parses the body of a user id packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "UserID::parse", php.recursion_depth());
         make_php_try!(php);
 
         let value = php_try!(php.parse_bytes_eof("value"));
@@ -2537,6 +2542,7 @@ impl_parse_with_buffered_reader!(UserID);
 impl UserAttribute {
     /// Parses the body of a user attribute packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "UserAttribute::parse", php.recursion_depth());
         make_php_try!(php);
 
         let value = php_try!(php.parse_bytes_eof("value"));
@@ -2551,6 +2557,7 @@ impl Marker {
     /// Parses the body of a marker packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser>
     {
+        tracer!(TRACE, "Marker::parse", php.recursion_depth());
         make_php_try!(php);
         let marker = php_try!(php.parse_bytes("marker", Marker::BODY.len()));
         if &marker[..] == Marker::BODY {
@@ -2601,6 +2608,7 @@ impl Literal {
     /// Condition: Hashing has been disabled by the callee.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser>
     {
+        tracer!(TRACE, "Literal::parse", php.recursion_depth());
         make_php_try!(php);
 
         // Directly hashing a literal data packet is... strange.
@@ -2805,6 +2813,7 @@ impl SKESK {
     fn parse(mut php: PacketHeaderParser)
              -> Result<PacketParser>
     {
+        tracer!(TRACE, "SKESK::parse", php.recursion_depth());
         make_php_try!(php);
         let version = php_try!(php.parse_u8("version"));
         match version {
@@ -2820,6 +2829,7 @@ impl SKESK4 {
     fn parse(mut php: PacketHeaderParser)
              -> Result<PacketParser>
     {
+        tracer!(TRACE, "SKESK4::parse", php.recursion_depth());
         make_php_try!(php);
         let sym_algo = php_try!(php.parse_u8("sym_algo"));
         let s2k = php_try!(S2K::parse_v4(&mut php));
@@ -2849,6 +2859,7 @@ impl SKESK5 {
     fn parse(mut php: PacketHeaderParser)
              -> Result<PacketParser>
     {
+        tracer!(TRACE, "SKESK5::parse", php.recursion_depth());
         make_php_try!(php);
         let sym_algo: SymmetricAlgorithm =
             php_try!(php.parse_u8("sym_algo")).into();
@@ -2956,6 +2967,7 @@ fn skesk_parser_test() {
 impl SEIP {
     /// Parses the body of a SEIP packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "SEIP::parse", php.recursion_depth());
         make_php_try!(php);
         let version = php_try!(php.parse_u8("version"));
         if version != 1 {
@@ -2972,6 +2984,7 @@ impl_parse_with_buffered_reader!(SEIP);
 impl MDC {
     /// Parses the body of an MDC packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "MDC::parse", php.recursion_depth());
         make_php_try!(php);
 
         // Find the HashedReader pushed by the containing SEIP packet.
@@ -3028,6 +3041,7 @@ impl_parse_with_buffered_reader!(MDC);
 impl AED {
     /// Parses the body of a AED packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "AED::parse", php.recursion_depth());
         make_php_try!(php);
         let version = php_try!(php.parse_u8("version"));
 
@@ -3043,6 +3057,7 @@ impl_parse_with_buffered_reader!(AED);
 impl AED1 {
     /// Parses the body of a AED packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "AED1::parse", php.recursion_depth());
         make_php_try!(php);
         let cipher: SymmetricAlgorithm =
             php_try!(php.parse_u8("sym_algo")).into();
@@ -3198,6 +3213,7 @@ impl ProtectedMPI {
 impl PKESK {
     /// Parses the body of an PK-ESK packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "PKESK::parse", php.recursion_depth());
         make_php_try!(php);
         let version = php_try!(php.parse_u8("version"));
         match version {
@@ -3212,6 +3228,7 @@ impl_parse_with_buffered_reader!(PKESK);
 impl PKESK3 {
     /// Parses the body of an PK-ESK packet.
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
+        tracer!(TRACE, "PKESK3::parse", php.recursion_depth());
         make_php_try!(php);
         let mut keyid = [0u8; 8];
         keyid.copy_from_slice(&php_try!(php.parse_bytes("keyid", 8)));
