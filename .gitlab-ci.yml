@@ -57,6 +57,7 @@ include:
 trixie-build:
   script:
     - cargo run --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-nettle,compression --example supported-algorithms
+    - cargo test --workspace
     - if ! git diff --quiet Cargo.lock ; then echo "Cargo.lock changed.  Please add the change to the corresponding commit." ; git diff ; false ; fi
     - if ! git diff --quiet ; then echo "The build changed the source.  Please investigate." ; git diff ; fi
 
