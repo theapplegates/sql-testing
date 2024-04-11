@@ -23,7 +23,7 @@ maintenance = { status = "actively-developed" }
 
 [dependencies]
 sequoia-openpgp = { path = "../openpgp", version = "1.13", default-features = false }
-base64 = "0.21"
+base64 = ">= 0.21, < 0.23"
 
 [lib]
 bench = false
