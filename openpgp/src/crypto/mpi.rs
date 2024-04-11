@@ -700,7 +700,7 @@ impl Arbitrary for PublicKey {
 /// extensions.
 // Deriving Hash here is okay: PartialEq is manually implemented to
 // ensure that secrets are compared in constant-time.
-#[allow(clippy::derive_hash_xor_eq)]
+#[allow(clippy::derived_hash_with_manual_eq)]
 #[non_exhaustive]
 #[derive(Clone, Hash)]
 pub enum SecretKeyMaterial {

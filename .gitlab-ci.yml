@@ -107,7 +107,7 @@ clippy:
   image: 192.168.122.1:5000/sequoia-pgp/build-docker-image/rust-stable-prebuild:latest
   before_script:
     - !reference [.before_script, start]
-    - rustup default 1.67.0 # Pin clippy.
+    - rustup default 1.70.0 # Pin clippy.
     - rustup component add clippy
     - cargo clippy --version
     - !reference [.before_script, end]
