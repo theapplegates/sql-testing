@@ -75,7 +75,7 @@ trixie-crypto-botan-build:
 
 rust-stable-build:
   script:
-    - CARGO_PACKAGES="-p buffered-reader -p sequoia-openpgp" $MAKE_TOP test
+    - cargo test -p buffered-reader -p sequoia-openpgp
 
 rust-stable-armv7-build:
   before_script:
