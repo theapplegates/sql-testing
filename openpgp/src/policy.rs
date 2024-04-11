@@ -784,7 +784,7 @@ a_versioned_cutoff_list!(PacketTagCutoffList, Tag, 21,
     // Note: this list must be sorted and the tag and version must be unique!
     2,
     [
-        (Tag::Signature, 3, Some(Timestamp::Y2007M2)),
+        (Tag::Signature, 3, Some(Timestamp::Y2021M2)),
         (Tag::Signature, 5, REJECT), // "v5" Signatures.
     ]);
 
