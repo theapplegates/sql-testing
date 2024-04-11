@@ -934,7 +934,9 @@ pub(crate) fn split_sigs<C>(primary: &KeyHandle,
         let typ = sig.typ();
 
         let issuers = sig.get_issuers();
-        let is_selfsig = issuers.iter().any(|kh| kh.aliases(primary));
+        let is_selfsig =
+            issuers.is_empty()
+            || issuers.iter().any(|kh| kh.aliases(primary));
 
         use crate::SignatureType::*;
         if typ == KeyRevocation
