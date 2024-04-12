@@ -1454,6 +1454,58 @@ mod test {
     }
 
     #[test]
+    fn mutable_reference_with_cookie() {
+        use crate::Memory;
+        const DATA : &[u8] = b"01234567890123456789suffix";
+
+        /// API that consumes the memory reader.
+        fn parse_ten_bytes<B, C>(mut r: B)
+        where B: BufferedReader<C>,
+              C: std::fmt::Debug + Send + Sync
+        {
+            let d = r.data_consume_hard(10).unwrap();
+            assert!(d.len() >= 10);
+            assert_eq!(&d[..10], &DATA[..10]);
+            drop(r); // We consumed the reader.
+        }
+
+        #[derive(Debug)]
+        struct Cookie {
+        }
+
+        impl Default for Cookie {
+            fn default() -> Self { Cookie {} }
+        }
+
+        let mut mem = Memory::with_cookie(DATA, Cookie::default());
+        parse_ten_bytes(&mut mem);
+        parse_ten_bytes(&mut mem);
+        let suffix = mem.data_eof().unwrap();
+        assert_eq!(suffix, b"suffix");
+
+        let mut mem = Memory::with_cookie(DATA, Cookie::default());
+        let mut limitor = Limitor::with_cookie(
+            &mut mem, 20, Cookie::default());
+        parse_ten_bytes(&mut limitor);
+        parse_ten_bytes(&mut limitor);
+        assert!(limitor.eof());
+        drop(limitor);
+        let suffix = mem.data_eof().unwrap();
+        assert_eq!(suffix, b"suffix");
+
+        let mut mem = Memory::with_cookie(DATA, Cookie::default());
+        let mut mem = Box::new(&mut mem) as Box<dyn BufferedReader<Cookie>>;
+        let mut limitor = Limitor::with_cookie(
+            &mut mem, 20, Cookie::default());
+        parse_ten_bytes(&mut limitor);
+        parse_ten_bytes(&mut limitor);
+        assert!(limitor.eof());
+        drop(limitor);
+        let suffix = mem.data_eof().unwrap();
+        assert_eq!(suffix, b"suffix");
+    }
+
+    #[test]
     fn mutable_reference_inner() {
         use crate::Memory;
         const DATA : &[u8] = b"01234567890123456789suffix";
