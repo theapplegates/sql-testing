@@ -1260,7 +1260,7 @@ impl Cert {
         ComponentAmalgamationIter::new(self, self.unknowns.iter())
     }
 
-    /// Returns a slice containing the bad signatures.
+    /// Returns the bad signatures.
     ///
     /// Bad signatures are signatures and revocations that we could
     /// not associate with one of the certificate's components.
