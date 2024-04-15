@@ -1007,7 +1007,15 @@ impl SubpacketArea {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn add(&mut self, mut packet: Subpacket) -> Result<()> {
+    pub fn add(&mut self, packet: Subpacket) -> Result<()> {
+        self.add_internal(packet, false)
+    }
+
+    /// Adds `packet`, setting its authenticated flag to `authenticated`.
+    pub(super) fn add_internal(&mut self, mut packet: Subpacket,
+                               authenticated: bool)
+                               -> Result<()>
+    {
         if self.serialized_len() + packet.serialized_len()
             > ::std::u16::MAX as usize
         {
@@ -1016,7 +1024,7 @@ impl SubpacketArea {
         }
 
         self.cache_invalidate();
-        packet.set_authenticated(false);
+        packet.set_authenticated(authenticated);
         self.packets.push(packet);
         Ok(())
     }
