@@ -2001,8 +2001,8 @@ impl Subpacket {
     ///     marked as such using [`Subpacket::set_authenticated`].
     ///
     /// Note: The authentication is only valid in the context of the
-    /// signature the subpacket is in.  If the `Subpacket` is cloned,
-    /// or a `Subpacket` is added to a [`SubpacketArea`], the flag is
+    /// signature the subpacket is in.  If the an authenticated
+    /// `Subpacket` is is added to a [`SubpacketArea`], the flag is
     /// cleared.
     ///
     ///   [`Subpacket::set_authenticated`]: Self::set_authenticated()
