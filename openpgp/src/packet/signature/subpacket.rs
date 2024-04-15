@@ -2004,8 +2004,6 @@ impl Subpacket {
     /// signature the subpacket is in.  If the an authenticated
     /// `Subpacket` is is added to a [`SubpacketArea`], the flag is
     /// cleared.
-    ///
-    ///   [`Subpacket::set_authenticated`]: Self::set_authenticated()
     pub fn authenticated(&self) -> bool {
         self.authenticated
     }
