@@ -8,6 +8,8 @@
 ** New functionality
    - The RustCrypto backend now supports ECDH and ECDSA over the NIST
      curve P-384.
+   - The RustCrypto backend now supports ECDH and ECDSA over the NIST
+     curve P-521.
 * Changes in 1.20.0
 ** New functionality
    - S2K::Implicit
