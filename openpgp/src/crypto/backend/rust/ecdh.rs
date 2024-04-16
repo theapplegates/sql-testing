@@ -128,7 +128,7 @@ pub fn decrypt<R>(recipient: &Key<key::PublicParts, R>,
             const NISTP256_SIZE: usize = 32;
 
             // Get the public part V of the ephemeral key.
-            let V = dbg!(PublicKey::from_sec1_bytes(e.value()))?;
+            let V = PublicKey::from_sec1_bytes(e.value())?;
 
             let scalar: [u8; NISTP256_SIZE] =
                 scalar.value_padded(NISTP256_SIZE).as_ref().try_into()?;
