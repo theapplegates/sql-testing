@@ -32,6 +32,11 @@
    - ComponentBundle::other_revocations
    - ComponentBundle::self_revocations
    - ComponentBundle::self_signatures
+** Notable changes
+   - All signature verification methods now take an immutable
+     reference to the signature.  This will cause existing code to
+     emit warnings about unused mutability, but should not break
+     anything.
 * Changes in 1.20.0
 ** New functionality
    - S2K::Implicit
