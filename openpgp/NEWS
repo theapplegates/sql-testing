@@ -3,6 +3,11 @@
 #+TITLE: sequoia-openpgp NEWS – history of user-visible changes
 #+STARTUP: content hidestars
 
+
+* Changes in 1.21.0
+** New functionality
+   - The RustCrypto backend now supports ECDH and ECDSA over the NIST
+     curve P-384.
 * Changes in 1.20.0
 ** New functionality
    - S2K::Implicit

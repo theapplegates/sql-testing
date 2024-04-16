@@ -67,9 +67,9 @@ impl Asymmetric for super::Backend {
     fn supports_curve(curve: &Curve) -> bool {
         use self::Curve::*;
         match curve {
-            NistP256
+            NistP256 | NistP384
                 => true,
-            NistP384 | NistP521
+            NistP521
                 => false,
             Ed25519 | Cv25519
                 => true,
@@ -297,6 +297,32 @@ impl KeyPair {
                         s: MPI::new(&sig.s().to_bytes()),
                     })
                 },
+
+                Curve::NistP384 => {
+                    use p384::Scalar;
+                    const LEN: usize = 48;
+
+                    let key = scalar.value_padded(LEN);
+                    let key = Scalar::reduce_bytes(GA::try_from_slice(&key)?);
+                    let dig = pad_truncating(digest, LEN);
+                    let dig = GA::try_from_slice(&dig)?;
+
+                    let sig = loop {
+                        let mut k: Protected = vec![0; LEN].into();
+                        crate::crypto::random(&mut k);
+                        let k = Scalar::reduce_bytes(
+                            GA::try_from_slice(&k)?);
+                        if let Ok(s) = key.try_sign_prehashed(k, &dig) {
+                            break s.0;
+                        }
+                    };
+
+                    Ok(mpi::Signature::ECDSA {
+                        r: MPI::new(&sig.r().to_bytes()),
+                        s: MPI::new(&sig.s().to_bytes()),
+                    })
+                },
+
                 _ => Err(Error::UnsupportedEllipticCurve(curve.clone()).into()),
             },
 
@@ -453,6 +479,31 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
                     let dig = GA::try_from_slice(&dig)?;
                     key.verify_prehashed(&dig, &sig).map_err(bad)
                 },
+
+                Curve::NistP384 => {
+                    use p384::{AffinePoint, ecdsa::Signature};
+                    const LEN: usize = 48;
+
+                    let key = AffinePoint::from_encoded_point(
+                        &EncodedPoint::<p384::NistP384>::from_bytes(q.value())?);
+                    let key = if key.is_some().into() {
+                        key.unwrap()
+                    } else {
+                        return Err(Error::InvalidKey(
+                            "Point is not on the curve".into()).into());
+                    };
+
+                    let sig = Signature::from_scalars(
+                        GA::try_clone_from_slice(
+                            &r.value_padded(LEN).map_err(bad)?)?,
+                        GA::try_clone_from_slice(
+                            &s.value_padded(LEN).map_err(bad)?)?)
+                        .map_err(bad)?;
+                    let dig = pad_truncating(digest, LEN);
+                    let dig = GA::try_from_slice(&dig)?;
+                    key.verify_prehashed(&dig, &sig).map_err(bad)
+                },
+
                 _ => Err(Error::UnsupportedEllipticCurve(curve.clone()).into()),
             },
             _ => Err(Error::MalformedPacket(format!(
@@ -580,6 +631,46 @@ impl<R> Key4<SecretParts, R>
 
                 let secret = SecretKey::random(
                     &mut p256::elliptic_curve::rand_core::OsRng);
+                let public = EncodedPoint::from(secret.public_key());
+
+                let public_mpis = mpi::PublicKey::ECDH {
+                    q: MPI::new(public.as_bytes()),
+                    hash:
+                    crate::crypto::ecdh::default_ecdh_kdf_hash(&curve),
+                    sym:
+                    crate::crypto::ecdh::default_ecdh_kek_cipher(&curve),
+                    curve,
+                };
+                let private_mpis = mpi::SecretKeyMaterial::ECDH {
+                    scalar: Vec::from(secret.to_bytes().as_slice()).into(),
+                };
+
+                Ok((PublicKeyAlgorithm::ECDH, public_mpis, private_mpis))
+            },
+
+            (Curve::NistP384, true) => {
+                use p384::{EncodedPoint, SecretKey};
+
+                let secret = SecretKey::random(
+                    &mut p384::elliptic_curve::rand_core::OsRng);
+                let public = EncodedPoint::from(secret.public_key());
+
+                let public_mpis = mpi::PublicKey::ECDSA {
+                    curve,
+                    q: MPI::new(public.as_bytes()),
+                };
+                let private_mpis = mpi::SecretKeyMaterial::ECDSA {
+                    scalar: Vec::from(secret.to_bytes().as_slice()).into(),
+                };
+
+                Ok((PublicKeyAlgorithm::ECDSA, public_mpis, private_mpis))
+            },
+
+            (Curve::NistP384, false) => {
+                use p384::{EncodedPoint, SecretKey};
+
+                let secret = SecretKey::random(
+                    &mut p384::elliptic_curve::rand_core::OsRng);
                 let public = EncodedPoint::from(secret.public_key());
 
                 let public_mpis = mpi::PublicKey::ECDH {
