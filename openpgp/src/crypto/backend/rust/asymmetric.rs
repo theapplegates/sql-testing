@@ -11,6 +11,16 @@ use num_bigint_dig::{traits::ModInverse, BigUint};
 use rsa::traits::{PrivateKeyParts, PublicKeyParts};
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey, RsaPrivateKey, Pkcs1v15Sign};
 
+use ecdsa::{
+    EncodedPoint,
+    hazmat::{SignPrimitive, VerifyPrimitive},
+};
+use p256::elliptic_curve::{
+    generic_array::GenericArray as GA,
+    ops::Reduce,
+    sec1::FromEncodedPoint,
+};
+
 use crate::{Error, Result};
 use crate::crypto::asymmetric::KeyPair;
 use crate::crypto::backend::interface::Asymmetric;
@@ -264,18 +274,9 @@ impl KeyPair {
              mpi::SecretKeyMaterial::ECDSA { scalar }) => match curve
             {
                 Curve::NistP256 => {
-                    use p256::{
-                        elliptic_curve::{
-                            generic_array::GenericArray as GA,
-                            ops::Reduce,
-                        },
-                        Scalar,
-                    };
-                    use ecdsa::{
-                        hazmat::SignPrimitive,
-                    };
-
+                    use p256::Scalar;
                     const LEN: usize = 32;
+
                     let key = scalar.value_padded(LEN);
                     let key = Scalar::reduce_bytes(GA::try_from_slice(&key)?);
                     let dig = pad_truncating(digest, LEN);
@@ -430,18 +431,7 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
              mpi::Signature::ECDSA { r, s }) => match curve
             {
                 Curve::NistP256 => {
-                    use p256::{
-                        AffinePoint,
-                        ecdsa::Signature,
-                        elliptic_curve::{
-                            generic_array::GenericArray as GA,
-                            sec1::FromEncodedPoint,
-                        },
-                    };
-                    use ecdsa::{
-                        EncodedPoint,
-                        hazmat::VerifyPrimitive,
-                    };
+                    use p256::{AffinePoint, ecdsa::Signature};
                     const LEN: usize = 32;
 
                     let key = AffinePoint::from_encoded_point(

@@ -2,6 +2,11 @@
 
 use std::convert::TryInto;
 
+use p256::elliptic_curve::{
+    ecdh::diffie_hellman,
+    generic_array::GenericArray as GA,
+};
+
 use crate::{Error, Result};
 use crate::crypto::SessionKey;
 use crate::crypto::mem::Protected;
@@ -116,15 +121,7 @@ pub fn decrypt<R>(recipient: &Key<key::PublicParts, R>,
             Vec::from(secret.to_bytes()).into()
         },
         Curve::NistP256 => {
-            use p256::{
-                SecretKey,
-                PublicKey,
-                elliptic_curve::{
-                    ecdh::diffie_hellman,
-                    generic_array::GenericArray as GA,
-                },
-            };
-
+            use p256::{SecretKey, PublicKey};
             const NISTP256_SIZE: usize = 32;
 
             // Get the public part V of the ephemeral key.
