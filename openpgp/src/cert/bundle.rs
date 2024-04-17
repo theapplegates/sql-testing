@@ -179,6 +179,27 @@ impl<C> Deref for ComponentBundle<C>
 }
 
 impl<C> ComponentBundle<C> {
+    /// Creates a new component.
+    ///
+    /// Should only be used from the cert parser.  However, we cannot
+    /// use `pub(in ...)` because the cert parser isn't an ancestor of
+    /// this module.
+    pub(crate) fn new(component: C,
+           hash_algo_security: HashAlgoSecurity,
+           sigs: Vec<Signature>)
+           -> ComponentBundle<C>
+    {
+        ComponentBundle {
+            component,
+            hash_algo_security,
+            self_signatures: vec![],
+            certifications: sigs,
+            attestations: vec![],
+            self_revocations: vec![],
+            other_revocations: vec![],
+        }
+    }
+
     /// Returns a reference to the bundle's component.
     ///
     /// # Examples

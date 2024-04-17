@@ -52,15 +52,7 @@ pub Cert: Option<Cert> = {
                 let sec = key.hash_algo_security();
 
                 let mut cert = Cert {
-                    primary: PrimaryKeyBundle {
-                        component: key,
-                        hash_algo_security: sec,
-                        self_signatures: vec![],
-                        certifications: sigs,
-                        attestations: vec![],
-                        self_revocations: vec![],
-                        other_revocations: vec![],
-                    },
+                    primary: PrimaryKeyBundle::new(key, sec, sigs),
                     subkeys: ComponentBundles::default(),
                     userids: ComponentBundles::default(),
                     user_attributes: ComponentBundles::default(),
@@ -184,25 +176,12 @@ Component: Option<Component> = {
                 let sigs = sigs.unwrap();
                 let sec = key.hash_algo_security();
 
-                Some(Component::SubkeyBundle(SubkeyBundle {
-                    component: key,
-                    hash_algo_security: sec,
-                    self_signatures: vec![],
-                    certifications: sigs,
-                    attestations: vec![],
-                    self_revocations: vec![],
-                    other_revocations: vec![],
-                }))
+                Some(Component::SubkeyBundle(
+                    SubkeyBundle::new(key, sec, sigs)))
             },
-            Some(Err(u)) => Some(Component::UnknownBundle(UnknownBundle {
-                component: u,
-                hash_algo_security: SecondPreImageResistance,
-                self_signatures: vec![],
-                certifications: sigs.unwrap_or_default(),
-                attestations: vec![],
-                self_revocations: vec![],
-                other_revocations: vec![],
-            })),
+            Some(Err(u)) => Some(Component::UnknownBundle(
+                UnknownBundle::new(u, SecondPreImageResistance,
+                                   sigs.unwrap_or_default()))),
             // Just validating a cert...
             None => None,
         }
@@ -213,25 +192,12 @@ Component: Option<Component> = {
                 let sigs = sigs.unwrap();
                 let sec = u.hash_algo_security();
 
-                Some(Component::UserIDBundle(UserIDBundle {
-                    component: u,
-                    hash_algo_security: sec,
-                    self_signatures: vec![],
-                    certifications: sigs,
-                    attestations: vec![],
-                    self_revocations: vec![],
-                    other_revocations: vec![],
-                }))
+                Some(Component::UserIDBundle(
+                    UserIDBundle::new(u, sec, sigs)))
             },
-            Some(Err(u)) => Some(Component::UnknownBundle(UnknownBundle {
-                component: u,
-                hash_algo_security: SecondPreImageResistance,
-                self_signatures: vec![],
-                certifications: sigs.unwrap_or_default(),
-                attestations: vec![],
-                self_revocations: vec![],
-                other_revocations: vec![],
-            })),
+            Some(Err(u)) => Some(Component::UnknownBundle(
+                UnknownBundle::new(u, SecondPreImageResistance,
+                                   sigs.unwrap_or_default()))),
             // Just validating a cert...
             None => None,
         }
@@ -242,25 +208,12 @@ Component: Option<Component> = {
                 let sigs = sigs.unwrap();
                 let sec = u.hash_algo_security();
 
-                Some(Component::UserAttributeBundle(UserAttributeBundle {
-                    component: u,
-                    hash_algo_security: sec,
-                    self_signatures: vec![],
-                    certifications: sigs,
-                    attestations: vec![],
-                    self_revocations: vec![],
-                    other_revocations: vec![],
-                }))
+                Some(Component::UserAttributeBundle(
+                    UserAttributeBundle::new(u, sec, sigs)))
             },
-            Some(Err(u)) => Some(Component::UnknownBundle(UnknownBundle {
-                component: u,
-                hash_algo_security: SecondPreImageResistance,
-                self_signatures: vec![],
-                certifications: sigs.unwrap_or_default(),
-                attestations: vec![],
-                self_revocations: vec![],
-                other_revocations: vec![],
-            })),
+            Some(Err(u)) => Some(Component::UnknownBundle(
+                UnknownBundle::new(u, SecondPreImageResistance,
+                                   sigs.unwrap_or_default()))),
             // Just validating a cert...
             None => None,
         }
@@ -271,15 +224,8 @@ Component: Option<Component> = {
                 let sigs = sigs.unwrap();
                 let sec = u.hash_algo_security();
 
-                Some(Component::UnknownBundle(UnknownBundle {
-                    component: u,
-                    hash_algo_security: sec,
-                    self_signatures: vec![],
-                    certifications: sigs,
-                    attestations: vec![],
-                    self_revocations: vec![],
-                    other_revocations: vec![],
-                }))
+                Some(Component::UnknownBundle(
+                    UnknownBundle::new(u, sec, sigs)))
             },
             // Just validating a cert...
             None => None,
