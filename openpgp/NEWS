@@ -6,6 +6,10 @@
 
 * Changes in 1.21.0
 ** New functionality
+   - Key::<PublicParts, _>::steal_secret
+   - Key::<UnknownParts, _>::steal_secret
+   - Key4::<PublicParts, _>::steal_secret
+   - Key4::<UnknownParts, _>::steal_secret
    - The RustCrypto backend now supports ECDH and ECDSA over the NIST
      curve P-384.
    - The RustCrypto backend now supports ECDH and ECDSA over the NIST
