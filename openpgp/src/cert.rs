@@ -7153,7 +7153,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(bob.bad_signatures().count(), 0);
         assert_eq!(bob.userids().next().unwrap().certifications().next(),
                    Some(&alice_certifies_bob));
-        assert_eq!(&bob.userids().next().unwrap().bundle().attestations[0],
+        assert_eq!(bob.userids().next().unwrap().bundle().attestations().next().unwrap(),
                    &attestation);
         assert_eq!(bob.with_policy(p, None)?.userids().next().unwrap()
                    .certifications().count(), 1);
@@ -7165,7 +7165,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(bob_.bad_signatures().count(), 0);
         assert_eq!(bob_.userids().next().unwrap().certifications().next(),
                    Some(&alice_certifies_bob));
-        assert_eq!(&bob_.userids().next().unwrap().bundle().attestations[0],
+        assert_eq!(bob_.userids().next().unwrap().bundle().attestations().next().unwrap(),
                    &attestation);
         assert_eq!(bob_.with_policy(p, None)?.userids().next().unwrap()
                    .attested_certifications().count(), 1);
@@ -7175,7 +7175,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(bob_.bad_signatures().count(), 0);
         assert_eq!(bob_.userids().next().unwrap().certifications().next(),
                    Some(&alice_certifies_bob));
-        assert_eq!(&bob_.userids().next().unwrap().bundle().attestations[0],
+        assert_eq!(bob_.userids().next().unwrap().bundle().attestations().next().unwrap(),
                    &attestation);
         assert_eq!(bob_.with_policy(p, None)?.userids().next().unwrap()
                    .attested_certifications().count(), 1);
@@ -7197,7 +7197,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(bob.bad_signatures().count(), 0);
         assert_eq!(bob.userids().next().unwrap().certifications().next(),
                    Some(&alice_certifies_bob));
-        assert_eq!(&bob.userids().next().unwrap().bundle().attestations[0],
+        assert_eq!(bob.userids().next().unwrap().bundle().attestations().next().unwrap(),
                    &attestation);
         assert_eq!(bob.with_policy(p, None)?.userids().next().unwrap()
                    .certifications().count(), 1);
@@ -7221,11 +7221,11 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(test.bad_signatures().count(), 0);
         assert_eq!(test.userids().next().unwrap().certifications().count(),
                    1);
-        assert_eq!(test.userids().next().unwrap().bundle().attestations.len(),
+        assert_eq!(test.userids().next().unwrap().bundle().attestations().count(),
                    1);
 
         let attestation =
-            &test.userids().next().unwrap().bundle().attestations[0];
+            test.userids().next().unwrap().bundle().attestations().next().unwrap();
 
         if DUMP {
             for (i, d) in attestation.attested_certifications()?.enumerate() {
