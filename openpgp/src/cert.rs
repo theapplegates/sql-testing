@@ -3180,18 +3180,10 @@ impl Cert {
     /// # }
     /// ```
     pub fn strip_secret_key_material(mut self) -> Cert {
-        let (pk, _sk) = self.primary.component.take_secret();
-        self.primary.component = pk;
-
-        let subkeys = self.subkeys.into_iter()
-            .map(|mut kb| {
-                let (pk, _sk) = kb.component.take_secret();
-                kb.component = pk;
-                kb
-            })
-            .collect::<Vec<_>>();
-        self.subkeys = subkeys.into();
-
+        self.primary.key_mut().steal_secret();
+        self.subkeys.iter_mut().for_each(|sk| {
+            sk.key_mut().steal_secret();
+        });
         self
     }
 
