@@ -322,12 +322,9 @@ You can talk to us using IRC on [OFTC](https://www.oftc.net/) in `#sequoia`.
 Reporting bugs
 ==============
 
-Please report bug and feature requests to [our bugtracker].  Please
-report security vulnerabilities to [security@sequoia-pgp.org],
-preferably encrypted using OpenPGP.  The certificate for this address
-can be found on our web site, via WKD, and [on the keyserver].
-
+Please report bug and feature requests to [our bugtracker].  If you
+find a security vulnerability, please refer to our [security
+vulnerability guide].
 
   [our bugtracker]: https://gitlab.com/sequoia-pgp/sequoia/issues
-  [security@sequoia-pgp.org]: mailto:security@sequoia-pgp.org
-  [on the keyserver]: https://keys.openpgp.org/search?q=security%40sequoia-pgp.org
+  [security vulnerability guide]: https://gitlab.com/sequoia-pgp/sequoia/-/blob/main/doc/security-vulnerabilities.md

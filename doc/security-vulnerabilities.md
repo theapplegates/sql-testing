@@ -21,6 +21,21 @@ If someone publishes a security-sensitive issue (including creating a
 public issue), then it may be necessary to forego responsible
 disclosure, and publish a fix as soon as possible.
 
+If you responsibly disclose a security vulnerability, you may be
+eligible for a reward as part of our [bug bounty program].  The bug
+bounty program is hosted by [YesWeHack], and sponsored by the
+[Sovereign Tech Fund]’s [Bug Resilience Program].  *We prefer that you
+report any issues directly to us* as described above to limit the
+number of people who know about it.  After we confirm that the
+vulnerability is eligible for a reward, you will be paid out via the
+YesWeHack platform; you do not need to report the vulnerability via
+YesWeHack to be eligible.
+
+  [bug bounty program]: https://yeswehack.com/programs/sequoia-pgp-bug-bounty-program
+  [YesWeHack]: https://yeswehack.com
+  [Sovereign Tech Fund]: https://www.sovereigntechfund.de/
+  [Bug Resilience Program]: https://www.sovereigntechfund.de/programs/bug-resilience
+
 # Resolution
 
   1. Assess the impact of the issue:
