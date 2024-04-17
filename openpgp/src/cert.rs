@@ -131,14 +131,12 @@ use std::io;
 use std::collections::btree_map::BTreeMap;
 use std::collections::btree_map::Entry;
 use std::collections::hash_map::DefaultHasher;
-use std::cmp;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::hash::Hasher;
 use std::path::Path;
 use std::mem;
 use std::fmt;
-use std::ops::{Deref, DerefMut};
 use std::time;
 
 use buffered_reader::BufferedReader;
@@ -184,6 +182,13 @@ pub mod amalgamation;
 mod builder;
 mod bindings;
 pub mod bundle;
+use bundle::{
+    ComponentBundles,
+    UserIDBundles,
+    UserAttributeBundles,
+    SubkeyBundles,
+    UnknownBundles,
+};
 mod parser;
 pub mod raw;
 mod revoke;
@@ -246,131 +251,6 @@ impl fmt::Display for Cert {
         write!(f, "{}", self.fingerprint())
     }
 }
-
-/// A collection of `ComponentBundles`.
-///
-/// Note: we need this, because we can't `impl Vec<ComponentBundles>`.
-#[derive(Debug, Clone, PartialEq)]
-struct ComponentBundles<C>
-    where ComponentBundle<C>: cmp::PartialEq
-{
-    bundles: Vec<ComponentBundle<C>>,
-}
-
-impl<C> Deref for ComponentBundles<C>
-    where ComponentBundle<C>: cmp::PartialEq
-{
-    type Target = Vec<ComponentBundle<C>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.bundles
-    }
-}
-
-impl<C> DerefMut for ComponentBundles<C>
-    where ComponentBundle<C>: cmp::PartialEq
-{
-    fn deref_mut(&mut self) -> &mut Vec<ComponentBundle<C>> {
-        &mut self.bundles
-    }
-}
-
-impl<C> From<ComponentBundles<C>> for Vec<ComponentBundle<C>>
-    where ComponentBundle<C>: cmp::PartialEq
-{
-    fn from(cb: ComponentBundles<C>) -> Vec<ComponentBundle<C>> {
-        cb.bundles
-    }
-}
-
-impl<C> IntoIterator for ComponentBundles<C>
-    where ComponentBundle<C>: cmp::PartialEq
-{
-    type Item = ComponentBundle<C>;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.bundles.into_iter()
-    }
-}
-
-impl<C> ComponentBundles<C>
-    where ComponentBundle<C>: cmp::PartialEq
-{
-    fn new() -> Self {
-        Self { bundles: vec![] }
-    }
-}
-
-impl<C> ComponentBundles<C>
-    where ComponentBundle<C>: cmp::PartialEq
-{
-    // Sort and dedup the components.
-    //
-    // `cmp` is a function to sort the components for deduping.
-    //
-    // `merge` is a function that merges the first component into the
-    // second component.
-    fn sort_and_dedup<F, F2>(&mut self, cmp: F, merge: F2)
-        where F: Fn(&C, &C) -> Ordering,
-              F2: Fn(&mut C, &mut C)
-    {
-        // We dedup by component (not bundles!).  To do this, we need
-        // to sort the bundles by their components.
-
-        self.bundles.sort_by(
-            |a, b| cmp(&a.component, &b.component));
-
-        self.bundles.dedup_by(|a, b| {
-            if cmp(&a.component, &b.component) == Ordering::Equal {
-                // Merge.
-                merge(&mut a.component, &mut b.component);
-
-                // Recall: if a and b are equal, a will be dropped.
-                // Also, the elements are given in the opposite order
-                // from their order in the vector.
-                b.self_signatures.append(&mut a.self_signatures);
-                b.attestations.append(&mut a.attestations);
-                b.certifications.append(&mut a.certifications);
-                b.self_revocations.append(&mut a.self_revocations);
-                b.other_revocations.append(&mut a.other_revocations);
-
-                true
-            } else {
-                false
-            }
-        });
-
-        // And sort the certificates.
-        for b in self.bundles.iter_mut() {
-            b.sort_and_dedup();
-        }
-    }
-}
-
-/// A vecor of key (primary or subkey, public or private) and any
-/// associated signatures.
-type KeyBundles<KeyPart, KeyRole> = ComponentBundles<Key<KeyPart, KeyRole>>;
-
-/// A vector of subkeys and any associated signatures.
-type SubkeyBundles<KeyPart> = KeyBundles<KeyPart, key::SubordinateRole>;
-
-/// A vector of key (primary or subkey, public or private) and any
-/// associated signatures.
-#[allow(dead_code)]
-type GenericKeyBundles
-    = ComponentBundles<Key<key::UnspecifiedParts, key::UnspecifiedRole>>;
-
-/// A vector of User ID bundles and any associated signatures.
-type UserIDBundles = ComponentBundles<UserID>;
-
-/// A vector of User Attribute bundles and any associated signatures.
-type UserAttributeBundles = ComponentBundles<UserAttribute>;
-
-/// A vector of unknown components and any associated signatures.
-///
-/// Note: all signatures are stored as certifications.
-type UnknownBundles = ComponentBundles<Unknown>;
 
 /// Returns the certificate holder's preferences.
 ///
@@ -3310,7 +3190,7 @@ impl Cert {
                 kb
             })
             .collect::<Vec<_>>();
-        self.subkeys = ComponentBundles { bundles: subkeys, };
+        self.subkeys = subkeys.into();
 
         self
     }

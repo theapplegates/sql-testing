@@ -61,10 +61,10 @@ pub Cert: Option<Cert> = {
                         self_revocations: vec![],
                         other_revocations: vec![],
                     },
-                    subkeys: ComponentBundles::new(),
-                    userids: ComponentBundles::new(),
-                    user_attributes: ComponentBundles::new(),
-                    unknowns: ComponentBundles::new(),
+                    subkeys: ComponentBundles::default(),
+                    userids: ComponentBundles::default(),
+                    user_attributes: ComponentBundles::default(),
+                    unknowns: ComponentBundles::default(),
                     bad: vec![],
                 };
 

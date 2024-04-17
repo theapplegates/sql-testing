@@ -79,7 +79,8 @@
 //! [complicated semantics]: https://tools.ietf.org/html/rfc4880#section-5.2.3.3
 
 use std::time;
-use std::ops::Deref;
+use std::cmp::{self, Ordering};
+use std::ops::{Deref, DerefMut};
 
 use crate::{
     Error,
@@ -1057,3 +1058,143 @@ impl ComponentBundle<Unknown> {
         self.component()
     }
 }
+
+/// A collection of `ComponentBundles`.
+///
+/// Note: we need this, because we can't `impl Vec<ComponentBundles>`.
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct ComponentBundles<C>
+    where ComponentBundle<C>: cmp::PartialEq
+{
+    bundles: Vec<ComponentBundle<C>>,
+}
+
+impl<C> Default for ComponentBundles<C>
+where
+    ComponentBundle<C>: cmp::PartialEq,
+{
+        fn default() -> Self {
+        ComponentBundles {
+            bundles: vec![],
+        }
+    }
+}
+
+impl<C> Deref for ComponentBundles<C>
+    where ComponentBundle<C>: cmp::PartialEq
+{
+    type Target = Vec<ComponentBundle<C>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.bundles
+    }
+}
+
+impl<C> DerefMut for ComponentBundles<C>
+    where ComponentBundle<C>: cmp::PartialEq
+{
+    fn deref_mut(&mut self) -> &mut Vec<ComponentBundle<C>> {
+        &mut self.bundles
+    }
+}
+
+impl<C> From<ComponentBundles<C>> for Vec<ComponentBundle<C>>
+    where ComponentBundle<C>: cmp::PartialEq
+{
+    fn from(cb: ComponentBundles<C>) -> Vec<ComponentBundle<C>> {
+        cb.bundles
+    }
+}
+
+impl<C> From<Vec<ComponentBundle<C>>> for ComponentBundles<C>
+    where ComponentBundle<C>: cmp::PartialEq
+{
+    fn from(bundles: Vec<ComponentBundle<C>>) -> ComponentBundles<C> {
+        ComponentBundles {
+            bundles,
+        }
+    }
+}
+
+impl<C> IntoIterator for ComponentBundles<C>
+    where ComponentBundle<C>: cmp::PartialEq
+{
+    type Item = ComponentBundle<C>;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.bundles.into_iter()
+    }
+}
+
+impl<C> ComponentBundles<C>
+    where ComponentBundle<C>: cmp::PartialEq
+{
+    // Sort and dedup the components.
+    //
+    // `cmp` is a function to sort the components for deduping.
+    //
+    // `merge` is a function that merges the first component into the
+    // second component.
+    pub(super) fn sort_and_dedup<F, F2>(&mut self, cmp: F, merge: F2)
+        where F: Fn(&C, &C) -> Ordering,
+              F2: Fn(&mut C, &mut C)
+    {
+        // We dedup by component (not bundles!).  To do this, we need
+        // to sort the bundles by their components.
+
+        self.bundles.sort_by(
+            |a, b| cmp(&a.component, &b.component));
+
+        self.bundles.dedup_by(|a, b| {
+            if cmp(&a.component, &b.component) == Ordering::Equal {
+                // Merge.
+                merge(&mut a.component, &mut b.component);
+
+                // Recall: if a and b are equal, a will be dropped.
+                // Also, the elements are given in the opposite order
+                // from their order in the vector.
+                b.self_signatures.append(&mut a.self_signatures);
+                b.attestations.append(&mut a.attestations);
+                b.certifications.append(&mut a.certifications);
+                b.self_revocations.append(&mut a.self_revocations);
+                b.other_revocations.append(&mut a.other_revocations);
+
+                true
+            } else {
+                false
+            }
+        });
+
+        // And sort the certificates.
+        for b in self.bundles.iter_mut() {
+            b.sort_and_dedup();
+        }
+    }
+}
+
+/// A vecor of key (primary or subkey, public or private) and any
+/// associated signatures.
+pub(super) type KeyBundles<KeyPart, KeyRole>
+    = ComponentBundles<Key<KeyPart, KeyRole>>;
+
+/// A vector of subkeys and any associated signatures.
+pub(super) type SubkeyBundles<KeyPart>
+    = KeyBundles<KeyPart, key::SubordinateRole>;
+
+/// A vector of key (primary or subkey, public or private) and any
+/// associated signatures.
+#[allow(dead_code)]
+pub(super) type GenericKeyBundles
+    = ComponentBundles<Key<key::UnspecifiedParts, key::UnspecifiedRole>>;
+
+/// A vector of User ID bundles and any associated signatures.
+pub(super) type UserIDBundles = ComponentBundles<UserID>;
+
+/// A vector of User Attribute bundles and any associated signatures.
+pub(super) type UserAttributeBundles = ComponentBundles<UserAttribute>;
+
+/// A vector of unknown components and any associated signatures.
+///
+/// Note: all signatures are stored as certifications.
+pub(super) type UnknownBundles = ComponentBundles<Unknown>;
