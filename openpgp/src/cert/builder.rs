@@ -1793,7 +1793,7 @@ mod tests {
             .generate().unwrap();
 
         let key = cert.primary_key().key();
-        let sig = &cert.primary_key().bundle().self_signatures()[0];
+        let sig = &cert.primary_key().bundle().self_signatures2().next().unwrap();
         assert!(sig.key_alive(key, now).is_ok());
         assert!(sig.key_alive(key, now + 590 * s).is_ok());
         assert!(! sig.key_alive(key, now + 610 * s).is_ok());

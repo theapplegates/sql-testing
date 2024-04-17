@@ -6166,19 +6166,20 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
                 cert = cert.insert_packets(binding).unwrap();
                 // A time that matches multiple signatures.
                 let direct_signatures =
-                    cert.primary_key().bundle().self_signatures();
+                    cert.primary_key().bundle().self_signatures2()
+                    .collect::<Vec<_>>();
                 assert_eq!(cert.primary_key().with_policy(p, *t).unwrap()
                            .direct_key_signature().ok(),
-                           direct_signatures.get(*offset));
+                           direct_signatures.get(*offset).cloned());
                 // A time that doesn't match any signature.
                 assert_eq!(cert.primary_key().with_policy(p, *t + a_sec).unwrap()
                            .direct_key_signature().ok(),
-                           direct_signatures.get(*offset));
+                           direct_signatures.get(*offset).cloned());
 
                 // The current time, which should use the first signature.
                 assert_eq!(cert.primary_key().with_policy(p, None).unwrap()
                            .direct_key_signature().ok(),
-                           direct_signatures.get(0));
+                           direct_signatures.get(0).cloned());
 
                 // The beginning of time, which should return no
                 // binding signatures.
