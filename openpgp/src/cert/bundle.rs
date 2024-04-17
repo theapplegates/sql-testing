@@ -111,25 +111,25 @@ use super::{
 /// description.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ComponentBundle<C> {
-    pub(crate) component: C,
+    component: C,
 
-    pub(crate) hash_algo_security: HashAlgoSecurity,
+    pub(super) hash_algo_security: HashAlgoSecurity,
 
     // Self signatures.
-    pub(crate) self_signatures: Vec<Signature>,
+    pub(super) self_signatures: Vec<Signature>,
 
     // Third-party certifications.  (In general, this will only be by
     // designated revokers.)
-    pub(crate) certifications: Vec<Signature>,
+    pub(super) certifications: Vec<Signature>,
 
     // Attestation key signatures.
-    pub(crate) attestations: Vec<Signature>,
+    pub(super) attestations: Vec<Signature>,
 
     // Self revocations.
-    pub(crate) self_revocations: Vec<Signature>,
+    pub(super) self_revocations: Vec<Signature>,
 
     // Third-party revocations (e.g., designated revokers).
-    pub(crate) other_revocations: Vec<Signature>,
+    pub(super) other_revocations: Vec<Signature>,
 }
 assert_send_and_sync!(ComponentBundle<C> where C);
 
