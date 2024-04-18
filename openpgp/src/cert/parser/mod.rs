@@ -924,10 +924,9 @@ impl<'a> CertParser<'a> {
 /// vectors.
 fn split_sigs<C>(primary: &KeyHandle, b: &mut ComponentBundle<C>)
 {
-    let mut self_signatures = Vec::with_capacity(0);
-    let mut certifications = Vec::with_capacity(0);
-    let mut self_revs = Vec::with_capacity(0);
-    let mut other_revs = Vec::with_capacity(0);
+    debug_assert!(b.self_signatures.is_empty());
+    debug_assert!(b.self_revocations.is_empty());
+    debug_assert!(b.other_revocations.is_empty());
 
     for sig in mem::replace(&mut b.certifications, Vec::with_capacity(0)) {
         let typ = sig.typ();
@@ -943,21 +942,16 @@ fn split_sigs<C>(primary: &KeyHandle, b: &mut ComponentBundle<C>)
             || typ == CertificationRevocation
         {
             if is_selfsig {
-                self_revs.push(sig);
+                b.self_revocations.push(sig);
             } else {
-                other_revs.push(sig);
+                b.other_revocations.push(sig);
             }
         } else if is_selfsig {
-            self_signatures.push(sig);
+            b.self_signatures.push(sig);
         } else {
-            certifications.push(sig);
+            b.certifications.push(sig);
         }
     }
-
-    b.self_signatures = self_signatures;
-    b.certifications = certifications;
-    b.self_revocations = self_revs;
-    b.other_revocations = other_revs;
 }
 
 impl<'a> Iterator for CertParser<'a> {
