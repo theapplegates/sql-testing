@@ -2008,14 +2008,28 @@ impl Cert {
             }
 
             // Keep them for later.
-            t!("{} {:02X}{:02X}, {:?} doesn't belong \
-                to any known component or is bad.",
+            t!("{} {:02X}{:02X}, {:?}, originally found on {:?} \
+                doesn't belong to any known component or is bad.",
                if is_selfsig { "Self-sig" } else { "3rd-party-sig" },
                sig.digest_prefix()[0], sig.digest_prefix()[1],
-               sig.typ());
+               sig.typ(), unknown_idx);
 
             if let Some(i) = unknown_idx {
-                self.unknowns[i].certifications.push(sig);
+                let is_revocation = match sig.typ() {
+                    CertificationRevocation | KeyRevocation | SubkeyRevocation
+                        => true,
+                    _ => false,
+                };
+                match (is_selfsig, is_revocation) {
+                    (false, false) =>
+                        self.unknowns[i].certifications.push(sig),
+                    (false, true) =>
+                        self.unknowns[i].other_revocations.push(sig),
+                    (true, false) =>
+                        self.unknowns[i].self_signatures.push(sig),
+                    (true, true) =>
+                        self.unknowns[i].self_revocations.push(sig),
+                }
             } else {
                 self.bad.push(sig);
             }
@@ -2024,12 +2038,6 @@ impl Cert {
         if !self.bad.is_empty() {
             t!("{}: ignoring {} bad self signatures",
                self.keyid(), self.bad.len());
-        }
-
-        // Split signatures on unknown components.
-        let primary_fp: KeyHandle = self.key_handle();
-        for c in self.unknowns.iter_mut() {
-            parser::split_sigs(&primary_fp, c);
         }
 
         // Sort again.  We may have moved signatures to the right

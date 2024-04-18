@@ -922,8 +922,7 @@ impl<'a> CertParser<'a> {
 
 /// Splits the signatures in b.certifications into the correct
 /// vectors.
-pub(crate) fn split_sigs<C>(primary: &KeyHandle,
-                            b: &mut ComponentBundle<C>)
+fn split_sigs<C>(primary: &KeyHandle, b: &mut ComponentBundle<C>)
 {
     let mut self_signatures = Vec::with_capacity(0);
     let mut certifications = Vec::with_capacity(0);
