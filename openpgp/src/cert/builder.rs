@@ -1715,7 +1715,8 @@ mod tests {
             .set_primary_key_flags(KeyFlags::empty())
             .add_subkey(KeyFlags::empty().set_certification(), None, None)
             .generate().unwrap();
-        let sig_pkts = cert1.subkeys().next().unwrap().bundle().self_signatures[0].hashed_area();
+        let sig_pkts = cert1.subkeys().next().unwrap().bundle()
+            .self_signatures2().next().unwrap().hashed_area();
 
         match sig_pkts.subpacket(SubpacketTag::KeyFlags).unwrap().value() {
             SubpacketValue::KeyFlags(ref ks) => assert!(ks.for_certification()),
