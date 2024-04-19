@@ -9,6 +9,7 @@ authors = [
 documentation = "https://docs.sequoia-pgp.org/0.21.0/guide/"
 homepage = "https://sequoia-pgp.org/"
 repository = "https://gitlab.com/sequoia-pgp/sequoia"
+license = "CC-BY-SA-4.0"
 build = "build.rs"
 
 [dependencies]
