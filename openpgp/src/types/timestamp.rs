@@ -19,7 +19,7 @@ use crate::{
 ///
 /// They cannot express dates further than 7th February of 2106 or earlier than
 /// the [UNIX epoch]. Unlike Unix's `time_t`, OpenPGP's timestamp is unsigned so
-/// it rollsover in 2106, not 2038.
+/// it rolls over in 2106, not 2038.
 ///
 /// # Examples
 ///
