@@ -223,6 +223,55 @@ mod for_each_artifact {
             Ok(())
         }).unwrap();
     }
+
+    #[test]
+    fn raw_cert_roundtrip() {
+        use openpgp::cert::raw::RawCert;
+        for_all_files(&test_data_dir(), |src| {
+            let p = if let Ok(cert) = RawCert::from_file(src) {
+                cert
+            } else {
+                // Ignore non-Cert files.
+                return Ok(());
+            };
+
+            let mut v = Vec::new();
+            p.packets().for_each(|p| v.extend_from_slice(p.as_bytes()));
+
+            let q = RawCert::from_bytes(&v)?;
+            assert_eq!(p, q, "roundtripping {:?} failed", src);
+
+            Ok(())
+        }).unwrap();
+    }
+
+    #[test]
+    fn raw_cert_parser_roundtrip() {
+        use openpgp::cert::raw::{RawCert, RawCertParser};
+        for_all_files(&test_data_dir(), |src| {
+            let mut parser = if let Ok(p) = RawCertParser::from_file(src) {
+                p
+            } else {
+                // Ignore non-Cert files.
+                return Ok(());
+            };
+            while let Some(p) = parser.next() {
+                let p = if let Ok(p) = p {
+                    p
+                } else {
+                    // Ignore non-Cert files.
+                    continue;
+                };
+                let mut v = Vec::new();
+                p.packets().for_each(|p| v.extend_from_slice(p.as_bytes()));
+
+                let q = RawCert::from_bytes(&v)?;
+                assert_eq!(p, q, "roundtripping {:?} failed", src);
+            }
+
+            Ok(())
+        }).unwrap();
+    }
 }
 
 /// Computes the path to the test directory.

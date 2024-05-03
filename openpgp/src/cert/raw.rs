@@ -881,12 +881,11 @@ impl<'a> Iterator for RawCertParser<'a>
                                     Err(err) => {
                                         t!("Stopping: parsing public key: {}",
                                            err);
-                                        pending_error = Some(err);
-                                        break;
+                                        primary_key = Some(Err(err));
                                     }
                                     Ok(key) => primary_key = Some(
-                                        key.parts_into_public()
-                                            .role_into_primary()),
+                                        Ok(key.parts_into_public()
+                                           .role_into_primary())),
                                 }
                             }
                         }
@@ -990,19 +989,39 @@ impl<'a> Iterator for RawCertParser<'a>
             return None;
         }
 
-        Some(Ok(RawCert {
-            data: if let Some(slice) = self.slice.as_ref() {
-                let data = &slice[cert_start_absolute + cert_start
-                                  ..cert_start_absolute + cert_end];
-                assert_eq!(data, cert_data);
-                Cow::Borrowed(data)
-            } else {
-                Cow::Owned(cert_data.to_vec())
-            },
-            primary_key: primary_key.expect("set"),
-            packets,
-        }))
+        match primary_key.expect("set") {
+            Ok(primary_key) => Some(Ok(RawCert {
+                data: if let Some(slice) = self.slice.as_ref() {
+                    let data = &slice[cert_start_absolute + cert_start
+                                      ..cert_start_absolute + cert_end];
+                    assert_eq!(data, cert_data);
+                    Cow::Borrowed(data)
+                } else {
+                    Cow::Owned(cert_data.to_vec())
+                },
+                primary_key,
+                packets,
+            })),
+            Err(err) =>
+                Some(Err(Error::UnsupportedCert(err, cert_data.into()).into())),
+        }
     }
+}
+
+/// Errors used in this module.
+///
+/// Note: This enum cannot be exhaustively matched to allow future
+/// extensions.
+#[non_exhaustive]
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    /// Unsupported Cert.
+    ///
+    /// This usually occurs, because the primary key is in an
+    /// unsupported format.  In particular, Sequoia does not support
+    /// version 3 keys.
+    #[error("Unsupported Cert: {0}")]
+    UnsupportedCert(anyhow::Error, Vec<u8>),
 }
 
 #[cfg(test)]

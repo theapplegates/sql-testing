@@ -6,6 +6,9 @@
 
 * Changes in 1.21.0
 ** Notable fixes
+   - The RawCertParser now correctly advance the input stream when
+     encountering unsupported cert (primary key) versions.  Previously,
+     this resulted in an infinite loop.
    - Sequoia built with the OpenSSL backend or the RustCrypto backend
      will now make sure that the secret primes of generated RSA keys
      are ordered the way OpenPGP demands (i.e. `p` < `q`).
@@ -32,6 +35,7 @@
    - Key::<UnknownParts, _>::steal_secret
    - Key4::<PublicParts, _>::steal_secret
    - Key4::<UnknownParts, _>::steal_secret
+   - cert::raw::Error::UnsupportedCert
    - packet::Unknown::into_error
    - The RustCrypto backend now supports ECDH and ECDSA over the NIST
      curve P-384.
