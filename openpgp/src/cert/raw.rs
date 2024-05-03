@@ -73,7 +73,6 @@ use std::path::Path;
 
 use buffered_reader::{BufferedReader, Dup, EOF, File, Generic, Memory};
 
-use crate::Error;
 use crate::Fingerprint;
 use crate::KeyID;
 use crate::Result;
@@ -460,14 +459,14 @@ impl<'a> Parse<'a, RawCert<'a>> for RawCert<'a> {
         let mut parser = RawCertParser::from_buffered_reader(reader)?;
         if let Some(cert_result) = parser.next() {
             if parser.next().is_some() {
-                Err(Error::MalformedCert(
+                Err(crate::Error::MalformedCert(
                     "Additional packets found, is this a keyring?".into()
                 ).into())
             } else {
                 cert_result
             }
         } else {
-            Err(Error::MalformedCert("No data".into()).into())
+            Err(crate::Error::MalformedCert("No data".into()).into())
         }
     }
 
@@ -602,7 +601,7 @@ impl<'a> RawCertParser<'a> {
                 Ok(header) => {
                     let tag = header.ctb().tag();
                     if matches!(tag, Tag::Unknown(_) | Tag::Private(_)) {
-                        return Err(Error::MalformedCert(
+                        return Err(crate::Error::MalformedCert(
                             format!("A certificate must start with a \
                                      public key or a secret key packet, \
                                      got a {}",
@@ -631,7 +630,7 @@ impl<'a> RawCertParser<'a> {
                 Ok(header) => {
                     let tag = header.ctb().tag();
                     if matches!(tag, Tag::Unknown(_) | Tag::Private(_)) {
-                        return Err(Error::MalformedCert(
+                        return Err(crate::Error::MalformedCert(
                             format!("A certificate must start with a \
                                      public key or a secret key packet, \
                                      got a {}",
@@ -826,7 +825,7 @@ impl<'a> Iterator for RawCertParser<'a>
                 // Fabricate a header.
                 t!("Recovered after {} bytes of junk", skip);
 
-                pending_error = Some(Error::MalformedPacket(
+                pending_error = Some(crate::Error::MalformedPacket(
                     format!("Encountered {} bytes of junk at offset {}",
                             skip, self.bytes_read)).into());
 
@@ -898,7 +897,7 @@ impl<'a> Iterator for RawCertParser<'a>
                         for {} packets",
                        tag);
                     pending_error = Some(
-                        Error::MalformedPacket(
+                        crate::Error::MalformedPacket(
                             format!("Packet {} uses partial body length \
                                      encoding, which is not allowed in \
                                      certificates",
@@ -912,7 +911,7 @@ impl<'a> Iterator for RawCertParser<'a>
                         for {} packets",
                        tag);
                     pending_error = Some(
-                        Error::MalformedPacket(
+                        crate::Error::MalformedPacket(
                             format!("Packet {} uses intedeterminite length \
                                      encoding, which is not allowed in \
                                      certificates",
@@ -1235,7 +1234,7 @@ mod test {
         // An unknown packet.
         let tag = Tag::Private(61);
         let unknown : Packet
-            = Unknown::new(tag, Error::UnsupportedPacketType(tag).into())
+            = Unknown::new(tag, crate::Error::UnsupportedPacketType(tag).into())
             .into();
 
         // A literal packet.  (This is a valid OpenPGP Message.)
@@ -1604,11 +1603,11 @@ mod test {
         }
 
         assert!(
-            matches!(cert.map_err(|e| e.downcast::<Error>()),
-                     Err(Ok(Error::MalformedCert(_)))));
+            matches!(cert.map_err(|e| e.downcast::<crate::Error>()),
+                     Err(Ok(crate::Error::MalformedCert(_)))));
         assert!(
-            matches!(raw.map_err(|e| e.downcast::<Error>()),
-                     Err(Ok(Error::MalformedCert(_)))));
+            matches!(raw.map_err(|e| e.downcast::<crate::Error>()),
+                     Err(Ok(crate::Error::MalformedCert(_)))));
 
         // Parse two certificates.
         let mut bytes = Vec::new();
@@ -1631,11 +1630,11 @@ mod test {
         }
 
         assert!(
-            matches!(cert.map_err(|e| e.downcast::<Error>()),
-                     Err(Ok(Error::MalformedCert(_)))));
+            matches!(cert.map_err(|e| e.downcast::<crate::Error>()),
+                     Err(Ok(crate::Error::MalformedCert(_)))));
         assert!(
-            matches!(raw.map_err(|e| e.downcast::<Error>()),
-                     Err(Ok(Error::MalformedCert(_)))));
+            matches!(raw.map_err(|e| e.downcast::<crate::Error>()),
+                     Err(Ok(crate::Error::MalformedCert(_)))));
     }
 
     #[test]
