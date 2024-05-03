@@ -338,6 +338,8 @@ macro_rules! impl_parse_with_buffered_reader {
                     #[allow(deprecated)]
                     (Packet::$typ(o), PacketParserResult::EOF(_))
                         => Ok(o),
+                    (Packet::Unknown(u), PacketParserResult::EOF(_)) =>
+                        Err(u.into_error()),
                     (p, PacketParserResult::EOF(_)) =>
                         Err(Error::InvalidOperation(
                             format!("Not a {} packet: {:?}", stringify!($typ),
@@ -2509,6 +2511,8 @@ impl_parse_with_buffered_reader!(
             (Packet::PublicSubkey(o), PacketParserResult::EOF(_)) => Ok(o.into()),
             (Packet::SecretKey(o), PacketParserResult::EOF(_)) => Ok(o.into()),
             (Packet::SecretSubkey(o), PacketParserResult::EOF(_)) => Ok(o.into()),
+            (Packet::Unknown(u), PacketParserResult::EOF(_)) =>
+                Err(u.into_error()),
             (p, PacketParserResult::EOF(_)) =>
                 Err(Error::InvalidOperation(
                     format!("Not a Key packet: {:?}", p)).into()),
