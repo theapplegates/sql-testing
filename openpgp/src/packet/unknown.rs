@@ -153,6 +153,11 @@ impl Unknown {
         ::std::mem::replace(&mut self.error, error)
     }
 
+    /// Returns the error.
+    pub fn into_error(self) -> anyhow::Error {
+        self.error
+    }
+
     /// Best effort Ord implementation.
     ///
     /// The Cert canonicalization needs to order Unknown packets.

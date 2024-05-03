@@ -32,6 +32,7 @@
    - Key::<UnknownParts, _>::steal_secret
    - Key4::<PublicParts, _>::steal_secret
    - Key4::<UnknownParts, _>::steal_secret
+   - packet::Unknown::into_error
    - The RustCrypto backend now supports ECDH and ECDSA over the NIST
      curve P-384.
    - The RustCrypto backend now supports ECDH and ECDSA over the NIST
