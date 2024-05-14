@@ -1489,6 +1489,7 @@ impl Cert {
 
     fn canonicalize(mut self) -> Self {
         tracer!(TRACE, "canonicalize", 0);
+        use SignatureType::*;
 
         // Before we do anything, we'll order and deduplicate the
         // components.  If two components are the same, they will be
@@ -1558,6 +1559,7 @@ impl Cert {
              $lookup_fn:expr,       // a function to lookup keys
              $verify_method:ident,  // the method to call to verify it
              $hash_method:ident,    // the method to call to compute the hash
+             $sig_type_pat:pat,     // pattern to test signature types against
              $($verify_args:expr),* // additional arguments to pass to the above
             ) => ({
                 t!("check_3rd_party!({}, {}, {:?}, {}, {}, ...)",
@@ -1567,8 +1569,12 @@ impl Cert {
                     // Use hash prefix as heuristic.
                     let key = self.primary.key();
                     match sig.hash_algo().context().and_then(|mut ctx| {
-                        sig.$hash_method(&mut ctx, key, $($verify_args),*);
-                        ctx.into_digest()
+                        if matches!(sig.typ(), $sig_type_pat) {
+                            sig.$hash_method(&mut ctx, key, $($verify_args),*);
+                            ctx.into_digest()
+                        } else {
+                            Err(Error::UnsupportedSignatureType(sig.typ()).into())
+                        }
                     }) {
                       Ok(hash) => {
                         if &sig.digest_prefix()[..] == &hash[..2] {
@@ -1617,9 +1623,9 @@ impl Cert {
                 }
             });
             ($desc:expr, $binding:expr, $sigs:ident, $lookup_fn:expr,
-             $verify_method:ident, $hash_method:ident) => ({
+             $verify_method:ident, $hash_method:ident, $sig_type_pat:pat) => ({
                  check_3rd_party!($desc, $binding, $sigs, $lookup_fn,
-                                  $verify_method, $hash_method, )
+                                  $verify_method, $hash_method, $sig_type_pat, )
             });
         }
 
@@ -1635,10 +1641,11 @@ impl Cert {
                self.primary, self_revocations, verify_primary_key_revocation);
         check_3rd_party!("primary key",
                          self.primary, certifications, lookup_fn,
-                         verify_direct_key, hash_direct_key);
+                         verify_direct_key, hash_direct_key, DirectKey);
         check_3rd_party!("primary key",
                          self.primary, other_revocations, lookup_fn,
-                         verify_primary_key_revocation, hash_direct_key);
+                         verify_primary_key_revocation, hash_direct_key,
+                         KeyRevocation);
 
         for ua in self.userids.iter_mut() {
             check!(format!("userid \"{}\"",
@@ -1658,12 +1665,15 @@ impl Cert {
                         String::from_utf8_lossy(ua.userid().value())),
                 ua, certifications, lookup_fn,
                 verify_userid_binding, hash_userid_binding,
+                GenericCertification | PersonaCertification
+                    | CasualCertification | PositiveCertification,
                 ua.userid());
             check_3rd_party!(
                 format!("userid \"{}\"",
                         String::from_utf8_lossy(ua.userid().value())),
                 ua, other_revocations, lookup_fn,
                 verify_userid_revocation, hash_userid_binding,
+                CertificationRevocation,
                 ua.userid());
         }
 
@@ -1681,11 +1691,14 @@ impl Cert {
                 "user attribute",
                 binding, certifications, lookup_fn,
                 verify_user_attribute_binding, hash_user_attribute_binding,
+                GenericCertification | PersonaCertification
+                    | CasualCertification | PositiveCertification,
                 binding.user_attribute());
             check_3rd_party!(
                 "user attribute",
                 binding, other_revocations, lookup_fn,
                 verify_user_attribute_revocation, hash_user_attribute_binding,
+                CertificationRevocation,
                 binding.user_attribute());
         }
 
@@ -1700,11 +1713,13 @@ impl Cert {
                 format!("subkey {}", binding.key().keyid()),
                 binding, certifications, lookup_fn,
                 verify_subkey_binding, hash_subkey_binding,
+                SubkeyBinding,
                 binding.key());
             check_3rd_party!(
                 format!("subkey {}", binding.key().keyid()),
                 binding, other_revocations, lookup_fn,
                 verify_subkey_revocation, hash_subkey_binding,
+                SubkeyRevocation,
                 binding.key());
         }
 
@@ -1879,7 +1894,6 @@ impl Cert {
                  });
             }
 
-            use SignatureType::*;
             match sig.typ() {
                 DirectKey => {
                     check_one!("primary key", self.primary.self_signatures,
