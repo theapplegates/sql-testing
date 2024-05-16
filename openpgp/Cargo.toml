@@ -92,6 +92,63 @@ twofish = { version = "0.7", optional = true, features = ["zeroize"] }
 typenum = { version = "1.12.0", optional = true }
 x25519-dalek = { version = "2", optional = true, default-features = false, features = ["static_secrets", "zeroize"] }
 
+# The Rust Crypto crates are *very* slow when compiled without any
+# optimizations.  Turn on some optimizations.
+[profile.dev.package.aes]
+opt-level = 2
+[profile.dev.package.aes-gcm]
+opt-level = 2
+[profile.dev.package.block-padding]
+opt-level = 2
+[profile.dev.package.blowfish]
+opt-level = 2
+[profile.dev.package.camellia]
+opt-level = 2
+[profile.dev.package.cast5]
+opt-level = 2
+[profile.dev.package.cipher]
+opt-level = 2
+[profile.dev.package.cfb-mode]
+opt-level = 2
+[profile.dev.package.des]
+opt-level = 2
+[profile.dev.package.digest]
+opt-level = 2
+[profile.dev.package.dsa]
+opt-level = 2
+[profile.dev.package.eax]
+opt-level = 2
+[profile.dev.package.ecb]
+opt-level = 2
+[profile.dev.package.ecdsa]
+opt-level = 2
+[profile.dev.package.ed25519]
+opt-level = 2
+[profile.dev.package.ed25519-dalek]
+opt-level = 2
+[profile.dev.package.idea]
+opt-level = 2
+[profile.dev.package.md-5]
+opt-level = 2
+[profile.dev.package.num-bigint-dig]
+opt-level = 2
+[profile.dev.package.p256]
+opt-level = 2
+[profile.dev.package.p384]
+opt-level = 2
+[profile.dev.package.p521]
+opt-level = 2
+[profile.dev.package.ripemd]
+opt-level = 2
+[profile.dev.package.rsa]
+opt-level = 2
+[profile.dev.package.sha2]
+opt-level = 2
+[profile.dev.package.twofish]
+opt-level = 2
+[profile.dev.package.x25519-dalek]
+opt-level = 2
+
 [target.'cfg(windows)'.dependencies]
 win-crypto-ng = { version = "0.5.1", features = ["rand", "block-cipher"], optional = true }
 winapi = { version = "0.3.8", default-features = false, features = ["bcrypt"], optional = true }
