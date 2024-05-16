@@ -740,7 +740,7 @@ pub enum SecretKeyMaterial {
         scalar: ProtectedMPI,
     },
 
-    /// Elliptic Curve Diffie-Hellman public key.
+    /// Elliptic Curve Diffie-Hellman secret key.
     ECDH {
         /// Secret scalar.
         scalar: ProtectedMPI,
