@@ -3,8 +3,7 @@
 // This implements parsing of [S-Expressions] encoded using the
 // canonical and basic transport encoding.
 //
-// [S-Expressions]: https://people.csail.mit.edu/rivest/Sexp.txt
-
+// [S-Expressions]: https://datatracker.ietf.org/doc/html/draft-rivest-sexp-00
 use crate::sexp::parse::lexer::{self, LexicalError};
 use crate::sexp::{Sexp, String_};
 
