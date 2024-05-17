@@ -1,7 +1,7 @@
 //! IPC mechanisms for Sequoia.
 //!
 //! This crate implements IPC mechanisms to communicate with Sequoia
-//! and GnuPG background services.
+//! services.
 //!
 //! # Rationale
 //!
@@ -58,11 +58,7 @@ use winapi::um::winsock2;
 use std::process::{Command, Stdio};
 use std::thread;
 
-use sequoia_openpgp as openpgp;
-
 #[macro_use] mod macros;
-pub mod assuan;
-pub mod gnupg;
 pub mod keybox;
 mod keygrip;
 pub use self::keygrip::Keygrip;
@@ -464,9 +460,6 @@ impl PartialEq for Cookie {
 #[derive(thiserror::Error, Debug)]
 /// Errors returned from the network routines.
 pub enum Error {
-    /// Handshake failed.
-    #[error("Handshake failed: {0}")]
-    HandshakeFailed(String),
     /// Connection closed unexpectedly.
     #[error("Connection closed unexpectedly.")]
     ConnectionClosed(Vec<u8>),

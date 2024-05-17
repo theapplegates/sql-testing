@@ -172,6 +172,7 @@ macro_rules! time_it {
 // not public.  We test the cases in the test module below, instead.
 // If you change the examples here, propagate the changes to the
 // module below.
+#[allow(unused_macros)]
 macro_rules! assert_send_and_sync {
     ( $x:ty where $( $g:ident$( : $a:path )? $(,)?)*) => {
         impl<$( $g ),*> crate::macros::Sendable for $x
