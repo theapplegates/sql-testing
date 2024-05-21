@@ -76,6 +76,9 @@ pub enum CipherSuite {
     RSA2k,
     /// 4096 bit RSA with SHA512 and AES256
     RSA4k,
+
+    // If you add a variant here, be sure to update
+    // CipherSuite::variants below.
 }
 assert_send_and_sync!(CipherSuite);
 
@@ -86,6 +89,14 @@ impl Default for CipherSuite {
 }
 
 impl CipherSuite {
+    /// Returns an iterator over `CipherSuite`'s  variants.
+    pub fn variants() -> impl Iterator<Item=CipherSuite> {
+        use CipherSuite::*;
+
+        [ Cv25519, RSA3k, P256, P384, P521, RSA2k, RSA4k ]
+            .into_iter()
+    }
+
     /// Returns whether the currently selected cryptographic backend
     /// supports the encryption and signing algorithms that the cipher
     /// suite selects.

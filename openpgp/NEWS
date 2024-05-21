@@ -18,6 +18,7 @@
      curve P-384.
    - The RustCrypto backend now supports ECDH and ECDSA over the NIST
      curve P-521.
+   - CipherSuite::variants.
 ** Deprecated functionality
    - ComponentBundle::certifications
    - ComponentBundle::other_revocations
