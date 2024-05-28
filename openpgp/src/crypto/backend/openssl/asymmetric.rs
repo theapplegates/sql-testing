@@ -453,7 +453,7 @@ where
         T: Into<Option<SystemTime>>,
     {
         // RFC 4880: `p < q`
-        let (p, q) = if p < q { (p, q) } else { (q, p) };
+        let (p, q) = crate::crypto::rsa_sort_raw_pq(p, q);
 
         let mut big_p = BigNum::new_secure()?;
         big_p.copy_from_slice(p)?;

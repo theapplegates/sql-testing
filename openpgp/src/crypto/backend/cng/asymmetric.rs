@@ -761,7 +761,7 @@ where
         T: Into<Option<SystemTime>>,
     {
         // RFC 4880: `p < q`
-        let (p, q) = if p < q { (p, q) } else { (q, p) };
+        let (p, q) = crate::crypto::rsa_sort_raw_pq(p, q);
 
         // CNG can't compute the public key from the private one, so do it ourselves
         let big_p = BigUint::from_bytes_be(p);

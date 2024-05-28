@@ -20,6 +20,9 @@
      curve P-521.
    - CipherSuite::variants.
 ** Notable fixes
+   - Sequoia built with the OpenSSL backend, the CNG backend, or the
+     RustCrypto backend will now make sure that the secret primes of
+     imported RSA keys are ordered the way OpenPGP demands.
    - Loosen trait bounds on Key::clone and Key4::clone.
 ** Deprecated functionality
    - ComponentBundle::certifications

@@ -324,3 +324,41 @@ pub(crate) fn pad_truncating(value: &[u8], to: usize) -> Cow<[u8]>
         Cow::Owned(v)
     }
 }
+
+/// Compares two arbitrary-sized big-endian integers.
+///
+/// Note that the tempting `a < b` doesn't work: it computes the
+/// lexicographical order, so that `[2] > [1, 2]`, whereas we want
+/// `[2] < [1, 2]`.
+pub(crate) fn raw_bigint_cmp(mut a: &[u8], mut b: &[u8]) -> Ordering {
+    // First, trim leading zeros.
+    while a.get(0) == Some(&0) {
+        a = &a[1..];
+    }
+
+    while b.get(0) == Some(&0) {
+        b = &b[1..];
+    }
+
+    // Then, compare their length.  Shorter integers are also smaller.
+    a.len().cmp(&b.len())
+        // Finally, if their length is equal, do a lexicographical
+        // comparison.
+        .then_with(|| a.cmp(b))
+}
+
+/// Given the secret prime values `p` and `q`, returns the pair of
+/// primes so that the smaller one comes first.
+///
+/// Section 5.5.3 of RFC4880 demands that `p < q`.  This function can
+/// be used to order `p` and `q` accordingly.
+#[allow(dead_code)]
+pub(crate) fn rsa_sort_raw_pq<'a>(p: &'a [u8], q: &'a [u8])
+                                  -> (&'a [u8], &'a [u8])
+{
+    match raw_bigint_cmp(p, q) {
+        Ordering::Less => (p, q),
+        Ordering::Equal => (p, q),
+        Ordering::Greater => (q, p),
+    }
+}
