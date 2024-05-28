@@ -19,6 +19,8 @@
    - The RustCrypto backend now supports ECDH and ECDSA over the NIST
      curve P-521.
    - CipherSuite::variants.
+** Notable fixes
+   - Loosen trait bounds on Key::clone and Key4::clone.
 ** Deprecated functionality
    - ComponentBundle::certifications
    - ComponentBundle::other_revocations

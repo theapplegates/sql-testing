@@ -841,7 +841,6 @@ impl<P, R> Key<P, R>
 /// [Section 5.5 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.5
 /// [the documentation for `Key`]: super::Key
 /// [`Key`]: super::Key
-#[derive(Clone)]
 pub struct Key4<P, R>
     where P: KeyParts, R: KeyRole
 {
@@ -860,6 +859,30 @@ pub struct Key4<P, R>
 
     p: std::marker::PhantomData<P>,
     r: std::marker::PhantomData<R>,
+}
+
+// derive(Clone) doesn't work as expected with generic type parameters
+// that don't implement clone: it adds a trait bound on Clone to P and
+// R in the Clone implementation.  Happily, we don't need P or R to
+// implement Clone: they are just marker traits, which we can clone
+// manually.
+//
+// See: https://github.com/rust-lang/rust/issues/26925
+impl<P, R> Clone for Key4<P, R>
+    where P: KeyParts, R: KeyRole
+{
+    fn clone(&self) -> Self {
+        Key4 {
+            common: self.common.clone(),
+            creation_time: self.creation_time.clone(),
+            pk_algo: self.pk_algo.clone(),
+            mpis: self.mpis.clone(),
+            secret: self.secret.clone(),
+            fingerprint: self.fingerprint().clone().into(),
+            p: std::marker::PhantomData,
+            r: std::marker::PhantomData,
+        }
+    }
 }
 
 assert_send_and_sync!(Key4<P, R> where P: KeyParts, R: KeyRole);

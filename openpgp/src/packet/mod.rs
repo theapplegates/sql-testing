@@ -1541,12 +1541,29 @@ impl From<SKESK> for Packet {
 /// # }
 /// ```
 #[non_exhaustive]
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Debug)]
 pub enum Key<P: key::KeyParts, R: key::KeyRole> {
     /// A version 4 `Key` packet.
     V4(Key4<P, R>),
 }
 assert_send_and_sync!(Key<P, R> where P: key::KeyParts, R: key::KeyRole);
+
+// derive(Clone) doesn't work as expected with generic type parameters
+// that don't implement clone: it adds a trait bound on Clone to P and
+// R in the Clone implementation.  Happily, we don't need P or R to
+// implement Clone: they are just marker traits, which we can clone
+// manually.
+//
+// See: https://github.com/rust-lang/rust/issues/26925
+impl<P, R> Clone for Key<P, R>
+    where P: key::KeyParts, R: key::KeyRole
+{
+    fn clone(&self) -> Self {
+        match self {
+            Key::V4(key) => Key::V4(key.clone()),
+        }
+    }
+}
 
 impl<P: key::KeyParts, R: key::KeyRole> fmt::Display for Key<P, R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
