@@ -505,6 +505,8 @@ where
         let q = key
             .q()
             .ok_or_else(|| crate::Error::InvalidOperation("q".into()))?;
+        // RFC 4880: `p < q`
+        let (p, q) = rsa_sort_pq(p, q);
 
         let mut ctx = BigNumContext::new_secure()?;
         let mut u = BigNum::new_secure()?;
@@ -571,5 +573,25 @@ where
                 mpi::SecretKeyMaterial::ECDH { scalar },
             ))
         }
+    }
+}
+
+/// Given the secret prime values `p` and `q`, returns the pair of
+/// primes so that the smaller one comes first.
+///
+/// Section 5.5.3 of RFC4880 demands that `p < q`.  This function can
+/// be used to order `p` and `q` accordingly.
+///
+/// Note: even though this function seems trivial, we introduce it as
+/// explicit abstraction.  The reason is that the function's
+/// expression also "works" (as in it compiles) for byte slices, but
+/// does the wrong thing, see [`crate::crypto::rsa_sort_raw_pq`].
+fn rsa_sort_pq<'a>(p: &'a BigNumRef, q: &'a BigNumRef)
+                   -> (&'a BigNumRef, &'a BigNumRef)
+{
+    if p < q {
+        (p, q)
+    } else {
+        (q, p)
     }
 }

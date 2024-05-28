@@ -812,7 +812,7 @@ where
         let q = mpi::MPI::new(blob.prime2());
         // RSA prime generation in CNG returns them in arbitrary order but
         // RFC 4880 expects `p < q`
-        let (p, q) = if p < q { (p, q) } else { (q, p) };
+        let (p, q) = rsa_sort_pq(p, q);
         // CNG `coeff` is `prime1`^-1 mod `prime2` so adjust for possible p,q reorder
         let big_p = BigUint::from_bytes_be(p.value());
         let big_q = BigUint::from_bytes_be(q.value());
@@ -913,6 +913,25 @@ fn round_up_to_multiple_of(n: usize, m: usize) -> usize {
     ((n + m - 1) / m) * m
 }
 
+/// Given the secret prime values `p` and `q`, returns the pair of
+/// primes so that the smaller one comes first.
+///
+/// Section 5.5.3 of RFC4880 demands that `p < q`.  This function can
+/// be used to order `p` and `q` accordingly.
+///
+/// Note: even though this function seems trivial, we introduce it as
+/// explicit abstraction.  The reason is that the function's
+/// expression also "works" (as in it compiles) for byte slices, but
+/// does the wrong thing, see [`crate::crypto::rsa_sort_raw_pq`].
+fn rsa_sort_pq(p: mpi::MPI, q: mpi::MPI)
+               -> (mpi::MPI, mpi::MPI)
+{
+    if p < q {
+        (p, q)
+    } else {
+        (q, p)
+    }
+}
 
 #[cfg(test)]
 mod tests {

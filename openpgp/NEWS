@@ -20,6 +20,9 @@
      curve P-521.
    - CipherSuite::variants.
 ** Notable fixes
+   - Sequoia built with the OpenSSL backend or the RustCrypto backend
+     will now make sure that the secret primes of generated RSA keys
+     are ordered the way OpenPGP demands (i.e. `p` < `q`).
    - Sequoia built with the OpenSSL backend, the CNG backend, or the
      RustCrypto backend will now make sure that the secret primes of
      imported RSA keys are ordered the way OpenPGP demands.

@@ -613,6 +613,8 @@ impl<R> Key4<SecretParts, R>
             [p, q] => (p, q),
             _ => panic!("RSA key generation resulted in wrong number of primes"),
         };
+        // RFC 4880: `p < q`
+        let (p, q) = rsa_sort_pq(p, q);
         let u = p.mod_inverse(q) // RFC 4880: u ≡ p⁻¹ (mod q)
             .and_then(|x| x.to_biguint())
             .expect("rsa crate did not generate coprime p and q");
@@ -780,3 +782,22 @@ impl<R> Key4<SecretParts, R>
     }
 }
 
+/// Given the secret prime values `p` and `q`, returns the pair of
+/// primes so that the smaller one comes first.
+///
+/// Section 5.5.3 of RFC4880 demands that `p < q`.  This function can
+/// be used to order `p` and `q` accordingly.
+///
+/// Note: even though this function seems trivial, we introduce it as
+/// explicit abstraction.  The reason is that the function's
+/// expression also "works" (as in it compiles) for byte slices, but
+/// does the wrong thing, see [`crate::crypto::rsa_sort_raw_pq`].
+fn rsa_sort_pq<'a>(p: &'a BigUint, q: &'a BigUint)
+                   -> (&'a BigUint, &'a BigUint)
+{
+    if p < q {
+        (p, q)
+    } else {
+        (q, p)
+    }
+}
