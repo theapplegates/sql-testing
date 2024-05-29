@@ -1899,8 +1899,12 @@ impl Cert {
                                    $sig.digest_prefix()[1],
                                    $sig.typ(), $desc);
 
-                                $sig.set_computed_digest(Some(hash));
-                                $sigs.push($sig.clone());
+                                $sigs.push({
+                                    let sig = $sig.clone();
+                                    sig.set_computed_digest(Some(hash));
+                                    sig
+                                });
+
                                 // The cost of missing a revocation
                                 // certificate merely because we put
                                 // it into the wrong place seem to
