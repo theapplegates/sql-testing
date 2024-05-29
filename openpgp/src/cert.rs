@@ -1860,8 +1860,8 @@ impl Cert {
                     t!("check_one_3rd_party!({}, {}, {:?}, {}, {}, ...)",
                        $desc, stringify!($sigs), $sig,
                        stringify!($verify_method), stringify!($hash_method));
-                    if let Some(key) = $lookup_fn(&sig) {
-                        match sig.$verify_method(&key,
+                    if let Some(key) = $lookup_fn(&$sig) {
+                        match $sig.$verify_method(&key,
                                                  self.primary.key(),
                                                  $($verify_args),*)
                         {
@@ -1878,28 +1878,28 @@ impl Cert {
                           Err(err) => {
                             t!("Sig {:02X}{:02X}, type = {} \
                                 doesn't belong to {}: {:?}",
-                               sig.digest_prefix()[0], sig.digest_prefix()[1],
-                               sig.typ(), $desc, err);
+                               $sig.digest_prefix()[0], $sig.digest_prefix()[1],
+                               $sig.typ(), $desc, err);
                           },
                        }
                     } else {
                         // Use hash prefix as heuristic.
                         let key = self.primary.key();
-                        if let Ok(hash) = sig.hash_algo().context()
+                        if let Ok(hash) = $sig.hash_algo().context()
                             .and_then(|mut ctx| {
-                                sig.$hash_method(&mut ctx, key,
+                                $sig.$hash_method(&mut ctx, key,
                                                  $($verify_args),*);
                                 ctx.into_digest()
                             })
                         {
-                            if &sig.digest_prefix()[..] == &hash[..2] {
+                            if &$sig.digest_prefix()[..] == &hash[..2] {
                                 t!("Sig {:02X}{:02X}, {:?} \
                                     was out of place.  Likely belongs to {}.",
                                    $sig.digest_prefix()[0],
                                    $sig.digest_prefix()[1],
                                    $sig.typ(), $desc);
 
-                                sig.set_computed_digest(Some(hash));
+                                $sig.set_computed_digest(Some(hash));
                                 $sigs.push($sig.clone());
                                 // The cost of missing a revocation
                                 // certificate merely because we put
@@ -1922,8 +1922,8 @@ impl Cert {
                             t!("Sig {:02X}{:02X}, type = {} \
                                 doesn't use a supported hash algorithm: \
                                 {:?} unsupported",
-                               sig.digest_prefix()[0], sig.digest_prefix()[1],
-                               sig.typ(), sig.hash_algo());
+                               $sig.digest_prefix()[0], $sig.digest_prefix()[1],
+                               $sig.typ(), $sig.hash_algo());
                         }
                     }
                   }
