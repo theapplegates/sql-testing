@@ -37,6 +37,10 @@
      reference to the signature.  This will cause existing code to
      emit warnings about unused mutability, but should not break
      anything.
+   - Sequoia now lazily verifies self signatures in certificates.
+     Previously, they were eagerly verified during certificate
+     canonicalization, incurring a substantial cost even for
+     signatures that were not otherwise considered.
 * Changes in 1.20.0
 ** New functionality
    - S2K::Implicit
