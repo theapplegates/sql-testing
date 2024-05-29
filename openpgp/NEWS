@@ -5,7 +5,25 @@
 
 
 * Changes in 1.21.0
+** Notable fixes
+   - Sequoia built with the OpenSSL backend or the RustCrypto backend
+     will now make sure that the secret primes of generated RSA keys
+     are ordered the way OpenPGP demands (i.e. `p` < `q`).
+   - Sequoia built with the OpenSSL backend, the CNG backend, or the
+     RustCrypto backend will now make sure that the secret primes of
+     imported RSA keys are ordered the way OpenPGP demands.
+   - Loosen trait bounds on Key::clone and Key4::clone.
+** Notable changes
+   - All signature verification methods now take an immutable
+     reference to the signature.  This will cause existing code to
+     emit warnings about unused mutability, but should not break
+     anything.
+   - Sequoia now lazily verifies self signatures in certificates.
+     Previously, they were eagerly verified during certificate
+     canonicalization, incurring a substantial cost even for
+     signatures that were not otherwise considered.
 ** New functionality
+   - CipherSuite::variants.
    - ComponentBundle::certifications2
    - ComponentBundle::other_revocations2
    - ComponentBundle::self_revocations2
@@ -18,29 +36,11 @@
      curve P-384.
    - The RustCrypto backend now supports ECDH and ECDSA over the NIST
      curve P-521.
-   - CipherSuite::variants.
-** Notable fixes
-   - Sequoia built with the OpenSSL backend or the RustCrypto backend
-     will now make sure that the secret primes of generated RSA keys
-     are ordered the way OpenPGP demands (i.e. `p` < `q`).
-   - Sequoia built with the OpenSSL backend, the CNG backend, or the
-     RustCrypto backend will now make sure that the secret primes of
-     imported RSA keys are ordered the way OpenPGP demands.
-   - Loosen trait bounds on Key::clone and Key4::clone.
 ** Deprecated functionality
    - ComponentBundle::certifications
    - ComponentBundle::other_revocations
    - ComponentBundle::self_revocations
    - ComponentBundle::self_signatures
-** Notable changes
-   - All signature verification methods now take an immutable
-     reference to the signature.  This will cause existing code to
-     emit warnings about unused mutability, but should not break
-     anything.
-   - Sequoia now lazily verifies self signatures in certificates.
-     Previously, they were eagerly verified during certificate
-     canonicalization, incurring a substantial cost even for
-     signatures that were not otherwise considered.
 * Changes in 1.20.0
 ** New functionality
    - S2K::Implicit
