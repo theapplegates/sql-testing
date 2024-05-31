@@ -26,12 +26,12 @@ sequoia-openpgp = { path = "../openpgp", version = "1.17", default-features = fa
 
 anyhow = "1.0.18"
 futures-util = "0.3.5"
-http = "0.2"
-hyper = { version = "0.14.10", features = [ "http1", "http2" ] }
-hyper-tls = "0.5"
+http = "1"
+hyper = { version = "1", features = [ "http1", "http2" ] }
+hyper-tls = "0.6"
 libc = "0.2.66"
 percent-encoding = "2.1"
-reqwest = "0.11"
+reqwest = "0.12"
 thiserror = "1.0.2"
 url = "2.1"
 z-base-32 = "0.1.2"
@@ -41,9 +41,12 @@ hickory-client = "0.24"
 hickory-resolver = { version = "0.24", features = ["dnssec-openssl"]}
 
 [dev-dependencies]
+bytes = "1"
+http-body-util = "0.1"
+hyper = { version = "1", features = [ "server" ] }
+hyper-util = { version = "0.1", features = ["full"] }
 rand = { version = "0.8", default-features = false, features = [ "getrandom" ] }
-hyper = { version = "0.14", features = [ "server" ] }
-reqwest = { version = "0.11", features = ["socks"] }
+reqwest = { version = "0.12", features = ["socks"] }
 tempfile = "3.1"
 
 [lib]
