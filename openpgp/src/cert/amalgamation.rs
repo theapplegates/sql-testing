@@ -1405,14 +1405,13 @@ impl<'a> UserIDAmalgamation<'a> {
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Section 5.2.3.30 of RFC 4880bis] for
-    /// details.  This can be used to address certificate flooding
-    /// concerns.
+    /// certifications. See [draft-dkg-openpgp-1pa3pc] for details.
+    /// This can be used to address certificate flooding concerns.
     ///
     /// A policy is needed, because the expiration is updated by
     /// updating the current binding signatures.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [draft-dkg-openpgp-1pa3pc]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-00.html
     ///
     /// # Examples
     ///
