@@ -222,3 +222,41 @@ distribution, or integrate it into their software.
         095F7F80127F704CDC0CA991B24CE13C32FCE9B4
       - Robin Engler <robin.engler@sib.swiss>
         D99AD936FC83C9BABDE7C33E1CF8C1A2076818C3
+
+  - Proxmox
+    - Security contact:
+      - <security@proxmox.com>
+        E6792AA698E11855375AB9E35D0CBD4361F204C5
+
+  - Qubes
+    - Security contact:
+      - <security@qubes-os.org>
+        B35B2DA4B9F9F10949226F77ACC2602F3F48CB21
+
+  - SecureDrop
+    - Security contact:
+      - <security@freedom.press>
+        734F6E707434ECA6C007E1AE82BD6C9616DABB79
+
+  - Hushline
+    - No email-based security contact.
+    - https://tips.hushline.app/submit_message/scidsg
+    - Maintainers:
+      - <micah@micahflee.com>
+
+  - dpkg
+    - Maintainers:
+      - <guillem@debian.org>
+        4F3E74F436050C10F5696574B972BF3EA4AE57A3
+
+  - Apertis
+    - Security contact:
+      - <security@apertis.org>
+
+  - Greenbone OpenVAS
+    - Security contact:
+      - <security@greenbone.net>
+        60DF863C7526ABDA1FB5CB87AF9494DA4F56EBAF
+
+  - CSAF Walker
+    - No known security contact.
