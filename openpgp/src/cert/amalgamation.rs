@@ -1582,8 +1582,18 @@ where C: IntoIterator<Item = S>,
         // Backdate the signature a little so that we can immediately
         // override it.
         use crate::packet::signature::SIG_BACKDATE_BY;
-        let creation_time =
-            crate::now() - time::Duration::new(SIG_BACKDATE_BY, 0);
+
+        let now = crate::now();
+        let mut creation_time =
+            now - time::Duration::new(SIG_BACKDATE_BY, 0);
+
+        // ... but don't backdate it further than the key's creation
+        // time, which would make it invalid.
+        let key_creation_time = primary_signer.public().creation_time();
+        if creation_time < key_creation_time {
+            // ... unless that would make it is later than now.
+            creation_time = key_creation_time.min(now);
+        }
 
         let template = SignatureBuilder::new(SignatureType::AttestationKey)
             .set_signature_creation_time(creation_time)?;
