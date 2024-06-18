@@ -3158,31 +3158,40 @@ pub mod test {
                       -> Result<Option<Fingerprint>>
             where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
         {
+            tracer!(TRACE, "VHelper::decrypt", TRACE_INDENT);
+
             let p = P::new();
             if ! self.for_decryption {
                 unreachable!("Shouldn't be called for verifications");
             }
 
-            for skesk in skesks {
+            t!("Trying SKESKS: {:?}", skesks);
+            for (i, skesk) in skesks.iter().enumerate() {
                 for p in &self.passwords {
-                    if let Ok((algo, sk)) = skesk.decrypt(p) {
+                    let r = skesk.decrypt(p);
+                    t!("decrypting SKESK {}: {:?}", i, r);
+                    if let Ok((algo, sk)) = r {
                         if decrypt(algo, &sk) {
+                            t!("successfully decrypted encryption container");
                             return Ok(None);
                         }
                     }
                 }
             }
 
+            t!("Trying PKESKS: {:?}", pkesks);
             for pkesk in pkesks {
                 for key in &self.keys {
                     for subkey in key.with_policy(&p, None)?.keys().secret()
                         .key_handle(pkesk.recipient())
                     {
+                        t!("Trying to decrypt {:?} with {:?}", pkesk, subkey);
                         if let Some((algo, sk)) =
                             subkey.key().clone().into_keypair().ok()
                             .and_then(|mut k| pkesk.decrypt(&mut k, sym_algo))
                         {
                             if decrypt(algo, &sk) {
+                                t!("successfully decrypted encryption container");
                                 return Ok(None);
                             }
                         }
@@ -3190,6 +3199,7 @@ pub mod test {
                 }
             }
 
+            t!("decryption of session key failed");
             Err(Error::MissingSessionKey("Decryption failed".into()).into())
         }
     }
