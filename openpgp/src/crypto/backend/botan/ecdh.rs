@@ -31,21 +31,8 @@ pub fn encrypt<R>(recipient: &Key<key::PublicParts, R>,
         ref curve, ref q,..
     } = recipient.mpis() {
         match curve {
-            Curve::Cv25519 => {
-                // Obtain the recipient public key R
-                let R = &q.decode_point(curve)?.0;
-
-                // Generate an ephemeral key pair {v, V=vG}
-                let v = Privkey::create("Curve25519", "", &mut rng)?;
-                let V = v.pubkey()?.get_x25519_key()?;
-
-                // Compute the shared point S = vR;
-                let S: Protected = v.agree(&R, 32, b"", "Raw")?.into();
-
-                encrypt_wrap(recipient, session_key,
-                             MPI::new_compressed_point(&V),
-                             &S)
-            },
+            Curve::Cv25519 =>
+                Err(Error::InvalidArgument("implemented elsewhere".into()).into()),
 
             // N/A
             Curve::Unknown(_) if ! curve.is_brainpoolp384() =>

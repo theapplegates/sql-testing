@@ -27,19 +27,7 @@ where
         _ => return Err(Error::InvalidArgument("Expected an ECDHPublicKey".into()).into()),
     };
     if curve == &Curve::Cv25519 {
-        let public = q.decode_point(curve)?.0;
-
-        let public_key = PKey::public_key_from_raw_bytes(public, openssl::pkey::Id::X25519)?;
-
-        let key = PKey::generate_x25519()?;
-        let mut deriver = Deriver::new(&key)?;
-        deriver.set_peer(&public_key)?;
-
-        let secret = deriver.derive_to_vec()?.into();
-
-        let q = mpi::MPI::new_compressed_point(&key.raw_public_key()?);
-
-        return encrypt_wrap(recipient, session_key, q, &secret);
+        return Err(Error::InvalidArgument("implemented elsewhere".into()).into());
     }
 
     let nid = curve.try_into()?;

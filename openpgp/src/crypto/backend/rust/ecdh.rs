@@ -32,34 +32,9 @@ pub fn encrypt<R>(recipient: &Key<key::PublicParts, R>,
     };
 
     let (VB, shared) = match curve {
-        Curve::Cv25519 => {
-            // x25519_dalek v1.1 doesn't reexport OsRng.  It
-            // depends on rand 0.8.
-            use rand::rngs::OsRng;
-            use x25519_dalek::{EphemeralSecret, PublicKey};
+        Curve::Cv25519 => return
+            Err(Error::InvalidArgument("implemented elsewhere".into()).into()),
 
-            // Decode the recipient's public key.
-            let R: [u8; CURVE25519_SIZE] = q.decode_point(curve)?.0.try_into()?;
-            let recipient_key = PublicKey::from(R);
-
-            // Generate a keypair and perform Diffie-Hellman.
-            let secret = EphemeralSecret::random_from_rng(OsRng);
-            let public = PublicKey::from(&secret);
-            let shared = secret.diffie_hellman(&recipient_key);
-
-            // Encode our public key. We need to add an encoding
-            // octet in front of the key.
-            let mut VB = [0; 1 + CURVE25519_SIZE];
-            VB[0] = 0x40;
-            VB[1..].copy_from_slice(public.as_bytes());
-            let VB = MPI::new(&VB);
-
-            // Encode the shared secret.
-            let shared: &[u8] = shared.as_bytes();
-            let shared = Protected::from(shared);
-
-            (VB, shared)
-        },
         Curve::NistP256 => {
             use p256::{EncodedPoint, PublicKey, ecdh::EphemeralSecret};
 

@@ -23,28 +23,9 @@ pub fn encrypt<R>(recipient: &Key<key::PublicParts, R>,
         ref curve, ref q,..
     } = recipient.mpis() {
         match curve {
-            Curve::Cv25519 => {
-                // Obtain the authenticated recipient public key R
-                let R = q.decode_point(curve)?.0;
+            Curve::Cv25519 =>
+                Err(Error::InvalidArgument("implemented elsewhere".into()).into()),
 
-                // Generate an ephemeral key pair {v, V=vG}
-                let v: Protected =
-                    curve25519::private_key(&mut rng).into();
-
-                // Compute the public key.
-                let mut VB = [0; curve25519::CURVE25519_SIZE];
-                curve25519::mul_g(&mut VB, &v)
-                    .expect("buffers are of the wrong size");
-                let VB = MPI::new_compressed_point(&VB);
-
-                // Compute the shared point S = vR;
-                let mut S: Protected =
-                    vec![0; curve25519::CURVE25519_SIZE].into();
-                curve25519::mul(&mut S, &v, R)
-                    .expect("buffers are of the wrong size");
-
-                encrypt_wrap(recipient, session_key, VB, &S)
-            }
             Curve::NistP256 | Curve::NistP384 | Curve::NistP521 => {
                 // Obtain the authenticated recipient public key R and
                 // generate an ephemeral private key v.

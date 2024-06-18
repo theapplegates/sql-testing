@@ -32,34 +32,9 @@ where
     };
 
     match curve {
-        Curve::Cv25519 => {
-            // Obtain the authenticated recipient public key R
-            let R = q.decode_point(curve)?.0;
-            let provider = AsymmetricAlgorithm::open(AsymmetricAlgorithmId::Ecdh(NamedCurve::Curve25519))?;
-            let recipient_key = AsymmetricKey::<Ecdh<Curve25519>, Public>::import_from_parts(
-                &provider,
-                R,
-            )?;
+        Curve::Cv25519 => return
+            Err(Error::InvalidArgument("implemented elsewhere".into()).into()),
 
-            // Generate an ephemeral key pair {v, V=vG}
-            let ephemeral = AsymmetricKey::builder(Ecdh(Curve25519)).build().unwrap();
-
-            // Compute the public key. We need to add an encoding
-            // octet in front of the key.
-            let blob = ephemeral.export().unwrap();
-            let mut VB = [0; 33];
-            VB[0] = 0x40;
-            VB[1..].copy_from_slice(blob.x());
-            let VB = MPI::new(&VB);
-
-            // Compute the shared point S = vR;
-            let secret = cng::asymmetric::agreement::secret_agreement(&ephemeral, &recipient_key)?;
-            let mut S = Protected::from(secret.derive_raw()?);
-            // Returned secret is little-endian, flip it to big-endian
-            S.reverse();
-
-            encrypt_wrap(recipient, session_key, VB, &S)
-        }
         Curve::NistP256 | Curve::NistP384 | Curve::NistP521 => {
             let (Rx, Ry) = q.decode_point(curve)?;
 

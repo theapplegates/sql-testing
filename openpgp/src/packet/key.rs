@@ -742,6 +742,8 @@ impl<P, R> Key<P, R>
 {
     /// Encrypts the given data with this key.
     pub fn encrypt(&self, data: &SessionKey) -> Result<mpi::Ciphertext> {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+        use crate::crypto::mpi::PublicKey;
         use PublicKeyAlgorithm::*;
 
         #[allow(deprecated, non_snake_case)]
@@ -750,6 +752,29 @@ impl<P, R> Key<P, R>
                 Err(Error::InvalidOperation(
                     format!("{} is not an encryption algorithm", self.pk_algo())
                 ).into()),
+
+            ECDH if matches!(self.mpis(),
+                             PublicKey::ECDH { curve: Curve::Cv25519, ..}) =>
+            {
+                let q = match self.mpis() {
+                    PublicKey::ECDH { q, .. } => q,
+                    _ => unreachable!(),
+                };
+
+                // Obtain the authenticated recipient public key R
+                let R = q.decode_point(&Curve::Cv25519)?.0;
+
+                // Generate an ephemeral key pair {v, V=vG}
+                // Compute the public key.
+                let (v, VB) = Backend::x25519_generate_key()?;
+                let VB = mpi::MPI::new_compressed_point(&VB);
+
+                // Compute the shared point S = vR;
+                let S = Backend::x25519_shared_point(&v, R.try_into()?)?;
+
+                crate::crypto::ecdh::encrypt_wrap(
+                    self.parts_as_public(), data, VB, &S)
+            },
 
             RSAEncryptSign | RSAEncrypt |
             ElGamalEncrypt | ElGamalEncryptSign |
