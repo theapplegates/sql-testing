@@ -141,44 +141,8 @@ where
     };
 
     let S: Protected = match curve {
-        Curve::Cv25519 => {
-            // Get the public part V of the ephemeral key.
-            let V = e.decode_point(curve)?.0;
-
-            let provider = AsymmetricAlgorithm::open(AsymmetricAlgorithmId::Ecdh(NamedCurve::Curve25519))?;
-            let V = AsymmetricKey::<Ecdh<Curve25519>, Public>::import_from_parts(
-                &provider,
-                V,
-            )?;
-
-            let mut scalar = scalar.value_padded(32);
-            // Reverse the scalar.  See
-            // https://lists.gnupg.org/pipermail/gnupg-devel/2018-February/033437.html.
-            scalar.reverse();
-
-            // Some bits must be clamped.  Usually, this is done
-            // during key creation.  However, if that is not done, we
-            // should do that before handing it to CNG.  See
-            // Curve25519 Paper, Sec. 3:
-            //
-            // > A user can, for example, generate 32 uniform random
-            // > bytes, clear bits 0, 1, 2 of the first byte, clear bit
-            // > 7 of the last byte, and set bit 6 of the last byte.
-            scalar[0] &= 0b1111_1000;
-            scalar[CURVE25519_SIZE - 1] &= !0b1000_0000;
-            scalar[CURVE25519_SIZE - 1] |= 0b0100_0000;
-
-            let r = AsymmetricKey::<Ecdh<Curve25519>, Private>::import_from_parts(
-                &provider,
-                &scalar,
-            )?;
-
-            let secret = cng::asymmetric::agreement::secret_agreement(&r, &V)?;
-            // Returned secret is little-endian, flip it to big-endian
-            let mut secret = secret.derive_raw()?;
-            secret.reverse();
-            secret.into()
-        }
+        Curve::Cv25519 => return
+            Err(Error::InvalidArgument("implemented elsewhere".into()).into()),
 
         Curve::NistP256 | Curve::NistP384 | Curve::NistP521 => {
             // Get the public part V of the ephemeral key and

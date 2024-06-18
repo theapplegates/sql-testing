@@ -257,9 +257,40 @@ impl Decryptor for KeyPair {
                plaintext_len: Option<usize>)
                -> Result<SessionKey>
     {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+
         self.secret().map(|secret| {
+            #[allow(non_snake_case)]
             #[allow(clippy::match_single_binding)]
             match (self.public().mpis(), secret, ciphertext) {
+                (mpi::PublicKey::ECDH { curve: Curve::Cv25519, .. },
+                 mpi::SecretKeyMaterial::ECDH { scalar, },
+                 mpi::Ciphertext::ECDH { e, .. }) =>
+                {
+                    // Get the public part V of the ephemeral key.
+                    let V = e.decode_point(&Curve::Cv25519)?.0;
+
+                    // X25519 expects the private key to be exactly 32
+                    // bytes long but OpenPGP allows leading zeros to
+                    // be stripped.  Padding has to be unconditional;
+                    // otherwise we have a secret-dependent branch.
+                    let mut r = scalar.value_padded(32);
+
+                    // Reverse the scalar.  See
+                    // https://lists.gnupg.org/pipermail/gnupg-devel/2018-February/033437.html
+                    r.reverse();
+
+                    // Compute the shared point S = rV = rvG, where
+                    // (r, R) is the recipient's key pair.
+                    dbg!(r.as_ref());
+                    dbg!(&V);
+                    let S = dbg!(Backend::x25519_shared_point(&r, &V.try_into()?))?;
+
+                    crate::crypto::ecdh::decrypt_unwrap2(
+                        self.public(), &S, ciphertext, plaintext_len)
+
+                },
+
                 (_public, secret, _ciphertext) =>
                     self.decrypt_backend(secret, ciphertext, plaintext_len),
             }

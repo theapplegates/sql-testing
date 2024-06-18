@@ -83,23 +83,8 @@ pub fn decrypt<R>(recipient: &Key<key::PublicParts, R>,
          Ciphertext::ECDH { ref e, .. }) =>
         {
             let S: Protected = match curve {
-                Curve::Cv25519 => {
-                    // Get the public part V of the ephemeral key.
-                    let V = e.decode_point(curve)?.0;
-
-                    // Get our secret key.
-                    let mut r = scalar.value_padded(32);
-
-                    // Reverse the scalar.  See
-                    // https://lists.gnupg.org/pipermail/gnupg-devel/2018-February/033437.html.
-                    r.reverse();
-                    let r = Privkey::load_x25519(&r)?;
-
-                    // Compute the shared point S = rV = rvG, where (r, R)
-                    // is the recipient's key pair.
-                    r.agree(&V, 32, b"", "Raw")?.into()
-                },
-
+                Curve::Cv25519 => return
+                    Err(Error::InvalidArgument("implemented elsewhere".into()).into()),
 
                 // N/A
                 Curve::Unknown(_) if ! curve.is_brainpoolp384() => return

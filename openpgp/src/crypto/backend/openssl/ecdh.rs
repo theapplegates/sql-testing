@@ -76,20 +76,7 @@ where
     };
 
     if curve == &Curve::Cv25519 {
-        let mut scalar = scalar.value_padded(32);
-        scalar.reverse();
-
-        let key = PKey::private_key_from_raw_bytes(&scalar[..], openssl::pkey::Id::X25519)?;
-
-        let public = e.decode_point(curve)?.0;
-        let public_key = PKey::public_key_from_raw_bytes(public, openssl::pkey::Id::X25519)?;
-
-        let mut deriver = Deriver::new(&key)?;
-        deriver.set_peer(&public_key)?;
-        let secret = deriver.derive_to_vec()?.into();
-
-        return decrypt_unwrap2(recipient.role_as_unspecified(), &secret,
-                               ciphertext, plaintext_len);
+        return Err(Error::InvalidArgument("implemented elsewhere".into()).into());
     }
 
     let nid = curve.try_into()?;

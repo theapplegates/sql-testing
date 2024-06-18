@@ -125,21 +125,9 @@ pub fn decrypt<R>(recipient: &Key<key::PublicParts, R>,
     };
 
     let S: Protected = match curve {
-        Curve::Cv25519 => {
-            use x25519_dalek::{PublicKey, StaticSecret};
+        Curve::Cv25519 => return
+            Err(Error::InvalidArgument("implemented elsewhere".into()).into()),
 
-            // Get the public part V of the ephemeral key.
-            let V: [u8; CURVE25519_SIZE] = e.decode_point(curve)?.0.try_into()?;
-            let V = PublicKey::from(V);
-
-            let mut scalar: [u8; CURVE25519_SIZE] =
-                scalar.value_padded(CURVE25519_SIZE).as_ref().try_into()?;
-            scalar.reverse();
-            let r = StaticSecret::from(scalar);
-
-            let secret = r.diffie_hellman(&V);
-            Vec::from(secret.to_bytes()).into()
-        },
         Curve::NistP256 => {
             use p256::{SecretKey, PublicKey};
             const NISTP256_SIZE: usize = 32;

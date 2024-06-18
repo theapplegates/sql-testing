@@ -1,6 +1,6 @@
 //! Elliptic Curve Diffie-Hellman.
 
-use nettle::{curve25519, ecc, ecdh, random::Yarrow};
+use nettle::{ecc, ecdh, random::Yarrow};
 
 use crate::{Error, Result};
 use crate::crypto::SessionKey;
@@ -111,30 +111,8 @@ pub fn decrypt<R>(recipient: &Key<key::PublicParts, R>,
          Ciphertext::ECDH { ref e, .. }) =>
         {
             let S: Protected = match curve {
-                Curve::Cv25519 => {
-                    // Get the public part V of the ephemeral key.
-                    let V = e.decode_point(curve)?.0;
-
-                    // Nettle expects the private key to be exactly
-                    // CURVE25519_SIZE bytes long but OpenPGP allows leading
-                    // zeros to be stripped.
-                    // Padding has to be unconditional; otherwise we have a
-                    // secret-dependent branch.
-                    let mut r =
-                        scalar.value_padded(curve25519::CURVE25519_SIZE);
-
-                    // Reverse the scalar.  See
-                    // https://lists.gnupg.org/pipermail/gnupg-devel/2018-February/033437.html.
-                    r.reverse();
-
-                    // Compute the shared point S = rV = rvG, where (r, R)
-                    // is the recipient's key pair.
-                    let mut S: Protected =
-                        vec![0; curve25519::CURVE25519_SIZE].into();
-                    curve25519::mul(&mut S, &r[..], V)
-                        .expect("buffers are of the wrong size");
-                    S
-                }
+                Curve::Cv25519 => return
+                    Err(Error::InvalidArgument("implemented elsewhere".into()).into()),
 
                 Curve::NistP256 | Curve::NistP384 | Curve::NistP521 => {
                     // Get the public part V of the ephemeral key and
