@@ -68,7 +68,10 @@ impl Asymmetric for super::Backend {
         let mut public = [0u8; 32];
         public.copy_from_slice(pair.x());
 
-        Ok((pair.d().into(), public))
+        let mut clamped_secret = pair.d().into();
+        Self::x25519_clamp_secret(&mut clamped_secret);
+
+        Ok((clamped_secret, public))
     }
 
     fn x25519_derive_public(secret: &Protected) -> Result<[u8; 32]> {
@@ -79,9 +82,12 @@ impl Asymmetric for super::Backend {
         let provider = AsymmetricAlgorithm::open(
             AsymmetricAlgorithmId::Ecdh(NamedCurve::Curve25519)
         )?;
+
+        let mut clamped_secret = secret.clone();
+        Self::x25519_clamp_secret(&mut clamped_secret);
         let key = AsymmetricKey::<Ecdh<Curve25519>, Private>::import_from_parts(
             &provider,
-            secret,
+            &clamped_secret,
         )?;
         Ok(<[u8; 32]>::try_from(&key.export()?.x()[..])?)
     }
@@ -101,10 +107,13 @@ impl Asymmetric for super::Backend {
                 &provider,
                 public,
             )?;
+
+        let mut clamped_secret = secret.clone();
+        Self::x25519_clamp_secret(&mut clamped_secret);
         let secret =
             AsymmetricKey::<Ecdh<Curve25519>, Private>::import_from_parts(
                 &provider,
-                secret,
+                &clamped_secret,
             )?;
 
         let shared = secret_agreement(&secret, &public)?;
