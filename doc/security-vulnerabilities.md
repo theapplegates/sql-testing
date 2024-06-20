@@ -81,6 +81,11 @@ YesWeHack to be eligible.
        - If the severity is greater than low, only inform them via a
          secure channel.  If no encryption key is available, only inform
          them on the flag day.
+       - A list of all recipients can be obtained via
+
+             egrep -o '<.*@.*>' doc/security-vulnerabilities.md \
+             | grep -v sequoia-pgp.org | xargs echo | sed 's/ /, /g'
+
      - Share the analysis, and the patch.
      - Ask who needs an update for an old version, and who is happy
        with a new version.
