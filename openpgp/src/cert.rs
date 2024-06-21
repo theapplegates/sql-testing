@@ -1530,10 +1530,11 @@ impl Cert {
              $sig_type_pat:pat,     // pattern to test signature types against
              $($hash_args:expr),* // additional arguments to pass to hash_method
             ) => ({
-                t!("check!({}, {}, {:?}, {}, ...)",
-                   $desc, stringify!($binding), $binding.$sigs,
+                let sigs = $binding.$sigs.take();
+                t!("check!({}, {}, {} ({:?}), {}, ...)",
+                   $desc, stringify!($binding), sigs.len(), sigs,
                    stringify!($hash_method));
-                for sig in $binding.$sigs.take().into_iter() {
+                for sig in sigs.into_iter() {
                     // Use hash prefix as heuristic.
                     let key = self.primary.key();
                     match sig.hash_algo().context().and_then(|mut ctx| {
@@ -1592,10 +1593,11 @@ impl Cert {
              $sig_type_pat:pat,     // pattern to test signature types against
              $($verify_args:expr),* // additional arguments to pass to the above
             ) => ({
-                t!("check_3rd_party!({}, {}, {:?}, {}, {}, ...)",
-                   $desc, stringify!($binding), $binding.$sigs,
+                let sigs = mem::take(&mut $binding.$sigs);
+                t!("check_3rd_party!({}, {}, {} ({:?}_, {}, {}, ...)",
+                   $desc, stringify!($binding), sigs.len(), sigs,
                    stringify!($verify_method), stringify!($hash_method));
-                for sig in mem::take(&mut $binding.$sigs) {
+                for sig in sigs {
                     // Use hash prefix as heuristic.
                     let key = self.primary.key();
                     match sig.hash_algo().context().and_then(|mut ctx| {
@@ -1781,6 +1783,7 @@ impl Cert {
                 (None, sig)
             })
             .collect();
+        t!("Attempting to reorder {} signatures", bad_sigs.len());
 
         // Do the same for signatures on unknown components, but
         // remember where we took them from.
@@ -1823,9 +1826,9 @@ impl Cert {
                  $($verify_args:expr),* // additional arguments for the above
                 ) => ({
                    if is_selfsig {
-                     t!("check_one!({}, {:?}, {:?}, {}, ...)",
-                        $desc, $sigs, $sig,
-                        stringify!($hash_method));
+                     t!("check_one!({}, {:?}, {:?}/{}, {}, ...)",
+                      $desc, $sigs, $sig, $sig.typ(),
+                      stringify!($hash_method));
                      // Use hash prefix as heuristic.
                      let key = self.primary.key();
                      if let Ok(hash) = $sig.hash_algo().context()
