@@ -1678,6 +1678,10 @@ impl Cert {
                          verify_primary_key_revocation, hash_direct_key,
                          KeyRevocation);
 
+        // Attestations are never associated with a primary key.  If
+        // there are any, they need to be reordered.
+        self.bad.append(&mut self.primary.attestations.take());
+
         for ua in self.userids.iter_mut() {
             check!(format!("userid \"{}\"",
                            String::from_utf8_lossy(ua.userid().value())),
@@ -1762,6 +1766,10 @@ impl Cert {
                 verify_subkey_revocation, hash_subkey_binding,
                 SubkeyRevocation,
                 binding.key());
+
+            // Attestations are never associated with a subkey.  If
+            // there are any, they need to be reordered.
+            self.bad.append(&mut binding.attestations.take());
         }
 
         // See if the signatures that didn't validate are just out of
@@ -7347,6 +7355,42 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
                    .certifications().count(), 1);
         assert_eq!(test.with_policy(p, None)?.userids().next().unwrap()
                    .attested_certifications().count(), 1);
+
+        Ok(())
+    }
+
+    /// Makes sure that attested key signatures are correctly reordered.
+    #[test]
+    fn attested_key_signature_out_of_order() -> Result<()> {
+        let p = &crate::policy::StandardPolicy::new();
+
+        let (alice, _) = CertBuilder::general_purpose(
+            None, Some("alice@example.org")).generate().unwrap();
+        assert!(alice.keys().subkeys().count() > 0);
+        let mut alice_signer =
+            alice.primary_key().key().clone().parts_into_secret()?
+            .into_keypair()?;
+
+        // Now, create new attestation signatures.
+        let mut attestation_signatures = Vec::new();
+        for uid in alice.userids() {
+            attestation_signatures.append(&mut uid.attest_certifications(
+                p,
+                &mut alice_signer,
+                uid.certifications(),
+            )?);
+        }
+
+        // Add the new signatures.  This appends the attestation
+        // signature so that it is considered part of last component,
+        // a subkey.
+        let alice2 = alice.insert_packets(attestation_signatures)?;
+
+        // Now we make sure the attestation signature was correctly reordered.
+        assert_eq!(alice2.bad_signatures().count(), 0);
+        assert!(alice2.keys().all(|ka| ka.attestations().count() == 0));
+        let ua = alice2.userids().next().unwrap();
+        assert_eq!(ua.attestations().count(), 1);
 
         Ok(())
     }
