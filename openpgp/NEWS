@@ -46,6 +46,7 @@
    - KeyFlags::authentication
    - KeyFlags::split_key
    - KeyFlags::group_key
+   - ValidKeyAmalgamation::primary_key_binding_signature
 ** Deprecated functionality
    - ComponentBundle::certifications
    - ComponentBundle::other_revocations

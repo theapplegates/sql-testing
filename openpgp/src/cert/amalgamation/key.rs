@@ -259,6 +259,7 @@ use crate::{
     cert::bundle::KeyBundle,
     cert::amalgamation::{
         ComponentAmalgamation,
+        key::signature::subpacket::SubpacketValue,
         ValidAmalgamation,
         ValidateAmalgamation,
     },
@@ -1712,6 +1713,93 @@ impl<'a, P, R, R2> ValidKeyAmalgamation<'a, P, R, R2>
         self.ka
     }
 
+}
+
+impl<'a, P, R, R2> ValidKeyAmalgamation<'a, P, R, R2>
+    where P: key::KeyParts,
+          R: key::KeyRole,
+          R2: Copy,
+          Self: PrimaryKey<'a, P, R>,
+{
+    /// Returns the key's primary key binding signature, if any.
+    ///
+    /// The [primary key binding signature] is embedded inside of a
+    /// subkey binding signature.  It is made by the subkey to
+    /// indicate that it should be associated with the primary key.
+    /// This prevents an attack in which an attacker creates a
+    /// certificate, and associates the victim's subkey with it
+    /// thereby creating confusion about the certificate that issued a
+    /// signature.
+    ///
+    ///   [primary key binding signature]: https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.1
+    ///
+    /// Not all keys have primary key binding signatures.  First,
+    /// primary keys don't have them, because they don't need them.
+    /// Second, encrypt-capable subkeys don't have them because they
+    /// are not (usually) able to issue signatures.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// # use openpgp::policy::StandardPolicy;
+    /// #
+    /// # const P: &StandardPolicy = &StandardPolicy::new();
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// #     let (cert, _) =
+    /// #         CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #         .generate()?;
+    /// #     let fpr = cert.fingerprint();
+    /// let vc = cert.with_policy(P, None)?;
+    ///
+    /// assert!(vc.primary_key().primary_key_binding_signature().is_none());
+    ///
+    /// // A signing key has to have a primary key binding signature.
+    /// for ka in vc.keys().for_signing() {
+    ///     assert!(ka.primary_key_binding_signature().is_some());
+    /// }
+    ///
+    /// // Encryption keys normally can't have a primary key binding
+    /// // signature, because they can't issue signatures.
+    /// for ka in vc.keys().for_transport_encryption() {
+    ///     assert!(ka.primary_key_binding_signature().is_none());
+    /// }
+    /// #     Ok(())
+    /// # }
+    /// ```
+    pub fn primary_key_binding_signature(&self) -> Option<&Signature> {
+        let subkey = if self.primary() {
+            // A primary key has no backsig.
+            return None;
+        } else {
+            self.key().role_as_subordinate()
+        };
+
+        let pk = self.cert().primary_key().key();
+
+        for backsig in
+            self.binding_signature.subpackets(SubpacketTag::EmbeddedSignature)
+        {
+            if let SubpacketValue::EmbeddedSignature(sig) =
+                backsig.value()
+            {
+                if sig.verify_primary_key_binding(pk, subkey).is_ok() {
+                    // Mark the subpacket as authenticated by the
+                    // embedded signature.
+                    backsig.set_authenticated(true);
+
+                    return Some(sig);
+                }
+            } else {
+                unreachable!("subpackets(EmbeddedSignature) returns \
+                              EmbeddedSignatures");
+            }
+        }
+
+        None
+    }
 }
 
 impl<'a, P> ValidPrimaryKeyAmalgamation<'a, P>
