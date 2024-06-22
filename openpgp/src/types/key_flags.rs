@@ -278,6 +278,11 @@ impl KeyFlags {
         self.get(KEY_FLAG_CERTIFY)
     }
 
+    /// Returns a KeyFlags where the certificate flag is set.
+    pub fn certification(self) -> Self {
+        KeyFlags::empty().set_certification()
+    }
+
     /// Declares that this key may be used to certify other keys.
     pub fn set_certification(self) -> Self {
         self.set(KEY_FLAG_CERTIFY)
@@ -300,6 +305,11 @@ impl KeyFlags {
     /// This key may be used to sign data.
     pub fn for_signing(&self) -> bool {
         self.get(KEY_FLAG_SIGN)
+    }
+
+    /// Returns a KeyFlags where the signing flag is set.
+    pub fn signing(self) -> Self {
+        KeyFlags::empty().set_signing()
     }
 
     /// Declares that this key may be used to sign data.
@@ -326,6 +336,11 @@ impl KeyFlags {
         self.get(KEY_FLAG_ENCRYPT_FOR_TRANSPORT)
     }
 
+    /// Returns a KeyFlags where the transport encryption flag is set.
+    pub fn transport_encryption(self) -> Self {
+        KeyFlags::empty().set_transport_encryption()
+    }
+
     /// Declares that this key may be used to encrypt communications.
     pub fn set_transport_encryption(self) -> Self {
         self.set(KEY_FLAG_ENCRYPT_FOR_TRANSPORT)
@@ -348,6 +363,11 @@ impl KeyFlags {
     /// This key may be used to encrypt storage.
     pub fn for_storage_encryption(&self) -> bool {
         self.get(KEY_FLAG_ENCRYPT_AT_REST)
+    }
+
+    /// Returns a KeyFlags where the storage encryption flag is set.
+    pub fn storage_encryption(self) -> Self {
+        KeyFlags::empty().set_storage_encryption()
     }
 
     /// Declares that this key may be used to encrypt storage.
@@ -374,6 +394,11 @@ impl KeyFlags {
         self.get(KEY_FLAG_AUTHENTICATE)
     }
 
+    /// Returns a KeyFlags where the authentication flag is set.
+    pub fn authentication(self) -> Self {
+        KeyFlags::empty().set_authentication()
+    }
+
     /// Declares that this key may be used for authentication.
     pub fn set_authentication(self) -> Self {
         self.set(KEY_FLAG_AUTHENTICATE)
@@ -397,6 +422,11 @@ impl KeyFlags {
     /// using a secret-sharing mechanism.
     pub fn is_split_key(&self) -> bool {
         self.get(KEY_FLAG_SPLIT_KEY)
+    }
+
+    /// Returns a KeyFlags where the split key flag is set.
+    pub fn split_key(self) -> Self {
+        KeyFlags::empty().set_split_key()
     }
 
     /// Declares that the private component of this key may have been
@@ -425,6 +455,11 @@ impl KeyFlags {
     /// than one person.
     pub fn is_group_key(&self) -> bool {
         self.get(KEY_FLAG_GROUP_KEY)
+    }
+
+    /// Returns a KeyFlags where the group flag is set.
+    pub fn group_key(self) -> Self {
+        KeyFlags::empty().set_group_key()
     }
 
     /// Declares that the private component of this key is in
