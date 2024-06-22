@@ -7239,6 +7239,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
                    .attested_certifications().count(), 0);
 
         // Have Bob attest that certification.
+        #[allow(deprecated)]
         let attestations =
             bob.userids().next().unwrap().attest_certifications(
                 p,
@@ -7283,6 +7284,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
 
         // Have Bob withdraw any prior attestations.
 
+        #[allow(deprecated)]
         let attestations =
             bob.userids().next().unwrap().attest_certifications(
                 p,
@@ -7377,6 +7379,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         // Now, create new attestation signatures.
         let mut attestation_signatures = Vec::new();
         for uid in alice.userids() {
+            #[allow(deprecated)]
             attestation_signatures.append(&mut uid.attest_certifications(
                 p,
                 &mut alice_signer,

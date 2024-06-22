@@ -37,6 +37,8 @@
      curve P-384.
    - The RustCrypto backend now supports ECDH and ECDSA over the NIST
      curve P-521.
+   - UserAttributeAmalgamation::attest_certifications2
+   - UserIDAmalgamation::attest_certifications2
 ** Deprecated functionality
    - ComponentBundle::certifications
    - ComponentBundle::other_revocations
@@ -47,6 +49,8 @@
      `Signature::verify_digest`.
      - openpgp::packet::signature::cache::SignatureVerificationCache
      - openpgp::packet::signature::cache::Entry
+   - UserAttributeAmalgamation::attest_certifications
+   - UserIDAmalgamation::attest_certifications
 * Changes in 1.20.0
 ** New functionality
    - S2K::Implicit
