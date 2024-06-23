@@ -1,7 +1,11 @@
+use std::borrow::Borrow;
 use std::fmt;
 
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
+
+use crate::KeyHandle;
+use crate::KeyID;
 
 /// A long identifier for certificates and keys.
 ///
@@ -372,6 +376,81 @@ impl Fingerprint {
 
         ret
     }
+
+    /// Returns whether `self` and `other` could be aliases of each
+    /// other.
+    ///
+    /// `KeyHandle`'s `PartialEq` implementation cannot assert that a
+    /// `Fingerprint` and a `KeyID` are equal, because distinct
+    /// fingerprints may have the same `KeyID`, and `PartialEq` must
+    /// be [transitive], i.e.,
+    ///
+    /// ```text
+    /// a == b and b == c implies a == c.
+    /// ```
+    ///
+    /// [transitive]: std::cmp::PartialEq
+    ///
+    /// That is, if `fpr1` and `fpr2` are distinct fingerprints with the
+    /// same key ID then:
+    ///
+    /// ```text
+    /// fpr1 == keyid and fpr2 == keyid, but fpr1 != fpr2.
+    /// ```
+    ///
+    /// This definition of equality makes searching for a given
+    /// `KeyHandle` using `PartialEq` awkward.  This function fills
+    /// that gap.  It answers the question: given a `KeyHandle` and a
+    /// `Fingerprint`, could they be aliases?  That is, it implements
+    /// the desired, non-transitive equality relation:
+    ///
+    /// ```
+    /// # fn main() -> sequoia_openpgp::Result<()> {
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::Fingerprint;
+    /// # use openpgp::KeyID;
+    /// # use openpgp::KeyHandle;
+    /// #
+    /// # let fpr1: Fingerprint
+    /// #     = "8F17 7771 18A3 3DDA 9BA4  8E62 AACB 3243 6300 52D9"
+    /// #       .parse::<Fingerprint>()?;
+    /// #
+    /// # let fpr2: Fingerprint
+    /// #     = "0123 4567 8901 2345 6789  0123 AACB 3243 6300 52D9"
+    /// #       .parse::<Fingerprint>()?;
+    /// #
+    /// # let keyid: KeyID = "AACB 3243 6300 52D9".parse::<KeyID>()?;
+    /// #
+    /// // fpr1 and fpr2 are different fingerprints with the same KeyID.
+    /// assert_ne!(fpr1, fpr2);
+    /// assert!(fpr1.aliases(KeyHandle::from(&keyid)));
+    /// assert!(fpr2.aliases(KeyHandle::from(&keyid)));
+    /// assert!(! fpr1.aliases(KeyHandle::from(&fpr2)));
+    /// # Ok(()) }
+    /// ```
+    pub fn aliases<H>(&self, other: H) -> bool
+        where H: Borrow<KeyHandle>
+    {
+        let other = other.borrow();
+
+        match (self, other) {
+            (f, KeyHandle::Fingerprint(o)) => {
+                f == o
+            },
+            (Fingerprint::V4(f), KeyHandle::KeyID(KeyID::V4(o))) => {
+                // Avoid a heap allocation by embedding our
+                // knowledge of how a v4 key ID is derived from a
+                // v4 fingerprint:
+                //
+                // A v4 key ID are the 8 right-most octets of a v4
+                // fingerprint.
+                &f[12..] == o
+            },
+            (f, KeyHandle::KeyID(o)) => {
+                &KeyID::from(f) == o
+            },
+        }
+    }
 }
 
 #[cfg(test)]
@@ -412,6 +491,60 @@ mod tests {
                                          0123456789ABCDEF0123456789ABCDEF");
         assert_eq!(format!("{:x}", fp), "0123456789abcdef0123456789abcdef\
                                          0123456789abcdef0123456789abcdef");
+        Ok(())
+    }
+
+    #[test]
+    fn aliases() -> crate::Result<()> {
+        // fp1 and fp15 have the same key ID, but are different
+        // fingerprints.
+        let fp1 = "280C0AB0B94D1302CAAEB71DA299CDCD3884EBEA"
+            .parse::<Fingerprint>()?;
+        let fp15 = "1234567890ABCDEF12345678A299CDCD3884EBEA"
+            .parse::<Fingerprint>()?;
+        let fp2 = "F8D921C01EE93B65D4C6FEB7B456A7DB5E4274D0"
+            .parse::<Fingerprint>()?;
+
+        let keyid1 = KeyID::from(&fp1);
+        let keyid15 = KeyID::from(&fp15);
+        let keyid2 = KeyID::from(&fp2);
+
+        eprintln!("fp1: {:?}", fp1);
+        eprintln!("keyid1: {:?}", keyid1);
+        eprintln!("fp15: {:?}", fp15);
+        eprintln!("keyid15: {:?}", keyid15);
+        eprintln!("fp2: {:?}", fp2);
+        eprintln!("keyid2: {:?}", keyid2);
+
+        assert_ne!(fp1, fp15);
+        assert_eq!(keyid1, keyid15);
+
+        // Compare fingerprints to fingerprints.
+        assert!(fp1.aliases(KeyHandle::from(&fp1)));
+        assert!(! fp1.aliases(KeyHandle::from(&fp15)));
+        assert!(! fp1.aliases(KeyHandle::from(&fp2)));
+
+        assert!(! fp15.aliases(KeyHandle::from(&fp1)));
+        assert!(fp15.aliases(KeyHandle::from(&fp15)));
+        assert!(! fp15.aliases(KeyHandle::from(&fp2)));
+
+        assert!(! fp2.aliases(KeyHandle::from(&fp1)));
+        assert!(! fp2.aliases(KeyHandle::from(&fp15)));
+        assert!(fp2.aliases(KeyHandle::from(&fp2)));
+
+        // Compare fingerprints to key IDs.
+        assert!(fp1.aliases(KeyHandle::from(&keyid1)));
+        assert!(fp1.aliases(KeyHandle::from(&keyid15)));
+        assert!(! fp1.aliases(KeyHandle::from(&keyid2)));
+
+        assert!(fp15.aliases(KeyHandle::from(&keyid1)));
+        assert!(fp15.aliases(KeyHandle::from(&keyid15)));
+        assert!(! fp15.aliases(KeyHandle::from(&keyid2)));
+
+        assert!(! fp2.aliases(KeyHandle::from(&keyid1)));
+        assert!(! fp2.aliases(KeyHandle::from(&keyid15)));
+        assert!(fp2.aliases(KeyHandle::from(&keyid2)));
+
         Ok(())
     }
 }
