@@ -321,6 +321,58 @@ impl KeyHandle {
                  | KeyHandle::KeyID(KeyID::Invalid(_)))
     }
 
+    /// Returns whether the KeyHandle contains a fingerprint.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::Fingerprint;
+    /// # use openpgp::KeyID;
+    /// # use openpgp::KeyHandle;
+    /// #
+    /// # fn main() -> sequoia_openpgp::Result<()> {
+    /// let fpr: KeyHandle = "8F17 7771 18A3 3DDA 9BA4  8E62 AACB 3243 6300 52D9"
+    ///     .parse()?;
+    /// let keyid: KeyHandle = KeyHandle::from(KeyID::from(&fpr));
+    ///
+    /// assert!(fpr.is_fingerprint());
+    /// assert!(! keyid.is_fingerprint());
+    /// # Ok(()) }
+    /// ```
+    pub fn is_fingerprint(&self) -> bool {
+        match self {
+            KeyHandle::Fingerprint(_) => true,
+            KeyHandle::KeyID(_) => false,
+        }
+    }
+
+    /// Returns whether the KeyHandle contains a key ID.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::Fingerprint;
+    /// # use openpgp::KeyID;
+    /// # use openpgp::KeyHandle;
+    /// #
+    /// # fn main() -> sequoia_openpgp::Result<()> {
+    /// let fpr: KeyHandle = "8F17 7771 18A3 3DDA 9BA4  8E62 AACB 3243 6300 52D9"
+    ///     .parse()?;
+    /// let keyid: KeyHandle = KeyHandle::from(KeyID::from(&fpr));
+    ///
+    /// assert!(! fpr.is_keyid());
+    /// assert!(keyid.is_keyid());
+    /// # Ok(()) }
+    /// ```
+    pub fn is_keyid(&self) -> bool {
+        match self {
+            KeyHandle::Fingerprint(_) => false,
+            KeyHandle::KeyID(_) => true,
+        }
+    }
+
     /// Converts this `KeyHandle` to its canonical hexadecimal
     /// representation.
     ///
