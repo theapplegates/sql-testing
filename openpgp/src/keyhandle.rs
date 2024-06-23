@@ -274,31 +274,9 @@ impl KeyHandle {
     pub fn aliases<H>(&self, other: H) -> bool
         where H: Borrow<KeyHandle>
     {
-        let other = other.borrow();
-        if self.partial_cmp(other) == Some(Ordering::Equal) {
-            true
-        } else {
-            match (self, other) {
-                (KeyHandle::Fingerprint(Fingerprint::V4(f)),
-                 KeyHandle::KeyID(KeyID::V4(i)))
-                    | (KeyHandle::KeyID(KeyID::V4(i)),
-                       KeyHandle::Fingerprint(Fingerprint::V4(f))) =>
-                {
-                    // Avoid a heap allocation by embedding our
-                    // knowledge of how a v4 key ID is derived from a
-                    // v4 fingerprint:
-                    //
-                    // A v4 key ID are the 8 right-most octets of a v4
-                    // fingerprint.
-                    &f[12..] == i
-                },
-                (KeyHandle::Fingerprint(f), KeyHandle::KeyID(i))
-                    | (KeyHandle::KeyID(i), KeyHandle::Fingerprint(f)) =>
-                {
-                    &KeyID::from(f) == i
-                },
-                _ => false,
-            }
+        match self {
+            KeyHandle::Fingerprint(fpr) => fpr.aliases(other),
+            KeyHandle::KeyID(keyid) => keyid.aliases(other),
         }
     }
 
