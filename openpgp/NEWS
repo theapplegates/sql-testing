@@ -48,6 +48,7 @@
    - KeyFlags::group_key
    - ValidKeyAmalgamation::primary_key_binding_signature
    - Fingerprint::aliases
+   - KeyID::aliases
 ** Deprecated functionality
    - ComponentBundle::certifications
    - ComponentBundle::other_revocations
