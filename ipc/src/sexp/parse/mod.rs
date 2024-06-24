@@ -8,6 +8,7 @@
 use std::cmp;
 use std::io::{Read, Write};
 use std::path::Path;
+use std::rc::Rc;
 
 use buffered_reader::{self, BufferedReader};
 use lalrpop_util::{lalrpop_mod, ParseError};
@@ -19,7 +20,7 @@ use crate::Result;
 use crate::sexp::Sexp;
 
 mod lexer;
-use self::lexer::Lexer;
+use lexer::Lexer;
 
 // Load the generated code.
 lalrpop_mod!(
@@ -47,11 +48,15 @@ impl<'a> Parse<'a, Sexp> for Sexp {
 
 impl Sexp {
     fn from_bytes_private(data: &[u8]) -> Result<Sexp> {
-        match self::grammar::SexprParser::new().parse(Lexer::new(data)) {
+        let lexer = Lexer::new(data);
+        let state = Rc::clone(&lexer.state);
+
+        match self::grammar::SexprParser::new().parse(&state, lexer) {
             Ok(r) => Ok(r),
             Err(err) => {
                 let mut msg = Vec::new();
-                writeln!(&mut msg, "Parsing: {:?}: {:?}", data, err)?;
+                writeln!(&mut msg, "Parsing: {:?}: {:?}",
+                         String::from_utf8_lossy(data), err)?;
                 if let ParseError::UnrecognizedToken {
                             token: (start, _, end), ..
                         } = err
@@ -133,6 +138,105 @@ mod tests {
         assert!(Sexp::from_bytes(b"(2:hi").is_err());
         assert!(Sexp::from_bytes(b"(2:hi)(2:hi)").is_err());
         assert!(Sexp::from_bytes(b"([2:hi])").is_err());
+
+
+        // Tokens.
+        assert_eq!(Sexp::from_bytes(b"(private-key)").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"private-key"[..].into())
+                   ]));
+        assert_eq!(Sexp::from_bytes(b"(foo bar)").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"foo"[..].into()),
+                       Sexp::String(b"bar"[..].into()),
+                   ]));
+        assert_eq!(Sexp::from_bytes(b"(:foo *bar)").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b":foo"[..].into()),
+                       Sexp::String(b"*bar"[..].into()),
+                   ]));
+        assert_eq!(Sexp::from_bytes(b"(2:hifoo)").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"hi"[..].into()),
+                       Sexp::String(b"foo"[..].into()),
+                   ]));
+        assert_eq!(Sexp::from_bytes(b"(2:hifoo bar)").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"hi"[..].into()),
+                       Sexp::String(b"foo"[..].into()),
+                       Sexp::String(b"bar"[..].into()),
+                   ]));
+        // Check that a token can be followed by a [ or a ].
+        assert_eq!(Sexp::from_bytes(b"(hi[fancy]ho)").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"hi"[..].into()),
+                       Sexp::String(String_::with_display_hint(
+                           b"ho".to_vec(), b"fancy".to_vec())),
+                   ]));
+        assert_eq!(Sexp::from_bytes(b"(hi [fancy]ho)").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"hi"[..].into()),
+                       Sexp::String(String_::with_display_hint(
+                           b"ho".to_vec(), b"fancy".to_vec())),
+                   ]));
+        assert_eq!(Sexp::from_bytes(b"(hi [fancy ]ho)").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"hi"[..].into()),
+                       Sexp::String(String_::with_display_hint(
+                           b"ho".to_vec(), b"fancy".to_vec())),
+                   ]));
+        // Check that a token can be followed by a ( or a ).
+        assert_eq!(Sexp::from_bytes(b"(hi(fancy)ho)").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"hi"[..].into()),
+                       Sexp::List(vec![
+                           Sexp::String(b"fancy"[..].into()),
+                       ]),
+                       Sexp::String(b"ho"[..].into()),
+                   ]));
+        // No space between two quoted strings => two tokens.
+        assert_eq!(Sexp::from_bytes(b"(\"hi \"\" ho\")").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"hi "[..].into()),
+                       Sexp::String(b" ho"[..].into()),
+                   ]));
+        assert_eq!(Sexp::from_bytes(b"(\"hi \"  \" ho\")").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"hi "[..].into()),
+                       Sexp::String(b" ho"[..].into()),
+                   ]));
+        // Quoted strings with escape sequences.
+        assert_eq!(Sexp::from_bytes(b"(\"\\?\")").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"?"[..].into()),
+                   ]));
+        // Quoted strings with escape sequences including hexadecimal.
+        assert_eq!(Sexp::from_bytes(b"(\"\\?\\\\\\x24\\x58\")").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"?\\$X"[..].into()),
+                   ]));
+        // Quoted strings with octal escape sequences.
+        assert_eq!(Sexp::from_bytes(b"(\"foo  \\066\\122  bar\")").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"foo  6R  bar"[..].into()),
+                   ]));
+        // Ignore newlines.
+        assert_eq!(Sexp::from_bytes(b"(\"foo  \\\n\r  bar\")").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"foo    bar"[..].into()),
+                   ]));
+        // Hexadecimal and quoted strings.
+        assert_eq!(Sexp::from_bytes(b"(#2458# \" ho\")").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"$X"[..].into()),
+                       Sexp::String(b" ho"[..].into()),
+                   ]));
+        // Hexadecimal with spaces and quoted strings.
+        assert_eq!(Sexp::from_bytes(b"(#245 8# \" ho\")").unwrap(),
+                   Sexp::List(vec![
+                       Sexp::String(b"$X"[..].into()),
+                       Sexp::String(b" ho"[..].into()),
+                   ]));
     }
 
     #[test]

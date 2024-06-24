@@ -842,7 +842,42 @@ mod tests {
 
     #[test]
     fn to_secret_key() {
-        let base = "sexp/keys";
+        let compare = |allow_unknown: bool,
+        expected: &key::SecretKeyMaterial,
+        got: &mpi::SecretKeyMaterial|
+        {
+            match expected {
+                key::SecretKeyMaterial::Unencrypted(expected) => {
+                    expected.map(|expected| {
+                        match got {
+                            mpi::SecretKeyMaterial::Unknown { mpis, rest } => {
+                                if ! allow_unknown {
+                                    panic!("Got unknown, but unknowns \
+                                            are not allowed");
+                                }
+                                match expected {
+                                    mpi::SecretKeyMaterial::ECDSA { scalar }
+                                    | mpi::SecretKeyMaterial::ECDH { scalar } => {
+                                        assert_eq!(mpis.len(), 1);
+                                        assert_eq!(scalar, &mpis[0]);
+                                        assert_eq!(rest.len(), 0);
+                                    }
+                                    _ => {
+                                        assert_eq!(expected, got);
+                                    }
+                                }
+                            }
+                            _ => {
+                                assert_eq!(expected, got);
+                            }
+                        }
+                    });
+                },
+                key::SecretKeyMaterial::Encrypted(_) => {
+                    panic!("Secret key material is encrypted");
+                }
+            };
+        };
 
         for test in &[
             "rsa3072",
@@ -857,46 +892,11 @@ mod tests {
             "nistp521+ecdsa+nistp521+ecdh",
         ]
         {
+            let base = "sexp/keys";
+
             let cert = Cert::from_bytes(
                 crate::tests::file(&format!("{}/{}.pgp", base, test)))
                 .expect("valid cert");
-
-            let compare = |allow_unknown: bool,
-                           expected: &key::SecretKeyMaterial,
-                           got: &mpi::SecretKeyMaterial|
-            {
-                match expected {
-                    key::SecretKeyMaterial::Unencrypted(expected) => {
-                        expected.map(|expected| {
-                            match got {
-                                mpi::SecretKeyMaterial::Unknown { mpis, rest } => {
-                                    if ! allow_unknown {
-                                        panic!("Got unknown, but unknowns \
-                                                are not allowed");
-                                    }
-                                    match expected {
-                                        mpi::SecretKeyMaterial::ECDSA { scalar }
-                                        | mpi::SecretKeyMaterial::ECDH { scalar } => {
-                                            assert_eq!(mpis.len(), 1);
-                                            assert_eq!(scalar, &mpis[0]);
-                                            assert_eq!(rest.len(), 0);
-                                        }
-                                        _ => {
-                                            assert_eq!(expected, got);
-                                        }
-                                    }
-                                }
-                                _ => {
-                                    assert_eq!(expected, got);
-                                }
-                            }
-                        });
-                    },
-                    key::SecretKeyMaterial::Encrypted(_) => {
-                        panic!("Secret key material is encrypted");
-                    }
-                };
-            };
 
             for key in cert.keys().secret() {
                 let keygrip = Keygrip::of(key.key().mpis()).expect("has a keygrip");
@@ -909,6 +909,61 @@ mod tests {
                 let sexp = crate::tests::file(
                     &format!("{}/{}-{}.sexp", base, test, keygrip.to_string()));
                 let sexp = Sexp::from_bytes(sexp).expect("valid sexp");
+
+                eprintln!("sexp: {}", sexp.summarize());
+
+                let sexp_secret_key = sexp.to_secret_key(None)
+                    .expect("can extract");
+                compare(true, key.secret(), &sexp_secret_key);
+
+                let sexp_secret_key = sexp.to_secret_key(Some(key.mpis()))
+                    .expect("can extract");
+                compare(true, key.secret(), &sexp_secret_key);
+            }
+        }
+
+        // Try with data copied from GnuPG's private-keys-v1.d
+        // directory.
+        for test in &[
+            "alice.pgp"
+        ]
+        {
+            let base = "sexp/private-keys-v1.d";
+
+            let cert = Cert::from_bytes(
+                crate::tests::file(&format!("{}/{}", base, test)))
+                .expect("valid cert");
+
+            for key in cert.keys().secret() {
+                let keygrip
+                    = Keygrip::of(key.key().mpis()).expect("has a keygrip");
+
+                eprintln!("Checking {}: {} ({})",
+                          test, key.fingerprint(), keygrip);
+
+                let sexp_bytes
+                    = crate::tests::file(&format!("{}/{}.key", base, keygrip));
+                let sexp_string
+                    = String::from_utf8(sexp_bytes.to_vec()).expect("UTF-8");
+
+                let mut key_string = String::new();
+                let mut saw_key = false;
+                for line in sexp_string.split('\n') {
+                    if saw_key {
+                        if ! line.is_empty() && &line[0..1] == " " {
+                            key_string.push_str(&line[1..]);
+                        } else {
+                            // We found the end.
+                            break;
+                        }
+                    } else if line.starts_with("Key: (") {
+                        saw_key = true;
+                        key_string.push_str(&line[5..]);
+                    }
+                }
+                assert!(saw_key);
+
+                let sexp = Sexp::from_bytes(&key_string).expect("valid sexp");
 
                 eprintln!("sexp: {}", sexp.summarize());
 
