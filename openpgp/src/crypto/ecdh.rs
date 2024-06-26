@@ -414,10 +414,13 @@ fn make_param<P, R>(recipient: &Key<P, R>,
     param.push(curve.oid().len() as u8);
     param.extend_from_slice(curve.oid());
     param.push(PublicKeyAlgorithm::ECDH.into());
-    param.push(3);
-    param.push(1);
+
+    // KDF parameters.
+    param.push(3); // Octet count of the following parameters.
+    param.push(1); // 1-octet value 0x01, reserved for future extensions.
     param.push((*hash).into());
     param.push((*sym).into());
+
     param.extend_from_slice(b"Anonymous Sender    ");
     param.extend_from_slice(fp.as_bytes());
     assert_eq!(param.len(),
