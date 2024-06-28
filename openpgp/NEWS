@@ -4,6 +4,11 @@
 #+STARTUP: content hidestars
 
 
+* Changes in 1.21.1
+** Notable fixes
+   - Leftover debugging statements introduced in 1.21.0 printed
+     long-term Cv25519 secret key material to stderr during
+     decryption.  This patch release fixes that.
 * Changes in 1.21.0
 ** Notable fixes
    - The RawCertParser now correctly advance the input stream when

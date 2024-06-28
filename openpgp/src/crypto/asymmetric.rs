@@ -282,13 +282,10 @@ impl Decryptor for KeyPair {
 
                     // Compute the shared point S = rV = rvG, where
                     // (r, R) is the recipient's key pair.
-                    dbg!(r.as_ref());
-                    dbg!(&V);
-                    let S = dbg!(Backend::x25519_shared_point(&r, &V.try_into()?))?;
+                    let S = Backend::x25519_shared_point(&r, &V.try_into()?)?;
 
                     crate::crypto::ecdh::decrypt_unwrap2(
                         self.public(), &S, ciphertext, plaintext_len)
-
                 },
 
                 (_public, secret, _ciphertext) =>
