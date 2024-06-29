@@ -145,8 +145,8 @@ distribution, or integrate it into their software.
     - https://pkgs.alpinelinux.org/package/edge/testing/x86_64/sequoia-sqv
     - https://pkgs.alpinelinux.org/package/edge/testing/x86_64/sequoia-chameleon-gnupg
     - Maintainers:
-      - psykose <alice@ayaya.dev>
-        78ACAF83044187DC9DFD695F7D1B5E34EE218DA6
+      - Simon Rupf <simon@rupf.net>
+        F632C5674E1175B5DC973D0554344C2E06369747
 
   - Arch
     - https://archlinux.org/groups/x86_64/sequoia/
