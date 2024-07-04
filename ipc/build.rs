@@ -4,7 +4,7 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 fn main() {
-    lalrpop::process_root().unwrap();
+    lalrpop::Configuration::new().use_cargo_dir_conventions().process().unwrap();
     include_test_data().unwrap();
 }
 
