@@ -4,6 +4,11 @@
 #+STARTUP: content hidestars
 
 
+* Changes in 1.21.2
+** Notable fixes
+   - A set of constructors for KeyFlags added in 1.21.0 mistakenly
+     consumed a KeyFlags.  This patch release fixes that, even though
+     it is technically an API break.
 * Changes in 1.21.1
 ** Notable fixes
    - Leftover debugging statements introduced in 1.21.0 printed

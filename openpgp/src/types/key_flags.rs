@@ -279,7 +279,7 @@ impl KeyFlags {
     }
 
     /// Returns a KeyFlags where the certificate flag is set.
-    pub fn certification(self) -> Self {
+    pub fn certification() -> Self {
         KeyFlags::empty().set_certification()
     }
 
@@ -308,7 +308,7 @@ impl KeyFlags {
     }
 
     /// Returns a KeyFlags where the signing flag is set.
-    pub fn signing(self) -> Self {
+    pub fn signing() -> Self {
         KeyFlags::empty().set_signing()
     }
 
@@ -337,7 +337,7 @@ impl KeyFlags {
     }
 
     /// Returns a KeyFlags where the transport encryption flag is set.
-    pub fn transport_encryption(self) -> Self {
+    pub fn transport_encryption() -> Self {
         KeyFlags::empty().set_transport_encryption()
     }
 
@@ -366,7 +366,7 @@ impl KeyFlags {
     }
 
     /// Returns a KeyFlags where the storage encryption flag is set.
-    pub fn storage_encryption(self) -> Self {
+    pub fn storage_encryption() -> Self {
         KeyFlags::empty().set_storage_encryption()
     }
 
@@ -395,7 +395,7 @@ impl KeyFlags {
     }
 
     /// Returns a KeyFlags where the authentication flag is set.
-    pub fn authentication(self) -> Self {
+    pub fn authentication() -> Self {
         KeyFlags::empty().set_authentication()
     }
 
@@ -425,7 +425,7 @@ impl KeyFlags {
     }
 
     /// Returns a KeyFlags where the split key flag is set.
-    pub fn split_key(self) -> Self {
+    pub fn split_key() -> Self {
         KeyFlags::empty().set_split_key()
     }
 
@@ -458,7 +458,7 @@ impl KeyFlags {
     }
 
     /// Returns a KeyFlags where the group flag is set.
-    pub fn group_key(self) -> Self {
+    pub fn group_key() -> Self {
         KeyFlags::empty().set_group_key()
     }
 
