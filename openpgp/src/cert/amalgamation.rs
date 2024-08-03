@@ -860,7 +860,7 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
     /// subpacket] in the certification.
     ///
     ///   [Issuer subpacket]: https://datatracker.ietf.org/doc/html/rfc4880#section-5.2.3.5
-    ///   [Issuer Fingerprint subpacket]: https://www.ietf.org/archive/id/draft-ietf-openpgp-crypto-refresh-13.html#name-issuer-fingerprint
+    ///   [Issuer Fingerprint subpacket]: https://www.rfc-editor.org/rfc/rfc9580.html#name-intended-recipient-fingerpr
     ///
     /// This function does not check that a certification is valid.
     /// It can't.  To check that a certification was actually issued
@@ -974,7 +974,7 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
                         // "If this is not present or has a value of
                         // zero, it never expires."
                         //
-                        // https://www.ietf.org/archive/id/draft-ietf-openpgp-crypto-refresh-13.html#name-key-expiration-time
+                        // https://www.rfc-editor.org/rfc/rfc9580.html#name-key-expiration-time
                         true
                     } else {
                         // "the number of seconds after the signature
