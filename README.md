@@ -312,8 +312,6 @@ Getting help
 
 Sequoia's documentation is hosted here: https://docs.sequoia-pgp.org/
 
-The [guide](./guide) is hosted here: https://sequoia-pgp.org/guide/
-
 You can join our mailing list by sending a mail to
 devel-subscribe@lists.sequoia-pgp.org.
 
