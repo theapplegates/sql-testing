@@ -41,6 +41,7 @@ use std::io::{self, Read, Seek, Write};
 use std::net::{Ipv4Addr, SocketAddr, TcpStream, TcpListener};
 use std::path::Path;
 use std::path::PathBuf;
+use std::thread::JoinHandle;
 
 use anyhow::anyhow;
 use anyhow::Context as _;
@@ -192,7 +193,7 @@ impl Descriptor {
         } else {
             let cookie = Cookie::new();
 
-            let (addr, external) = match policy {
+            let (addr, external, _join_handle) = match policy {
                 core::IPCPolicy::Internal => self.start(false)?,
                 core::IPCPolicy::External => self.start(true)?,
                 core::IPCPolicy::Robust => self.start(true)
@@ -214,18 +215,21 @@ impl Descriptor {
 
     /// Start the service, either as an external process or as a
     /// thread.
-    fn start(&self, external: bool) -> Result<(SocketAddr, bool)> {
+    fn start(&self, external: bool)
+        -> Result<(SocketAddr, bool, Option<JoinHandle<Result<()>>>)>
+    {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
         let addr = listener.local_addr()?;
 
         /* Start the server, connect to it, and send the cookie.  */
-        if external {
+        let join_handle: Option<JoinHandle<Result<()>>> = if external {
             self.fork(listener)?;
+            None
         } else {
-            self.spawn(listener)?;
-        }
+            Some(self.spawn(listener)?)
+        };
 
-        Ok((addr, external))
+        Ok((addr, external, join_handle))
     }
 
     fn fork(&self, listener: TcpListener) -> Result<()> {
@@ -270,16 +274,17 @@ impl Descriptor {
         Ok(())
     }
 
-    fn spawn(&self, l: TcpListener) -> Result<()> {
+    fn spawn(&self, l: TcpListener) -> Result<JoinHandle<Result<()>>> {
         let descriptor = self.clone();
-        thread::spawn(move || -> Result<()> {
+        let join_handle = thread::spawn(move || -> Result<()> {
             Server::new(descriptor)
                .expect("Failed to spawn server") // XXX
                .serve_listener(l)
                .expect("Failed to spawn server"); // XXX
             Ok(())
         });
-        Ok(())
+
+        Ok(join_handle)
     }
 }
 
