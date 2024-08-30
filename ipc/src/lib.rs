@@ -356,9 +356,32 @@ impl Server {
     }
 
     fn serve_listener(&mut self, l: TcpListener) -> Result<()> {
-        /* The first client tells us our cookie.  */
+        // The protocol is:
+        //
+        // - The first client exclusively locks the cookie file.
+        //
+        // - The client allocates a TCP socket, and generates a
+        //   cookie.
+        //
+        // - The client starts the server, and passes the listener to
+        //   it.
+        //
+        // - The client connects to the server via the socket, and
+        //   sends it the cookie.
+        //
+        // - The client drops the connection and unlocks the cookie
+        //   file thereby allowing other clients to connect.
+        //
+        // - The server waits for the cookie on the first connection.
+        //
+        // - The server starts serving clients.
+        //
+        // Note: this initial connection cannot (currently) be used
+        // for executing RPCs; the server closes it immediately after
+        // receiving the cookie.
+
+        // The first client sends us the cookie.
         let cookie = {
-            /* XXX: It'd be nice to recycle this connection.  */
             let mut i = l.accept()?;
             Cookie::receive(&mut i.0)?
         };
