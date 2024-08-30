@@ -241,6 +241,7 @@ impl Descriptor {
             .arg(self.ctx.lib())
             .arg("--ephemeral")
             .arg(self.ctx.ephemeral().to_string())
+            .arg("--socket").arg("0")
             .stdout(Stdio::null())
             .stderr(Stdio::null());
 
