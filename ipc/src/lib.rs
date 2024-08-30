@@ -39,6 +39,7 @@
 use std::fs;
 use std::io::{self, Read, Seek, Write};
 use std::net::{Ipv4Addr, SocketAddr, TcpStream, TcpListener};
+use std::path::Path;
 use std::path::PathBuf;
 
 use anyhow::anyhow;
@@ -93,7 +94,7 @@ pub struct Descriptor {
 }
 
 impl Descriptor {
-    /// Create a descriptor given its rendezvous point, the path to
+    /// Create a descriptor given its rendez-vous point, the path to
     /// the servers executable file, and a handler factory.
     pub fn new(ctx: &core::Context, rendezvous: PathBuf,
                executable: PathBuf, factory: HandlerFactory)
@@ -109,6 +110,11 @@ impl Descriptor {
     /// Returns the context.
     pub fn context(&self) -> &core::Context {
         &self.ctx
+    }
+
+    /// Returns the rendez-vous point.
+    pub fn rendez_vous(&self) -> &Path {
+        &self.rendezvous
     }
 
     /// Connects to a descriptor, starting the server if necessary.
