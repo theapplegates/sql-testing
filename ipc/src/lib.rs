@@ -93,6 +93,15 @@ pub struct Descriptor {
     factory: HandlerFactory,
 }
 
+impl std::fmt::Debug for Descriptor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Descriptor")
+            .field("rendezvous", &self.rendezvous)
+            .field("executable", &self.executable)
+            .finish()
+    }
+}
+
 impl Descriptor {
     /// Create a descriptor given its rendez-vous point, the path to
     /// the servers executable file, and a handler factory.
