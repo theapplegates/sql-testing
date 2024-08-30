@@ -286,6 +286,53 @@ impl Descriptor {
 
         Ok(join_handle)
     }
+
+    /// Turn this process into a server.
+    ///
+    /// This checks if a server is running.  If not, it turns the
+    /// current process into a server.
+    ///
+    /// This function is for servers trying to start themselves.
+    /// Normally, servers are started by clients on demand.  A client
+    /// should never call this function.
+    pub fn bootstrap(&mut self) -> Result<Option<JoinHandle<Result<()>>>> {
+        let mut file = CookieFile::open(&self.rendezvous)?;
+
+        // Try to connect to the server.  If it is already running,
+        // we're done.
+        if let Some((cookie, rest)) = file.read()? {
+            if let Ok(addr) = String::from_utf8(rest).map_err(drop)
+                .and_then(|rest| rest.parse::<SocketAddr>().map_err(drop))
+            {
+                let stream = TcpStream::connect(&addr).map_err(drop);
+
+                if let Ok(mut s) = stream {
+                    if let Ok(()) = cookie.send(&mut s) {
+                        // There's already a server running.
+                        return Ok(None);
+                    }
+                }
+            }
+        }
+
+        // Create a new cookie.
+        let cookie = Cookie::new();
+
+        // Start an *internal* server.
+        let (addr, _external, join_handle) = self.start(false)?;
+        let join_handle = join_handle
+            .expect("start returns the join handle for in-process servers");
+
+        file.write(&cookie, format!("{}", addr).as_bytes())?;
+        // Release the lock.
+        drop(file);
+
+        // Send the cookie to the server.
+        let mut s = TcpStream::connect(addr)?;
+        cookie.send(&mut s)?;
+
+        Ok(Some(join_handle))
+    }
 }
 
 /// A server.
