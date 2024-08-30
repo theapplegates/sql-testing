@@ -37,7 +37,7 @@
 #![warn(missing_docs)]
 
 use std::fs;
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Seek, Write};
 use std::net::{Ipv4Addr, SocketAddr, TcpStream, TcpListener};
 use std::path::PathBuf;
 
@@ -197,6 +197,7 @@ impl Descriptor {
 
             if external {
                 /* Write connection information to file.  */
+                file.rewind()?;
                 file.set_len(0)?;
                 file.write_all(&cookie.0)?;
                 write!(file, "{}", addr)?;
