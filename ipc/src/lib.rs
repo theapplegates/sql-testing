@@ -43,6 +43,8 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use anyhow::anyhow;
+use anyhow::Context as _;
+
 use fs2::FileExt;
 
 use capnp_rpc::{RpcSystem, twoparty};
@@ -171,20 +173,10 @@ impl Descriptor {
         };
 
         fs::create_dir_all(self.ctx.home())?;
-        let mut file = fs::OpenOptions::new();
-        file
-            .read(true)
-            .write(true)
-            .create(true);
-        #[cfg(unix)]
-        file.mode(0o600);
-        let mut file = file.open(&self.rendezvous)?;
-        file.lock_exclusive()?;
 
-        let mut c = vec![];
-        file.read_to_end(&mut c)?;
+        let mut file = CookieFile::open(&self.rendezvous)?;
 
-        if let Some((cookie, rest)) = Cookie::extract(c) {
+        if let Some((cookie, rest)) = file.read()? {
             let stream = String::from_utf8(rest).map_err(drop)
                 .and_then(|rest| rest.parse::<SocketAddr>().map_err(drop))
                 .and_then(|addr| TcpStream::connect(addr).map_err(drop));
@@ -193,7 +185,7 @@ impl Descriptor {
                 do_connect(cookie, s)
             } else {
                 /* Failed to connect.  Invalidate the cookie and try again.  */
-                file.set_len(0)?;
+                file.clear()?;
                 drop(file);
                 self.connect()
             }
@@ -212,10 +204,7 @@ impl Descriptor {
 
             if external {
                 /* Write connection information to file.  */
-                file.rewind()?;
-                file.set_len(0)?;
-                file.write_all(&cookie.0)?;
-                write!(file, "{}", addr)?;
+                file.write(&cookie, format!("{}", addr).as_bytes())?;
             }
             drop(file);
 
@@ -493,6 +482,80 @@ impl PartialEq for Cookie {
                                 other.0.as_ptr(),
                                 self.0.len())
             }
+    }
+}
+
+/// Wraps a cookie file.
+struct CookieFile {
+    path: PathBuf,
+    file: fs::File,
+}
+
+impl CookieFile {
+    /// Opens the specified cookie.
+    ///
+    /// The file is opened, and immediately locked.  (The lock is
+    /// dropped when the file is closed.)
+    fn open(path: &Path) -> Result<CookieFile> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("Creating {}", parent.display()))?;
+        }
+
+        let mut file = fs::OpenOptions::new();
+        file
+            .read(true)
+            .write(true)
+            .create(true);
+        #[cfg(unix)]
+        file.mode(0o600);
+        let file = file.open(path)
+            .with_context(|| format!("Opening {}", path.display()))?;
+        file.lock_exclusive()
+            .with_context(|| format!("Locking {}", path.display()))?;
+
+        Ok(Self {
+            path: path.to_path_buf(),
+            file,
+        })
+    }
+
+    /// Reads the cookie file.
+    ///
+    /// If the file contains a cookie, returns it and any other data.
+    ///
+    /// Returns `None` if the file does not contain a cookie.
+    fn read(&mut self) -> Result<Option<(Cookie, Vec<u8>)>> {
+        let mut content = vec![];
+        self.file.read_to_end(&mut content)
+            .with_context(|| format!("Opening {}", self.path.display()))?;
+        Ok(Cookie::extract(content))
+    }
+
+    /// Writes the specified cookie to the cookie file followed by the
+    /// specified data.
+    ///
+    /// The contents of the cookie file are replaced.
+    fn write(&mut self, cookie: &Cookie, data: &[u8]) -> Result<()> {
+        self.file.rewind()
+            .with_context(|| format!("Rewinding {}", self.path.display()))?;
+        self.file.set_len(0)
+            .with_context(|| format!("Truncating {}", self.path.display()))?;
+        self.file.write_all(&cookie.0)
+            .with_context(|| format!("Updating {}", self.path.display()))?;
+        self.file.write_all(data)
+            .with_context(|| format!("Updating {}", self.path.display()))?;
+
+        Ok(())
+    }
+
+    /// Clears the cookie file.
+    ///
+    /// The cookie file is truncated.
+    fn clear(&mut self) -> Result<()> {
+        self.file.set_len(0)
+            .with_context(|| format!("Truncating {}", self.path.display()))?;
+        Ok(())
     }
 }
 
