@@ -104,6 +104,9 @@
    - serialize::stream::Encryptor2::aead_algo
    - key::KeyRole::role
    - key::KeyRoleRT
+   - key::SecretKeyMaterial::encrypt_with
+   - key::SecretKeyMaterial::encrypt_in_place_with
+   - key::Unencrypted::encrypt_with
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms
