@@ -27,6 +27,12 @@
      optional symmetric algorithm.
    - SKESK::decrypt now returns an optional symmetric algorithm.
    - PKESK::decrypt now returns an optional symmetric algorithm.
+   - key::SecretKeyMaterial::decrypt now takes a &Key.
+   - key::SecretKeyMaterial::decrypt_in_place now takes a &Key.
+   - key::SecretKeyMaterial::encrypt now takes a &Key.
+   - key::SecretKeyMaterial::encrypt_in_place now takes a &Key.
+   - key::Encrypted::decrypt now takes a &Key.
+   - key::Unencrypted::encrypt now takes a &Key.
 
 ** New functionality
    - Fingerprint::V6
