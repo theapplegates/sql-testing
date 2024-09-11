@@ -102,6 +102,8 @@
    - SEIP::V2
    - SEIP2
    - serialize::stream::Encryptor2::aead_algo
+   - key::KeyRole::role
+   - key::KeyRoleRT
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms

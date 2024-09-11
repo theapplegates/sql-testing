@@ -2131,6 +2131,20 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
     pub fn hash_algo_security(&self) -> HashAlgoSecurity {
         HashAlgoSecurity::SecondPreImageResistance
     }
+
+    pub(crate) fn role(&self) -> key::KeyRoleRT {
+        match self {
+            Key::V4(k) => k.role(),
+            Key::V6(k) => k.role(),
+        }
+    }
+
+    pub(crate) fn set_role(&mut self, role: key::KeyRoleRT) {
+        match self {
+            Key::V4(k) => k.set_role(role),
+            Key::V6(k) => k.set_role(role),
+        }
+    }
 }
 
 /// Holds a SEIP packet.

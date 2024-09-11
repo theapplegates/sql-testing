@@ -12,6 +12,7 @@ use crate::crypto::{mpi, hash::Hash};
 use crate::packet::key::{
     KeyParts,
     KeyRole,
+    KeyRoleRT,
     PublicParts,
     SecretParts,
     UnspecifiedParts,
@@ -200,6 +201,14 @@ where
         Ok(Key6 {
             common: Key4::make(creation_time, pk_algo, mpis, secret)?,
         })
+    }
+
+    pub(crate) fn role(&self) -> KeyRoleRT {
+        self.common.role()
+    }
+
+    pub(crate) fn set_role(&mut self, role: KeyRoleRT) {
+        self.common.set_role(role);
     }
 }
 
