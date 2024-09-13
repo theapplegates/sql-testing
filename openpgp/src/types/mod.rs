@@ -23,7 +23,7 @@
 //!
 //! ## `KeyFlags`
 //!
-//! Holds imformation about a key in particular how the given key can be used.
+//! Holds information about a key in particular how the given key can be used.
 //!
 //! ## `RevocationKey`
 //!
