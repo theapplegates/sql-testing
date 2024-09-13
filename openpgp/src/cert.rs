@@ -3534,9 +3534,8 @@ impl<'a> TSK<'a> {
     pub fn into_packets(self) -> impl Iterator<Item=Packet> + 'a {
         /// Strips the secret key material if the filter rejects it,
         /// and optionally inserts secret key stubs.
-        use std::sync::Arc;
         fn rewrite<'a>(
-            filter: Arc<Box<dyn Fn(&key::UnspecifiedSecret) -> bool + 'a>>,
+            filter: &Box<dyn Fn(&key::UnspecifiedSecret) -> bool + 'a>,
             emit_secret_key_stubs: bool,
             mut p: impl Iterator<Item=Packet> + Send + Sync)
             -> impl Iterator<Item=Packet> + Send + Sync
@@ -3585,14 +3584,13 @@ impl<'a> TSK<'a> {
         }
 
         let (cert, filter, emit_secret_key_stubs) = self.decompose();
-        let filter = Arc::new(filter);
         let cert = cert.into_owned();
 
-        rewrite(filter.clone(), emit_secret_key_stubs, cert.primary.into_packets())
+        rewrite(&filter, emit_secret_key_stubs, cert.primary.into_packets())
             .chain(cert.userids.into_iter().flat_map(|b| b.into_packets()))
             .chain(cert.user_attributes.into_iter().flat_map(|b| b.into_packets()))
             .chain(cert.subkeys.into_iter().flat_map(
-                move |b| rewrite(filter.clone(), emit_secret_key_stubs, b.into_packets())))
+                move |b| rewrite(&filter, emit_secret_key_stubs, b.into_packets())))
             .chain(cert.unknowns.into_iter().flat_map(|b| b.into_packets()))
             .chain(cert.bad.into_iter().map(|s| s.into()))
     }
