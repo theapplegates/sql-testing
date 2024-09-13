@@ -854,11 +854,13 @@ impl Ord for SecretKeyMaterial {
             (&SecretKeyMaterial::Unknown{ mpis: ref mpis1, rest: ref rest1 }
             ,&SecretKeyMaterial::Unknown{ mpis: ref mpis2, rest: ref rest2 }) => {
                 let o1 = secure_cmp(rest1, rest2);
+                let o2 = mpis1.len().cmp(&mpis2.len());
                 let on = mpis1.iter().zip(mpis2.iter()).map(|(a,b)| {
                     a.cmp(b)
                 }).collect::<Vec<_>>();
 
                 iter::once(o1)
+                    .chain(iter::once(o2))
                     .chain(on.iter().cloned())
                     .fold(Ordering::Equal, |acc, x| acc.then(x))
             }
