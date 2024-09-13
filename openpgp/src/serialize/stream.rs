@@ -2473,7 +2473,7 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
     ///     session key.  Rather than falling back to replying
     ///     unencrypted, one can reuse the original message's session
     ///     key that was encrypted for every recipient and reuse the
-    ///     original [`PKESK`](crate::packet::PKESK)s.
+    ///     original [`PKESK`]s.
     ///
     ///   - Using the encryptor if the session key is transmitted or
     ///     derived using a scheme not supported by Sequoia.
