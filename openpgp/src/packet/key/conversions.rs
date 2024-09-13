@@ -20,6 +20,7 @@ use crate::Result;
 macro_rules! convert {
     ( $x:ident ) => {
         // XXX: This is ugly, but how can we do better?
+        #[allow(clippy::missing_transmute_annotations)]
         unsafe { std::mem::transmute($x) }
     }
 }
@@ -27,6 +28,7 @@ macro_rules! convert {
 macro_rules! convert_ref {
     ( $x:ident ) => {
         // XXX: This is ugly, but how can we do better?
+        #[allow(clippy::missing_transmute_annotations)]
         unsafe { std::mem::transmute($x) }
     }
 }
