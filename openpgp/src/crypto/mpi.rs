@@ -305,13 +305,13 @@ impl Arbitrary for MPI {
 
 impl PartialOrd for MPI {
     fn partial_cmp(&self, other: &MPI) -> Option<Ordering> {
-        Some(self.secure_memcmp(other))
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for MPI {
     fn cmp(&self, other: &MPI) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        self.secure_memcmp(other)
     }
 }
 
@@ -392,13 +392,13 @@ impl From<MPI> for ProtectedMPI {
 
 impl PartialOrd for ProtectedMPI {
     fn partial_cmp(&self, other: &ProtectedMPI) -> Option<Ordering> {
-        Some(self.secure_memcmp(other))
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for ProtectedMPI {
     fn cmp(&self, other: &ProtectedMPI) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        self.secure_memcmp(other)
     }
 }
 
@@ -798,6 +798,12 @@ impl fmt::Debug for SecretKeyMaterial {
 
 impl PartialOrd for SecretKeyMaterial {
     fn partial_cmp(&self, other: &SecretKeyMaterial) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for SecretKeyMaterial {
+    fn cmp(&self, other: &Self) -> Ordering {
         use std::iter;
 
         fn discriminant(sk: &SecretKeyMaterial) -> usize {
@@ -820,9 +826,9 @@ impl PartialOrd for SecretKeyMaterial {
                 let o3 = q1.cmp(q2);
                 let o4 = u1.cmp(u2);
 
-                if o1 != Ordering::Equal { return Some(o1); }
-                if o2 != Ordering::Equal { return Some(o2); }
-                if o3 != Ordering::Equal { return Some(o3); }
+                if o1 != Ordering::Equal { return o1; }
+                if o2 != Ordering::Equal { return o2; }
+                if o3 != Ordering::Equal { return o3; }
                 o4
             }
             (&SecretKeyMaterial::DSA{ x: ref x1 }
@@ -865,13 +871,7 @@ impl PartialOrd for SecretKeyMaterial {
             }
         };
 
-        Some(ret)
-    }
-}
-
-impl Ord for SecretKeyMaterial {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        ret
     }
 }
 
