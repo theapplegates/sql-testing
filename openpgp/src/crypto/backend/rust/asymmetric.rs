@@ -214,7 +214,6 @@ fn rsa_public_key(e: &MPI, n: &MPI) -> Result<RsaPublicKey> {
     Ok(RsaPublicKey::new(n, e)?)
 }
 
-#[allow(clippy::many_single_char_names)]
 fn rsa_private_key(e: &MPI, n: &MPI, p: &ProtectedMPI, q: &ProtectedMPI, d: &ProtectedMPI)
     -> Result<RsaPrivateKey>
 {
@@ -568,7 +567,6 @@ impl<R> Key4<SecretParts, R>
     /// The RSA key will use public exponent `e` and modulo `n`. The key will
     /// have it's creation date set to `ctime` or the current time if `None`
     /// is given.
-    #[allow(clippy::many_single_char_names)]
     pub fn import_secret_rsa<T>(d: &[u8], p: &[u8], q: &[u8], ctime: T)
         -> Result<Self> where T: Into<Option<SystemTime>>
     {

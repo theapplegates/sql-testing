@@ -84,7 +84,6 @@ pub struct CertRevocationBuilder {
 }
 assert_send_and_sync!(CertRevocationBuilder);
 
-#[allow(clippy::new_without_default)]
 impl CertRevocationBuilder {
     /// Returns a new `CertRevocationBuilder`.
     ///
@@ -413,7 +412,6 @@ pub struct SubkeyRevocationBuilder {
 }
 assert_send_and_sync!(SubkeyRevocationBuilder);
 
-#[allow(clippy::new_without_default)]
 impl SubkeyRevocationBuilder {
     /// Returns a new `SubkeyRevocationBuilder`.
     ///
@@ -738,7 +736,6 @@ pub struct UserIDRevocationBuilder {
 }
 assert_send_and_sync!(UserIDRevocationBuilder);
 
-#[allow(clippy::new_without_default)]
 impl UserIDRevocationBuilder {
     /// Returns a new `UserIDRevocationBuilder`.
     ///
@@ -1077,7 +1074,6 @@ pub struct UserAttributeRevocationBuilder {
 }
 assert_send_and_sync!(UserAttributeRevocationBuilder);
 
-#[allow(clippy::new_without_default)]
 impl UserAttributeRevocationBuilder {
     /// Returns a new `UserAttributeRevocationBuilder`.
     ///

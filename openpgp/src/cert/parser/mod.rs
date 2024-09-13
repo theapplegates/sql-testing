@@ -620,7 +620,6 @@ impl<'a> Parse<'a, CertParser<'a>> for CertParser<'a>
     }
 }
 
-#[allow(clippy::should_implement_trait)]
 impl<'a> CertParser<'a> {
     /// Creates a `CertParser` from a `Result<Packet>` iterator.
     ///

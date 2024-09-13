@@ -261,7 +261,6 @@ impl Decryptor for KeyPair {
 
         self.secret().map(|secret| {
             #[allow(non_snake_case)]
-            #[allow(clippy::match_single_binding)]
             match (self.public().mpis(), secret, ciphertext) {
                 (mpi::PublicKey::ECDH { curve: Curve::Cv25519, .. },
                  mpi::SecretKeyMaterial::ECDH { scalar, },

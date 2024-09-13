@@ -531,7 +531,6 @@ pub struct ArbitraryWriter<'a> {
 }
 assert_send_and_sync!(ArbitraryWriter<'_>);
 
-#[allow(clippy::new_ret_no_self)]
 impl<'a> ArbitraryWriter<'a> {
     /// Creates a new writer with the given tag.
     ///

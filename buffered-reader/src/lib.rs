@@ -922,7 +922,6 @@ pub trait BufferedReader<C> : io::Read + fmt::Debug + fmt::Display + Send + Sync
     }
 
     /// Boxes the reader.
-    #[allow(clippy::wrong_self_convention)]
     #[deprecated(note = "Use into_boxed")]
     fn as_boxed<'a>(self) -> Box<dyn BufferedReader<C> + 'a>
         where Self: 'a + Sized

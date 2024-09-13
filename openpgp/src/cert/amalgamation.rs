@@ -1591,7 +1591,6 @@ impl<'a> UserAttributeAmalgamation<'a> {
 }
 
 /// Attests to third-party certifications.
-#[allow(clippy::let_and_return)]
 fn attest_certifications_common<C, S>(hash: Box<dyn Digest>,
                                       old_attestation: Option<Signature>,
                                       primary_signer: &mut dyn Signer,

@@ -27,7 +27,6 @@ macro_rules! convert {
 macro_rules! convert_ref {
     ( $x:ident ) => {
         // XXX: This is ugly, but how can we do better?
-        #[allow(clippy::transmute_ptr_to_ptr)]
         unsafe { std::mem::transmute($x) }
     }
 }

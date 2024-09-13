@@ -50,7 +50,6 @@ impl Cert {
     /// # Ok(())
     /// # }
     /// ```
-    #[allow(clippy::if_same_then_else)]
     pub fn exportable(&self) -> bool {
         let pk = self.primary_key();
 

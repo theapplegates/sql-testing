@@ -120,8 +120,7 @@ assert_send_and_sync!(Field<'_>);
 impl<'a> Field<'a> {
     fn new(map: &'a Map, i: usize) -> Option<Field<'a>> {
         // Synthetic packets have no CTB.
-        #[allow(clippy::len_zero)]
-        let has_ctb = map.header.len() > 0;
+        let has_ctb = ! map.header.is_empty();
 
         // Old-style CTB with indeterminate length emits no length
         // field.

@@ -13,7 +13,6 @@ struct ModeWrapper<M>
     iv: Protected,
 }
 
-#[allow(clippy::new_ret_no_self)]
 impl<M> ModeWrapper<M>
 where
     M: nettle::mode::Mode + Send + Sync + 'static,

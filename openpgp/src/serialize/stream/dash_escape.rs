@@ -33,7 +33,6 @@ pub(super) struct DashEscapeFilter<'a, C: 'a> {
 }
 assert_send_and_sync!(DashEscapeFilter<'_, C> where C);
 
-#[allow(clippy::new_ret_no_self)]
 impl<'a> DashEscapeFilter<'a, Cookie> {
     /// Returns a new filter applying dash-escaping to all lines.
     pub fn new(inner: Message<'a>, cookie: Cookie)

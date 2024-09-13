@@ -650,7 +650,6 @@ fn wsa_cleanup() {
     }
 }
 
-#[allow(clippy::let_and_return)]
 pub(crate) fn new_background_command<S>(program: S) -> Command
 where
     S: AsRef<std::ffi::OsStr>,

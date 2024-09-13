@@ -654,7 +654,6 @@ impl<'a> PacketHeaderParser<'a> {
 
 /// What the hash in the Cookie is for.
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[allow(clippy::upper_case_acronyms)]
 pub(crate) enum HashesFor {
     Nothing,
     MDC,
@@ -1952,7 +1951,6 @@ impl OnePassSig {
 impl_parse_with_buffered_reader!(OnePassSig);
 
 impl OnePassSig3 {
-    #[allow(clippy::blocks_in_if_conditions)]
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         let indent = php.recursion_depth();
         tracer!(TRACE, "OnePassSig3", indent);
@@ -3605,7 +3603,6 @@ impl<'a> std::fmt::Debug for PacketParser<'a> {
 }
 
 /// The return value of PacketParser::parse.
-#[allow(clippy::upper_case_acronyms)]
 enum ParserResult<'a> {
     Success(PacketParser<'a>),
     EOF((Box<dyn BufferedReader<Cookie> + 'a>, PacketParserState, Vec<usize>)),

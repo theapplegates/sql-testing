@@ -2342,7 +2342,6 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
     }
 
     /// Creates the `Decryptor`, and buffers the data up to `buffer_size`.
-    #[allow(clippy::redundant_pattern_matching)]
     fn from_cookie_reader<T>(
         policy: &'a dyn Policy,
         bio: Box<dyn BufferedReader<Cookie> + 'a>,
@@ -2584,7 +2583,6 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
 
     /// Stashes the given Signature (if it is one) for later
     /// verification.
-    #[allow(clippy::single_match)]
     fn push_sig(&mut self, p: Packet) -> Result<()> {
         match p {
             Packet::Signature(sig) => {
@@ -2744,7 +2742,6 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
     }
 
     /// Verifies the signatures.
-    #[allow(clippy::blocks_in_if_conditions)]
     fn verify_signatures(&mut self) -> Result<()> {
         tracer!(TRACE, "Decryptor::verify_signatures", TRACE_INDENT);
         t!("called");

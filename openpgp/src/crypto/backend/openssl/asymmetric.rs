@@ -447,7 +447,6 @@ where
     /// The RSA key will use public exponent `e` and modulo `n`. The key will
     /// have it's creation date set to `ctime` or the current time if `None`
     /// is given.
-    #[allow(clippy::many_single_char_names)]
     pub fn import_secret_rsa<T>(d: &[u8], p: &[u8], q: &[u8], ctime: T) -> Result<Self>
     where
         T: Into<Option<SystemTime>>,
@@ -493,7 +492,6 @@ where
     }
 
     /// Generates a new RSA key with a public modulus of size `bits`.
-    #[allow(clippy::many_single_char_names)]
     pub fn generate_rsa(bits: usize) -> Result<Self> {
         let key = Rsa::generate(bits.try_into()?)?;
         let e = key.e();

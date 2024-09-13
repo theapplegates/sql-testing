@@ -2886,7 +2886,6 @@ impl MarshalInto for Packet {
 /// [`openpgp::Packet`]: super::Packet
 /// [`packet::Signature`]: crate::packet::Signature
 #[allow(dead_code)]
-#[allow(clippy::upper_case_acronyms)]
 enum PacketRef<'a> {
     /// Unknown packet.
     Unknown(&'a packet::Unknown),

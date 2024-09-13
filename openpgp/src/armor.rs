@@ -837,7 +837,6 @@ impl<'a> Reader<'a> {
 
 impl<'a> Reader<'a> {
     /// Consumes the header if not already done.
-    #[allow(clippy::nonminimal_bool)]
     fn initialize(&mut self) -> Result<()> {
         tracer!(TRACE, "armor::Reader::initialize");
         t!("self.initialized is {:?}", self.initialized);
