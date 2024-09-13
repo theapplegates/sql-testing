@@ -753,8 +753,8 @@ impl<'a> CertParser<'a> {
     /// #     Ok(())
     /// # }
     /// ```
-    pub fn unvalidated_cert_filter<F: 'a>(mut self, filter: F) -> Self
-        where F: Send + Sync + Fn(&Cert, bool) -> bool
+    pub fn unvalidated_cert_filter<F>(mut self, filter: F) -> Self
+        where F: 'a + Send + Sync + Fn(&Cert, bool) -> bool
     {
         self.filter.push(Box::new(filter));
         self
