@@ -108,6 +108,8 @@
    - key::SecretKeyMaterial::encrypt_in_place_with
    - key::Unencrypted::encrypt_with
    - The RustCrypto backend now supports OCB.
+   - The Windows CNG backend backend now supports OCB implemented
+     using the OCB implementation from RustCrypto.
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms
