@@ -107,6 +107,7 @@
    - key::SecretKeyMaterial::encrypt_with
    - key::SecretKeyMaterial::encrypt_in_place_with
    - key::Unencrypted::encrypt_with
+   - The RustCrypto backend now supports OCB.
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms
