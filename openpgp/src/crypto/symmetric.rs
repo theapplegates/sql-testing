@@ -533,6 +533,7 @@ mod tests {
     fn roundtrip() {
         use std::io::Cursor;
 
+        #[allow(deprecated)]
         for algo in [SymmetricAlgorithm::TripleDES,
                      SymmetricAlgorithm::CAST5,
                      SymmetricAlgorithm::Blowfish,

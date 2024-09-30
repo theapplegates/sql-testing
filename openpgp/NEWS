@@ -38,6 +38,8 @@
    - Version 4 DSA keys and signatures will be rejected from the
      2030-02-01 on.
    - Version 4 ElGamal keys will be rejected from the 2025-02-01 on.
+   - Version 1 SEIPD packets with IDEA or CAST5 be rejected from the
+     2025-02-01 on.
 
 ** New functionality
    - Fingerprint::V6
@@ -123,6 +125,9 @@
    - SignatureBuilder::set_preferred_aead_algorithms
    - KeyAmalgamationIter::key_handles
    - ValidKeyAmalgamationIter::key_handles
+   - SymmetricAlgorithm::IDEA
+   - SymmetricAlgorithm::TripleDES
+   - SymmetricAlgorithm::CAST5
 
 ** Notable fixes
 

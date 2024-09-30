@@ -6728,6 +6728,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
     }
 
     #[test]
+    #[allow(deprecated)]
     fn different_preferences() -> Result<()> {
         use crate::cert::Preferences;
         let p = &crate::policy::StandardPolicy::new();

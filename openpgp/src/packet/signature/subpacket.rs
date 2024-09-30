@@ -7586,6 +7586,7 @@ fn subpacket_test_1 () {
 }
 
 #[test]
+#[allow(deprecated)]
 fn subpacket_test_2() {
     use crate::Packet;
     use crate::parse::Parse;

@@ -98,6 +98,7 @@ impl From<UnsupportedAlgorithm> for Error {
 impl TryFrom<SymmetricAlgorithm> for (cng::SymmetricAlgorithmId, usize) {
     type Error = UnsupportedAlgorithm;
     fn try_from(value: SymmetricAlgorithm) -> std::result::Result<Self, Self::Error> {
+        #[allow(deprecated)]
         Ok(match value {
             SymmetricAlgorithm::TripleDES => (cng::SymmetricAlgorithmId::TripleDes, 168),
             SymmetricAlgorithm::AES128 => (cng::SymmetricAlgorithmId::Aes, 128),

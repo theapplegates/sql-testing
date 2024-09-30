@@ -83,6 +83,7 @@ impl SymmetricAlgorithm {
     /// Returns whether this algorithm is supported by the crypto backend.
     pub(crate) fn is_supported_by_backend(&self) -> bool {
         use self::SymmetricAlgorithm::*;
+        #[allow(deprecated)]
         match &self {
             TripleDES | CAST5 | Blowfish | AES128 | AES192 | AES256 | Twofish
                 | Camellia128 | Camellia192 | Camellia256
@@ -94,6 +95,7 @@ impl SymmetricAlgorithm {
 
     /// Creates a Nettle context for encrypting in CFB mode.
     pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
+        #[allow(deprecated)]
         match self {
             SymmetricAlgorithm::TripleDES =>
                 Ok(ModeWrapper::new(
@@ -131,6 +133,7 @@ impl SymmetricAlgorithm {
 
     /// Creates a Nettle context for decrypting in CFB mode.
     pub(crate) fn make_decrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
+        #[allow(deprecated)]
         match self {
             SymmetricAlgorithm::TripleDES =>
                 Ok(ModeWrapper::new(
@@ -168,6 +171,7 @@ impl SymmetricAlgorithm {
 
     /// Creates a Nettle context for encrypting in ECB mode.
     pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+        #[allow(deprecated)]
         match self {
             SymmetricAlgorithm::TripleDES => Ok(Box::new(cipher::Des3::with_encrypt_key(key)?)),
             SymmetricAlgorithm::CAST5 => Ok(Box::new(cipher::Cast128::with_encrypt_key(key)?)),
@@ -185,6 +189,7 @@ impl SymmetricAlgorithm {
 
     /// Creates a Nettle context for decrypting in ECB mode.
     pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+        #[allow(deprecated)]
         match self {
             SymmetricAlgorithm::TripleDES => Ok(Box::new(cipher::Des3::with_decrypt_key(key)?)),
             SymmetricAlgorithm::CAST5 => Ok(Box::new(cipher::Cast128::with_decrypt_key(key)?)),
@@ -202,6 +207,7 @@ impl SymmetricAlgorithm {
 }
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
 

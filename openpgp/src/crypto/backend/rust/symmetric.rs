@@ -71,6 +71,7 @@ enum EcbDecrypt {
 macro_rules! impl_block_size {
     ($mode:ident) => {
         fn block_size(&self) -> usize {
+            #[allow(deprecated)]
             match self {
                 $mode::Idea(_) =>
                     <idea::Idea as cipher::BlockSizeUser>::block_size(),
@@ -117,6 +118,7 @@ macro_rules! impl_enc_mode {
                 if missing > 0 {
                     let mut buf = vec![0u8; src.len() + missing];
                     buf[..src.len()].copy_from_slice(src);
+                    #[allow(deprecated)]
                     match self {
                         $mode::Idea(m) => {
                             let blocks = to_blocks(&mut buf);
@@ -166,6 +168,7 @@ macro_rules! impl_enc_mode {
                     dst.copy_from_slice(&buf[..dst.len()]);
                 } else {
                     dst.copy_from_slice(src);
+                    #[allow(deprecated)]
                     match self {
                         $mode::Idea(m) => {
                             let blocks = to_blocks(dst);
@@ -258,6 +261,7 @@ macro_rules! impl_dec_mode {
                 if missing > 0 {
                     let mut buf = vec![0u8; src.len() + missing];
                     buf[..src.len()].copy_from_slice(src);
+                    #[allow(deprecated)]
                     match self {
                         $mode::Idea(m) => {
                             let blocks = to_blocks(&mut buf);
@@ -307,6 +311,7 @@ macro_rules! impl_dec_mode {
                     dst.copy_from_slice(&buf[..dst.len()]);
                 } else {
                     dst.copy_from_slice(src);
+                    #[allow(deprecated)]
                     match self {
                         $mode::Idea(m) => {
                             let blocks = to_blocks(dst);
@@ -386,6 +391,7 @@ macro_rules! make_mode {
 
             use SymmetricAlgorithm::*;
 
+            #[allow(deprecated)]
             match self {
                 IDEA => {
                     let key = GA::try_from_slice(&key)?;
@@ -475,6 +481,7 @@ impl SymmetricAlgorithm {
     /// Returns whether this algorithm is supported by the crypto backend.
     pub(crate) fn is_supported_by_backend(&self) -> bool {
         use SymmetricAlgorithm::*;
+        #[allow(deprecated)]
         match self {
             IDEA => true,
             TripleDES => true,
@@ -500,6 +507,7 @@ impl SymmetricAlgorithm {
 }
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
 

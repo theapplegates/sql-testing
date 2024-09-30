@@ -110,6 +110,7 @@ impl SymmetricAlgorithm {
     }
 
     fn make_cfb_cipher(self) -> Result<&'static CipherRef> {
+        #[allow(deprecated)]
         Ok(match self {
             #[cfg(not(osslconf = "OPENSSL_NO_IDEA"))]
             SymmetricAlgorithm::IDEA => Cipher::idea_cfb64(),
@@ -137,6 +138,7 @@ impl SymmetricAlgorithm {
     }
 
     fn make_ecb_cipher(self) -> Result<&'static CipherRef> {
+        #[allow(deprecated)]
         Ok(match self {
             #[cfg(not(osslconf = "OPENSSL_NO_IDEA"))]
             SymmetricAlgorithm::IDEA => Cipher::idea_ecb(),

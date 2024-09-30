@@ -51,6 +51,7 @@ impl SymmetricAlgorithm {
     /// Returns whether this algorithm is supported by the crypto backend.
     pub(crate) fn is_supported_by_backend(&self) -> bool {
         use self::SymmetricAlgorithm::*;
+        #[allow(deprecated)]
         match &self {
             TripleDES | IDEA | CAST5 | Blowfish |
             AES128 | AES192 | AES256 | Twofish |
@@ -64,6 +65,7 @@ impl SymmetricAlgorithm {
     /// Returns the name of the algorithm for use with Botan's
     /// constructor.
     pub(crate) fn botan_name(self) -> Result<&'static str> {
+        #[allow(deprecated)]
         match self {
             SymmetricAlgorithm::IDEA => Ok("IDEA"),
             SymmetricAlgorithm::TripleDES => Ok("3DES"),
