@@ -1850,6 +1850,16 @@ impl SignatureBuilder {
     fn sign(self, signer: &mut dyn Signer, digest: Vec<u8>)
         -> Result<Signature>
     {
+        // DSA is phased out in RFC9580.
+        #[allow(deprecated)]
+        if matches!(self.sb_version, SBVersion::V6 { .. })
+            && self.fields.pk_algo() == PublicKeyAlgorithm::DSA
+        {
+            return Err(Error::BadSignature(
+                "Version 6 signatures using DSA MUST NOT be created".into())
+                       .into());
+        }
+
         let mpis = signer.sign(self.hash_algo, &digest)?;
         let v4 = Signature4 {
             common: Default::default(),
@@ -2902,6 +2912,14 @@ impl Signature {
                 format!("Salt of size {} bytes is wrong, expected {} bytes ",
                         self.salt().map(|s| s.len()).unwrap_or(0),
                         self.hash_algo().salt_size()?)).into());
+        }
+
+        // DSA is phased out in RFC9580.
+        #[allow(deprecated)]
+        if self.version() == 6 && self.pk_algo() == PublicKeyAlgorithm::DSA {
+            return Err(Error::BadSignature(
+                "Version 6 signatures using DSA MUST be rejected".into())
+                       .into());
         }
 
         if let Some(creation_time) = self.signature_creation_time() {
@@ -4114,6 +4132,7 @@ mod test {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn verify_v3_sig() {
         if ! PublicKeyAlgorithm::DSA.is_supported() {
             return;
@@ -4247,6 +4266,7 @@ mod test {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn timestamp_signature() {
         if ! PublicKeyAlgorithm::DSA.is_supported() {
             eprintln!("Skipping test, algorithm is not supported.");

@@ -502,6 +502,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn decrypt_elgamal() -> Result<()> {
         if ! (PublicKeyAlgorithm::DSA.is_supported()
               && PublicKeyAlgorithm::ElGamalEncrypt.is_supported()) {

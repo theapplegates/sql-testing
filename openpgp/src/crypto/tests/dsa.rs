@@ -6,6 +6,7 @@ use crate::packet::{prelude::*, signature::subpacket::*};
 use crate::types::*;
 
 #[test]
+#[allow(deprecated)]
 fn fips_186_3() -> Result<()> {
     if ! PublicKeyAlgorithm::DSA.is_supported() {
         eprintln!("Skipping because DSA is not supported.");

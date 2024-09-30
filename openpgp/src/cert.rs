@@ -6494,6 +6494,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
     }
 
     #[test]
+    #[allow(deprecated)]
     fn canonicalize_with_v3_sig() -> Result<()> {
         if ! crate::types::PublicKeyAlgorithm::DSA.is_supported() {
             eprintln!("Skipping because DSA is not supported");
@@ -7488,6 +7489,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
 
     /// Tests v3 binding signatures.
     #[test]
+    #[allow(deprecated)]
     fn v3_binding_signature() -> Result<()> {
         if ! crate::types::PublicKeyAlgorithm::DSA.is_supported() {
             eprintln!("Skipping because DSA is not supported");

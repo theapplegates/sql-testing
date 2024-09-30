@@ -1938,6 +1938,7 @@ mod test {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn select_supported() -> crate::Result<()> {
         use crate::types::PublicKeyAlgorithm;
         if ! PublicKeyAlgorithm::DSA.is_supported()

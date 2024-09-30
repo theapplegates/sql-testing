@@ -34,6 +34,10 @@
    - key::Encrypted::decrypt now takes a &Key.
    - key::Unencrypted::encrypt now takes a &Key.
 
+** Policy changes
+   - Version 4 DSA keys and signatures will be rejected from the
+     2030-02-01 on.
+
 ** New functionality
    - Fingerprint::V6
    - KeyID::Long
