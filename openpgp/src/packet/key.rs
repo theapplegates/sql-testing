@@ -1496,6 +1496,7 @@ impl<R> Key4<SecretParts, R>
 
         Self::with_secret(
             crate::now(),
+            #[allow(deprecated)]
             PublicKeyAlgorithm::ElGamalEncrypt,
             public_mpis,
             private_mpis.into())

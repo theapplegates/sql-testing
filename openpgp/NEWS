@@ -37,6 +37,7 @@
 ** Policy changes
    - Version 4 DSA keys and signatures will be rejected from the
      2030-02-01 on.
+   - Version 4 ElGamal keys will be rejected from the 2025-02-01 on.
 
 ** New functionality
    - Fingerprint::V6
