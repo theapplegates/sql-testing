@@ -117,6 +117,8 @@
    - The RustCrypto backend now supports OCB.
    - The Windows CNG backend backend now supports OCB implemented
      using the OCB implementation from RustCrypto.
+   - Packet::is_critical
+   - Tag::is_critical
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms
