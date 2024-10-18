@@ -232,16 +232,16 @@ pub enum Error {
     #[error("Protocol violation")]
     ProtocolViolation,
     /// Encountered an unexpected low-level http status.
-    #[error("Error communicating with server")]
+    #[error("server returned status {0}")]
     HttpStatus(hyper::StatusCode),
     /// A `hyper::error::UrlError` occurred.
-    #[error("URL Error")]
+    #[error(transparent)]
     UrlError(#[from] url::ParseError),
     /// A `http::Error` occurred.
-    #[error("http Error")]
+    #[error(transparent)]
     HttpError(#[from] http::Error),
     /// A `hyper::Error` occurred.
-    #[error("Hyper Error")]
+    #[error(transparent)]
     HyperError(#[from] hyper::Error),
 
     /// wkd errors:
