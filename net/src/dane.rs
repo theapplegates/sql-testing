@@ -233,10 +233,15 @@ fn generate_<'a>(cert: &ValidCert<'a>, fqdn: &str, ttl: Option<Duration>,
             for uidb in vcert.userids() {
                 acc.push(uidb.userid().clone().into());
                 match uidb.revocation_status() {
-                    | RevocationStatus::Revoked(revs)
-                    | RevocationStatus::CouldBe(revs) => {
+                    RevocationStatus::Revoked(revs) => {
                         revs.iter()
                             .for_each(|&s| acc.push(s.clone().into()));
+                    },
+                    RevocationStatus::CouldBe(revs) => {
+                        revs.iter()
+                            .for_each(|&s| acc.push(s.clone().into()));
+                        uidb.signatures()
+                            .for_each(|s| acc.push(s.clone().into()));
                     },
                     RevocationStatus::NotAsFarAsWeKnow => {
                         uidb.signatures()
@@ -248,10 +253,15 @@ fn generate_<'a>(cert: &ValidCert<'a>, fqdn: &str, ttl: Option<Duration>,
             for skb in vcert.keys().subkeys() {
                 acc.push(skb.key().clone().into());
                 match skb.revocation_status() {
-                    | RevocationStatus::Revoked(revs)
-                    | RevocationStatus::CouldBe(revs) => {
+                    RevocationStatus::Revoked(revs) => {
                         revs.iter()
                             .for_each(|&s| acc.push(s.clone().into()));
+                    },
+                    RevocationStatus::CouldBe(revs) => {
+                        revs.iter()
+                            .for_each(|&s| acc.push(s.clone().into()));
+                        skb.signatures()
+                            .for_each(|s| acc.push(s.clone().into()));
                     },
                     RevocationStatus::NotAsFarAsWeKnow => {
                         skb.signatures()
