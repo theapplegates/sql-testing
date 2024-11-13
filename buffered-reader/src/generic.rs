@@ -60,7 +60,7 @@ impl<T: io::Read + Send + Sync, C: fmt::Debug + Sync + Send> fmt::Debug for Gene
 
 impl<T: io::Read + Send + Sync> Generic<T, ()> {
     /// Instantiate a new generic reader.  `reader` is the source to
-    /// wrap.  `preferred_chuck_size` is the preferred chuck size.  If
+    /// wrap.  `preferred_chunk_size` is the preferred chunk size.  If
     /// None, then the default will be used, which is usually what you
     /// want.
     pub fn new(reader: T, preferred_chunk_size: Option<usize>) -> Self {
