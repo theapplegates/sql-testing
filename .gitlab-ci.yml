@@ -13,8 +13,7 @@ fuzzing:
   image: jampot.sequoia-pgp.org/sequoia-pgp/build-docker-image/trixie-prebuild
   stage: pre-check
   before_script:
-    - !reference [.before_script, start]
-    - !reference [.before_script, end]
+    - !reference [.before_script, defaults]
   script:
     - cargo check --manifest-path openpgp/Cargo.toml --no-default-features --features crypto-fuzzing,compression,allow-experimental-crypto,allow-variable-time-crypto
     - if ! git diff --quiet Cargo.lock ; then echo "Cargo.lock changed.  Please add the change to the corresponding commit." ; git diff ; false ; fi
@@ -28,8 +27,7 @@ doc:
   image: jampot.sequoia-pgp.org/sequoia-pgp/build-docker-image/trixie-prebuild
   stage: build
   before_script:
-    - !reference [.before_script, start]
-    - !reference [.before_script, end]
+    - !reference [.before_script, defaults]
   script:
     - cargo doc --document-private-items --no-deps
   after_script:
