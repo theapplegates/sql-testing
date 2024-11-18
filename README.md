@@ -122,32 +122,6 @@ To build all Sequoia components, simply execute `cargo build
 e.g. to build `sq`, run `cargo build [--release] -p sequoia-sq`, or
 build `sequoia-openpgp-ffi` to build a shared object with the C API.
 
-Using Docker
-------------
-
-The command line tool `sq` can also be built using Docker:
-
-```shell
-$ docker build -t sq .
-$ docker run --rm -i sq --help
-```
-
-For example retrieving a certificate and inspecting its contents:
-
-```shell
-$ docker run --rm -i sq keyserver get 653909A2F0E37C106F5FAF546C8857E0D8E8F074 > cert.asc
-$ docker run --rm -i sq packet dump < cert.asc
-```
-
-A current build of the docker image is available from the gitlab registry.
-Rename it to `sq` locally so that it matches the above commands and for convenience.
-
-```shell
-$ docker pull registry.gitlab.com/sequoia-pgp/sequoia:latest
-$ docker tag registry.gitlab.com/sequoia-pgp/sequoia:latest sq
-$ docker run --rm -i sq --help
-```
-
 ## Requirements and MSRV
 
 The minimum supported Rust version (MSRV) is 1.67.  Sequoia aims to always be
