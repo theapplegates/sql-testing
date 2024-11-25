@@ -1632,26 +1632,26 @@ impl<'a, H: VerificationHelper> DetachedVerifier<'a, H> {
     /// Verifies the given data.
     pub fn verify_reader<R: io::Read + Send + Sync>(&mut self, reader: R) -> Result<()> {
         self.verify(buffered_reader::Generic::with_cookie(
-            reader, None, Default::default()).into_boxed())
+            reader, None, Default::default()))
     }
 
     /// Verifies the given data.
     pub fn verify_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         self.verify(buffered_reader::File::with_cookie(
-            path, Default::default())?.into_boxed())
+            path, Default::default())?)
     }
 
     /// Verifies the given data.
     pub fn verify_bytes<B: AsRef<[u8]>>(&mut self, buf: B) -> Result<()> {
         self.verify(buffered_reader::Memory::with_cookie(
-            buf.as_ref(), Default::default()).into_boxed())
+            buf.as_ref(), Default::default()))
     }
 
     /// Verifies the given data.
     fn verify<R>(&mut self, reader: R) -> Result<()>
         where R: BufferedReader<Cookie>,
     {
-        self.decryptor.verify_detached(reader)
+        self.decryptor.verify_detached(reader.into_boxed())
     }
 
     /// Returns a reference to the helper.
@@ -2538,8 +2538,9 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
     }
 
     /// Verifies the given data in detached verification mode.
-    fn verify_detached<D>(&mut self, data: D) -> Result<()>
-        where D: BufferedReader<Cookie>
+    fn verify_detached<'d>(&mut self,
+                           data: Box<dyn BufferedReader<Cookie> + 'd>)
+                           -> Result<()>
     {
         assert_eq!(self.mode, Mode::VerifyDetached);
 
