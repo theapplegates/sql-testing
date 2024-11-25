@@ -4,6 +4,9 @@
 #+STARTUP: content hidestars
 
 
+* Changes in 1.22.0
+** New functionality
+   - DetachedVerifier::verify_buffered_reader
 * Changes in 1.21.2
 ** Notable fixes
    - A set of constructors for KeyFlags added in 1.21.0 mistakenly
