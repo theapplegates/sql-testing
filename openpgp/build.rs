@@ -7,7 +7,7 @@ use std::process::exit;
 fn main() {
     crypto_backends_sanity_check();
     include_openssl_conf();
-    lalrpop::process_root().unwrap();
+    lalrpop::Configuration::new().use_cargo_dir_conventions().process().unwrap();
     include_test_data().unwrap();
 }
 
