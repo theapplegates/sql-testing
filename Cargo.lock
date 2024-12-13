@@ -2728,7 +2728,7 @@ dependencies = [
 
 [[package]]
 name = "sequoia-openpgp"
-version = "1.21.2"
+version = "1.22.0"
 dependencies = [
  "aes",
  "aes-gcm",
