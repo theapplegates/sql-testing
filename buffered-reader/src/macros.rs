@@ -130,6 +130,7 @@ pub(crate) trait Syncable : Sync {}
 /// public.  We test the cases here, instead.  If you change the
 /// examples here, propagate the changes to the docstring above.
 #[cfg(test)]
+#[allow(dead_code)]
 mod test {
     /// For most types just call it after defining the type:
     pub struct MyStruct {}
