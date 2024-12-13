@@ -55,7 +55,7 @@ openssl = { version = "0.10.55", optional = true }
 openssl-sys = { version = "0.9.90", optional = true }
 
 # Botan.
-botan = { version = "0.10.6", optional = true }
+botan = { version = ">= 0.10.6, < 0.12", optional = true }
 
 # RustCrypto crates.
 aes = { version = "0.8", optional = true, features = ["zeroize"] }
