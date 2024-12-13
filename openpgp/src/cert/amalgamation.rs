@@ -1484,7 +1484,8 @@ impl<'a> UserIDAmalgamation<'a> {
             .ok()
             .and_then(|v| v.attestation_key_signatures().next().cloned());
 
-        attest_certifications_common(hash, old, primary_signer, certifications)
+        attest_certifications_common(hash, old, time, primary_signer,
+                                     certifications)
     }
 
     /// Attests to third-party certifications.
@@ -1566,7 +1567,8 @@ impl<'a> UserAttributeAmalgamation<'a> {
             .ok()
             .and_then(|v| v.attestation_key_signatures().next().cloned());
 
-        attest_certifications_common(hash, old, primary_signer, certifications)
+        attest_certifications_common(hash, old, time, primary_signer,
+                                     certifications)
     }
 
     /// Attests to third-party certifications.
@@ -1593,6 +1595,7 @@ impl<'a> UserAttributeAmalgamation<'a> {
 /// Attests to third-party certifications.
 fn attest_certifications_common<C, S>(hash: Box<dyn Digest>,
                                       old_attestation: Option<Signature>,
+                                      time: Option<SystemTime>,
                                       primary_signer: &mut dyn Signer,
                                       certifications: C)
                                       -> Result<Vec<Signature>>
@@ -1603,6 +1606,9 @@ where C: IntoIterator<Item = S>,
         packet::signature::{SignatureBuilder, subpacket::SubpacketArea},
         serialize::MarshalInto,
     };
+
+    // Fix the time.
+    let now = time.unwrap_or_else(crate::now);
 
     let hash_algo = hash.algo();
     let digest_size = hash.digest_size();
@@ -1622,7 +1628,8 @@ where C: IntoIterator<Item = S>,
     // our signatures to be newer than any existing signatures.  Do so
     // by using the old attestation as template.
     let template = if let Some(old) = old_attestation {
-        let mut s: SignatureBuilder = old.into();
+        let mut s = SignatureBuilder::from(old)
+            .set_reference_time(now);
         s.hashed_area_mut().clear();
         s.unhashed_area_mut().clear();
         s
@@ -1631,7 +1638,6 @@ where C: IntoIterator<Item = S>,
         // override it.
         use crate::packet::signature::SIG_BACKDATE_BY;
 
-        let now = crate::now();
         let mut creation_time =
             now - time::Duration::new(SIG_BACKDATE_BY, 0);
 

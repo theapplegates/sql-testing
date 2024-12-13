@@ -7,6 +7,12 @@
 * Changes in 1.22.0
 ** New functionality
    - DetachedVerifier::verify_buffered_reader
+** Notable fixes
+   - UserIdAmalgamation::attest_certifications2,
+     UserAttributeAmalgamation::attest_certifications2,
+     ValidUserIdAmalgamation::attest_certifications, and
+     ValidUserAttributeAmalgamation::attest_certifications now
+     correctly set the creation time of newly created signatures.
 * Changes in 1.21.2
 ** Notable fixes
    - A set of constructors for KeyFlags added in 1.21.0 mistakenly
