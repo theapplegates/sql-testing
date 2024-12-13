@@ -250,12 +250,12 @@ macro_rules! create_part_conversions {
             }
 
             /// Changes the key's parts tag to `UnspecifiedParts`.
-            pub fn parts_as_unspecified(&$($l)* self) -> &$Key<$($l, )* UnspecifiedParts, $($g, )*> {
+            pub fn parts_as_unspecified(&$($l)* self) -> &$($l)* $Key<$($l, )* UnspecifiedParts, $($g, )*> {
                 convert_ref!(self)
             }
 
             /// Changes the key's parts tag to `UnspecifiedParts`.
-            pub fn parts_as_unspecified_mut(&$($l)* mut self) -> &mut $Key<$($l, )* UnspecifiedParts, $($g, )*> {
+            pub fn parts_as_unspecified_mut(&$($l)* mut self) -> &$($l)* mut $Key<$($l, )* UnspecifiedParts, $($g, )*> {
                 convert_ref!(self)
             }
         }
