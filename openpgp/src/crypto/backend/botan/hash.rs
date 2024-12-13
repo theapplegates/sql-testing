@@ -90,13 +90,13 @@ impl HashAlgorithm {
     }
 }
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn is_supported() {
-        for h in (0..256).iter().map(HashAlgorithm::from) {
+        for h in (0..=255).into_iter().map(HashAlgorithm::from) {
             assert_eq!(h.is_supported(), h.context().is_ok());
         }
     }
