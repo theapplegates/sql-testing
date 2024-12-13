@@ -3025,7 +3025,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> io::Read for Decryptor<'a, H>
 }
 
 #[cfg(test)]
-pub mod test {
+pub(crate) mod test {
     use std::io::Read;
     use super::*;
     use std::convert::TryFrom;
@@ -3036,6 +3036,7 @@ pub mod test {
         crypto::Password,
     };
 
+    /// Verification helper for the tests.
     #[derive(Clone, PartialEq)]
     pub struct VHelper {
         good: usize,
@@ -3078,6 +3079,7 @@ pub mod test {
     }
 
     impl VHelper {
+        /// Creates a new verification helper.
         pub fn new(good: usize, unknown: usize, bad: usize, error: usize,
                    certs: Vec<Cert>)
                    -> Self {
@@ -3094,6 +3096,7 @@ pub mod test {
             }
         }
 
+        /// Creates a new decryption helper.
         pub fn for_decryption(good: usize, unknown: usize, bad: usize,
                               error: usize,
                               certs: Vec<Cert>,
