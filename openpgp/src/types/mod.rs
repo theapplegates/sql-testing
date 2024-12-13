@@ -68,7 +68,9 @@ mod timestamp;
 pub use timestamp::{Timestamp, Duration};
 pub(crate) use timestamp::normalize_systemtime;
 
+#[allow(dead_code)] // Used in assert_send_and_sync.
 pub(crate) trait Sendable : Send {}
+#[allow(dead_code)] // Used in assert_send_and_sync.
 pub(crate) trait Syncable : Sync {}
 
 /// The OpenPGP public key algorithms as defined in [Section 9.1 of
