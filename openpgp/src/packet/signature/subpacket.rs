@@ -4224,9 +4224,8 @@ impl signature::SignatureBuilder {
     ///
     /// When creating a signature using a SignatureBuilder or the
     /// [streaming `Signer`], it is not necessary to explicitly set
-    /// this subpacket: those functions automatically set both the
-    /// [Issuer Fingerprint subpacket] and the Issuer subpacket, if
-    /// they have not been set explicitly.
+    /// this subpacket: those functions automatically set the
+    /// signature creation time, if it has not been set explicitly.
     ///
     /// [Signature Creation Time subpacket]: https://tools.ietf.org/html/rfc4880#section-5.2.3.4
     /// [streaming `Signer`]: crate::serialize::stream::Signer
