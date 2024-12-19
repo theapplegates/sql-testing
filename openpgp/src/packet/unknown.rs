@@ -185,7 +185,6 @@ impl std::convert::TryFrom<Packet> for Unknown {
     /// if the given packet is a container packet (i.e. a compressed
     /// data packet or an encrypted data packet of any kind).
     fn try_from(p: Packet) -> std::result::Result<Self, Self::Error> {
-        use std::ops::Deref;
         use packet::{Any, Body, Common, Container};
         use crate::serialize::MarshalInto;
 
@@ -213,7 +212,7 @@ impl std::convert::TryFrom<Packet> for Unknown {
         }
 
         // Now we copy the common bits that we'll need.
-        let common = p.deref().clone();
+        let common = p.common().clone();
 
         fn convert<V>(tag: Tag, common: Common, body: V)
                       -> Result<Unknown, crate::Error>

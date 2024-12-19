@@ -443,10 +443,9 @@ impl Packet {
 }
 
 // Allow transparent access of common fields.
-impl Deref for Packet {
-    type Target = Common;
-
-    fn deref(&self) -> &Self::Target {
+impl Packet {
+    /// Returns a reference to the packet's `Common` struct.
+    fn common(&self) -> &Common {
         match self {
             Packet::Unknown(ref packet) => &packet.common,
             Packet::Signature(ref packet) => &packet.common,
@@ -468,33 +467,6 @@ impl Deref for Packet {
             #[allow(deprecated)]
             Packet::MDC(ref packet) => &packet.common,
             Packet::AED(AED::V1(packet)) => &packet.common,
-        }
-    }
-}
-
-impl DerefMut for Packet {
-    fn deref_mut(&mut self) -> &mut Common {
-        match self {
-            Packet::Unknown(ref mut packet) => &mut packet.common,
-            Packet::Signature(ref mut packet) => &mut packet.common,
-            Packet::OnePassSig(ref mut packet) => &mut packet.common,
-            Packet::PublicKey(ref mut packet) => &mut packet.common,
-            Packet::PublicSubkey(ref mut packet) => &mut packet.common,
-            Packet::SecretKey(ref mut packet) => &mut packet.common,
-            Packet::SecretSubkey(ref mut packet) => &mut packet.common,
-            Packet::Marker(ref mut packet) => &mut packet.common,
-            Packet::Trust(ref mut packet) => &mut packet.common,
-            Packet::UserID(ref mut packet) => &mut packet.common,
-            Packet::UserAttribute(ref mut packet) => &mut packet.common,
-            Packet::Literal(ref mut packet) => &mut packet.common,
-            Packet::CompressedData(ref mut packet) => &mut packet.common,
-            Packet::PKESK(ref mut packet) => &mut packet.common,
-            Packet::SKESK(SKESK::V4(ref mut packet)) => &mut packet.common,
-            Packet::SKESK(SKESK::V5(ref mut packet)) => &mut packet.skesk4.common,
-            Packet::SEIP(ref mut packet) => &mut packet.common,
-            #[allow(deprecated)]
-            Packet::MDC(ref mut packet) => &mut packet.common,
-            Packet::AED(AED::V1(packet)) => &mut packet.common,
         }
     }
 }
