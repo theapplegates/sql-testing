@@ -1534,10 +1534,10 @@ pub enum SignatureType {
     /// Attestation Key Signature (proposed).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Section 5.2.3.30 of RFC 4880bis] for
+    /// certifications. See [Certification Approval Key Signature] for
     /// details.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [Certification Approval Key Signature]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#name-certification-approval-key-
     AttestationKey,
 
     /// Subkey Binding Signature

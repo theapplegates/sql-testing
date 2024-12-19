@@ -1528,14 +1528,14 @@ impl<'a> UserAttributeAmalgamation<'a> {
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Section 5.2.3.30 of RFC 4880bis] for
+    /// certifications. See [Attested Certification subpacket] for
     /// details.  This can be used to address certificate flooding
     /// concerns.
     ///
     /// A policy is needed, because the expiration is updated by
     /// updating the current binding signatures.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
     ///
     /// # Examples
     ///
@@ -1794,14 +1794,14 @@ impl<'a> ValidUserIDAmalgamation<'a> {
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Section 5.2.3.30 of RFC 4880bis] for
+    /// certifications. See [Attested Certification subpacket] for
     /// details.  This can be used to address certificate flooding
     /// concerns.
     ///
     /// This method only returns signatures that are valid under the
     /// current policy and are attested by the certificate holder.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
     pub fn attested_certifications(&self)
         -> impl Iterator<Item=&Signature> + Send + Sync
     {
@@ -1886,11 +1886,11 @@ impl<'a> ValidUserIDAmalgamation<'a> {
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Section 5.2.3.30 of RFC 4880bis] for
+    /// certifications. See [Attested Certification subpacket] for
     /// details.  This can be used to address certificate flooding
     /// concerns.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
     ///
     /// # Examples
     ///
@@ -1966,14 +1966,14 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Section 5.2.3.30 of RFC 4880bis] for
+    /// certifications. See [Attested Certification subpacket] for
     /// details.  This can be used to address certificate flooding
     /// concerns.
     ///
     /// This method only returns signatures that are valid under the
     /// current policy and are attested by the certificate holder.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
     pub fn attested_certifications(&self)
         -> impl Iterator<Item=&Signature> + Send + Sync
     {
@@ -2058,11 +2058,11 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Section 5.2.3.30 of RFC 4880bis] for
+    /// certifications. See [Attested Certification subpacket] for
     /// details.  This can be used to address certificate flooding
     /// concerns.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
     ///
     /// # Examples
     ///

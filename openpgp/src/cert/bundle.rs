@@ -610,9 +610,9 @@ impl<C> ComponentBundle<C> {
     /// A certificate owner can use Attestation Key Signatures to
     /// attest to third party certifications.  Currently, only userid
     /// and user attribute certifications can be attested.  See
-    /// [Section 5.2.3.30 of RFC 4880bis] for details.
+    /// [Attested Certification subpacket] for details.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
     ///
     /// # Examples
     ///

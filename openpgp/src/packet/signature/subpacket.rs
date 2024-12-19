@@ -7165,10 +7165,9 @@ impl signature::SignatureBuilder {
     /// split the digests into chunks and create multiple attested key
     /// signatures with the same creation time.
     ///
-    /// See [Section 5.2.3.30 of RFC 4880bis] for details.
+    /// See [Attested Certification subpacket] for details.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
-    ///   [Attested Certification subpacket]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
     pub fn set_attested_certifications<A, C>(mut self, certifications: C)
                                              -> Result<Self>
     where C: IntoIterator<Item = A>,

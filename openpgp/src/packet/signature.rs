@@ -3250,7 +3250,7 @@ impl Signature {
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Section 5.2.3.30 of RFC 4880bis] for
+    /// certifications. See [Certification Approval Key Signature] for
     /// details.
     ///
     /// `self` is the attested key signature, `signer` is the key that
@@ -3269,7 +3269,7 @@ impl Signature {
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [Certification Approval Key Signature]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#name-certification-approval-key-
     pub fn verify_userid_attestation<P, Q, R>(
         &self,
         signer: &Key<P, R>,
@@ -3387,7 +3387,7 @@ impl Signature {
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Section 5.2.3.30 of RFC 4880bis] for
+    /// certifications. See [Certification Approval Key Signature] for
     /// details.
     ///
     /// `self` is the attested key signature, `signer` is the key that
@@ -3406,7 +3406,7 @@ impl Signature {
     /// has a subkey binding signature (if appropriate), has the
     /// signing capability, etc.
     ///
-    ///   [Section 5.2.3.30 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-10.html#section-5.2.3.30
+    ///   [Certification Approval Key Signature]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#name-certification-approval-key-
     pub fn verify_user_attribute_attestation<P, Q, R>(
         &self,
         signer: &Key<P, R>,
