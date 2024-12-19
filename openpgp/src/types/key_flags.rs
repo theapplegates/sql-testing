@@ -8,11 +8,9 @@ use crate::types::Bitfield;
 
 /// Describes how a key may be used, and stores additional information.
 ///
-/// Key flags are described in [Section 5.2.3.21 of RFC 4880] and [Section 5.2.3.22
-/// of RFC 4880bis].
+/// Key flags are described in [Section 5.2.3.21 of RFC 4880].
 ///
 /// [Section 5.2.3.21 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.2.3.21
-/// [Section 5.2.3.22 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09#section-5.2.3.22
 ///
 /// # A note on equality
 ///

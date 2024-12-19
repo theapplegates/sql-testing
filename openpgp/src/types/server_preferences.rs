@@ -7,11 +7,9 @@ use crate::types::Bitfield;
 
 /// Describes preferences regarding key servers.
 ///
-/// Key server preferences are specified in [Section 5.2.3.17 of RFC 4880] and
-/// [Section 5.2.3.18 of RFC 4880bis].
+/// Key server preferences are specified in [Section 5.2.3.17 of RFC 4880].
 ///
 /// [Section 5.2.3.17 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.2.3.17
-/// [Section 5.2.3.18 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09#section-5.2.3.18
 ///
 /// The keyserver preferences are set by the user's OpenPGP
 /// implementation to communicate them to any peers.
