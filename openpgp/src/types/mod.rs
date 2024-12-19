@@ -977,9 +977,11 @@ impl SymmetricAlgorithm {
     }
 }
 
-/// The AEAD algorithms as defined in [Section 9.6 of RFC 4880bis].
+/// AEAD modes.
 ///
-///   [Section 9.6 of RFC 4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-05#section-9.6
+/// See [AEAD Algorithms] for details.
+///
+///   [AEAD Algorithms]: https://www.rfc-editor.org/rfc/rfc9580.html#name-aead-algorithms
 ///
 /// The values can be converted into and from their corresponding values of the serialized format.
 ///
@@ -990,8 +992,6 @@ impl SymmetricAlgorithm {
 ///
 /// Note: This enum cannot be exhaustively matched to allow future
 /// extensions.
-///
-/// This feature is [experimental](super#experimental-features).
 ///
 /// # Examples
 ///
