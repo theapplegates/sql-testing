@@ -2869,7 +2869,7 @@ impl NetLength for Packet {
             Packet::SEIP(ref p) => p.net_len(),
             #[allow(deprecated)]
             Packet::MDC(ref p) => p.net_len(),
-            Packet::AED(ref p) => p.net_len(),
+            Packet::AED(AED::V1(p)) => p.net_len(),
         }
     }
 }
@@ -3074,7 +3074,7 @@ impl<'a> NetLength for PacketRef<'a> {
             PacketRef::SKESK(p) => p.net_len(),
             PacketRef::SEIP(p) => p.net_len(),
             PacketRef::MDC(p) => p.net_len(),
-            PacketRef::AED(p) => p.net_len(),
+            PacketRef::AED(AED::V1(p)) => p.net_len(),
         }
     }
 }

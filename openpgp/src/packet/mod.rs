@@ -467,7 +467,7 @@ impl Deref for Packet {
             Packet::SEIP(ref packet) => &packet.common,
             #[allow(deprecated)]
             Packet::MDC(ref packet) => &packet.common,
-            Packet::AED(ref packet) => &packet.common,
+            Packet::AED(AED::V1(packet)) => &packet.common,
         }
     }
 }
@@ -494,7 +494,7 @@ impl DerefMut for Packet {
             Packet::SEIP(ref mut packet) => &mut packet.common,
             #[allow(deprecated)]
             Packet::MDC(ref mut packet) => &mut packet.common,
-            Packet::AED(ref mut packet) => &mut packet.common,
+            Packet::AED(AED::V1(packet)) => &mut packet.common,
         }
     }
 }
@@ -502,27 +502,26 @@ impl DerefMut for Packet {
 impl fmt::Debug for Packet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fn debug_fmt(p: &Packet, f: &mut fmt::Formatter) -> fmt::Result {
-            use Packet::*;
             match p {
-                Unknown(v) => write!(f, "Unknown({:?})", v),
-                Signature(v) => write!(f, "Signature({:?})", v),
-                OnePassSig(v) => write!(f, "OnePassSig({:?})", v),
-                PublicKey(v) => write!(f, "PublicKey({:?})", v),
-                PublicSubkey(v) => write!(f, "PublicSubkey({:?})", v),
-                SecretKey(v) => write!(f, "SecretKey({:?})", v),
-                SecretSubkey(v) => write!(f, "SecretSubkey({:?})", v),
-                Marker(v) => write!(f, "Marker({:?})", v),
-                Trust(v) => write!(f, "Trust({:?})", v),
-                UserID(v) => write!(f, "UserID({:?})", v),
-                UserAttribute(v) => write!(f, "UserAttribute({:?})", v),
-                Literal(v) => write!(f, "Literal({:?})", v),
-                CompressedData(v) => write!(f, "CompressedData({:?})", v),
-                PKESK(v) => write!(f, "PKESK({:?})", v),
-                SKESK(v) => write!(f, "SKESK({:?})", v),
-                SEIP(v) => write!(f, "SEIP({:?})", v),
+                Packet::Unknown(v) => write!(f, "Unknown({:?})", v),
+                Packet::Signature(v) => write!(f, "Signature({:?})", v),
+                Packet::OnePassSig(v) => write!(f, "OnePassSig({:?})", v),
+                Packet::PublicKey(v) => write!(f, "PublicKey({:?})", v),
+                Packet::PublicSubkey(v) => write!(f, "PublicSubkey({:?})", v),
+                Packet::SecretKey(v) => write!(f, "SecretKey({:?})", v),
+                Packet::SecretSubkey(v) => write!(f, "SecretSubkey({:?})", v),
+                Packet::Marker(v) => write!(f, "Marker({:?})", v),
+                Packet::Trust(v) => write!(f, "Trust({:?})", v),
+                Packet::UserID(v) => write!(f, "UserID({:?})", v),
+                Packet::UserAttribute(v) => write!(f, "UserAttribute({:?})", v),
+                Packet::Literal(v) => write!(f, "Literal({:?})", v),
+                Packet::CompressedData(v) => write!(f, "CompressedData({:?})", v),
+                Packet::PKESK(v) => write!(f, "PKESK({:?})", v),
+                Packet::SKESK(v) => write!(f, "SKESK({:?})", v),
+                Packet::SEIP(v) => write!(f, "SEIP({:?})", v),
                 #[allow(deprecated)]
-                MDC(v) => write!(f, "MDC({:?})", v),
-                AED(v) => write!(f, "AED({:?})", v),
+                Packet::MDC(v) => write!(f, "MDC({:?})", v),
+                Packet::AED(AED::V1(v)) => write!(f, "AED({:?})", v),
             }
         }
 
@@ -2039,26 +2038,6 @@ impl AED {
 impl From<AED> for Packet {
     fn from(p: AED) -> Self {
         Packet::AED(p)
-    }
-}
-
-// Trivial forwarder for singleton enum.
-impl Deref for AED {
-    type Target = self::aed::AED1;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            AED::V1(ref p) => p,
-        }
-    }
-}
-
-// Trivial forwarder for singleton enum.
-impl DerefMut for AED {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            AED::V1(ref mut p) => p,
-        }
     }
 }
 

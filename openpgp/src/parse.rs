@@ -5108,7 +5108,7 @@ impl <'a> PacketParser<'a> {
                 set_or_extend(rest, p.deref_mut(), self.processed),
             Packet::SEIP(p) =>
                 set_or_extend(rest, p.deref_mut(), self.processed),
-            Packet::AED(p) =>
+            Packet::AED(AED::V1(p)) =>
                 set_or_extend(rest, p.deref_mut(), self.processed),
             p => {
                 if !rest.is_empty() {

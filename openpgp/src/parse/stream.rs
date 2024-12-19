@@ -118,6 +118,7 @@ use crate::{
     },
     packet::{
         key,
+        AED,
         OnePassSig,
         PKESK,
         SKESK,
@@ -2430,7 +2431,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                 }
             }
 
-            let sym_algo_hint = if let Packet::AED(ref aed) = pp.packet {
+            let sym_algo_hint = if let Packet::AED(AED::V1(aed)) = &pp.packet {
                 Some(aed.symmetric_algo())
             } else {
                 None
@@ -2476,7 +2477,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                     let sym_algo =
                         sym_algo.expect("if we got here, sym_algo is set");
                     v.policy.symmetric_algorithm(sym_algo)?;
-                    if let Packet::AED(ref p) = pp.packet {
+                    if let Packet::AED(AED::V1(p)) = &pp.packet {
                         v.policy.aead_algorithm(p.aead())?;
                     }
 
@@ -2485,7 +2486,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                         pp.packet.tag() == packet::Tag::SEIP
                             && pp.packet.version() == Some(1),
                         sym_algo,
-                        if let Packet::AED(ref p) = pp.packet {
+                        if let Packet::AED(AED::V1(p)) = &pp.packet {
                             Some(p.aead())
                         } else {
                             None
