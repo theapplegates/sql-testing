@@ -564,7 +564,7 @@ impl Arbitrary for Packet {
 
 /// Fields used by multiple packet types.
 #[derive(Default, Debug, Clone)]
-pub struct Common {
+pub(crate) struct Common {
     // In the future, this structure will hold the parsed CTB, packet
     // length, and lengths of chunks of partial body encoded packets.
     // This will allow for bit-perfect roundtripping of parsed
