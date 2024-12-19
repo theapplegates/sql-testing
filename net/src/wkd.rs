@@ -220,7 +220,6 @@ fn parse_body<S: AsRef<str>>(body: &[u8], email_address: S)
 /// # Ok(())
 /// # }
 /// ```
-
 // XXX: Maybe the direct method should be tried on other errors too.
 // https://mailarchive.ietf.org/arch/msg/openpgp/6TxZc2dQFLKXtS0Hzmrk963EteE
 pub async fn get<S: AsRef<str>>(c: &reqwest::Client, email_address: S)
