@@ -31,6 +31,7 @@
    - SubpacketAreas::preferred_aead_ciphersuites
    - SignatureBuilder::set_preferred_aead_ciphersuites
    - Preferences::preferred_aead_ciphersuites
+   - Profile
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms

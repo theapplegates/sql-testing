@@ -199,7 +199,18 @@ fn frozen_time() -> std::time::SystemTime {
 
 /// The version of this crate.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-
+
+/// Profiles select versions of the OpenPGP standard.
+#[derive(Default, Debug, Clone, Copy)]
+pub enum Profile {
+    /// RFC9580, published in 2024, defines "v6" OpenPGP.
+    RFC9580,
+
+    /// RFC4880, published in 2007, defines "v4" OpenPGP.
+    #[default]
+    RFC4880,
+}
+
 /// Crate result specialization.
 pub type Result<T> = ::std::result::Result<T, anyhow::Error>;
 
