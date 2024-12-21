@@ -457,6 +457,66 @@ impl<P, R> Hash for Key<P, R>
     }
 }
 
+/// Writes the appropriate hash prefix for keys.
+///
+/// In RFC9580, the way key packets are hashed depends not on the
+/// version of the key packet, but on the version of the signature
+/// that is being verified or generated.
+///
+/// See [Computing Signatures].
+///
+/// [Computing Signatures]: https://www.rfc-editor.org/rfc/rfc9580.html#name-computing-signatures
+fn write_key_hash_header(header: &mut Vec<u8>,
+                         public_len: usize,
+                         ctx: &Context)
+                         -> Result<()>
+{
+    match ctx.for_signature() {
+        None => Err(crate::Error::InvalidOperation(
+            "cannot hash key without knowing the signature version"
+                .into()).into()),
+
+        Some(3) | Some(4) => {
+            // When a version 4 signature is made over a key, the hash
+            // data starts with the octet 0x99, followed by a 2-octet
+            // length of the key, followed by the body of the key
+            // packet.
+
+            // Note: Reading RFC2440, this is also how keys should be
+            // hashed for version 3 signatures.
+
+            // Tag.
+            header.push(0x99);
+
+            // Length (2 bytes, big endian).
+            header.extend_from_slice(
+                &u16::try_from(public_len)?.to_be_bytes());
+
+            Ok(())
+        },
+
+        Some(6) => {
+            // When a version 6 signature is made over a key, the hash
+            // data starts with the [..] octet 0x9B, followed by a
+            // 4-octet length of the key, followed by the body of the
+            // key packet.
+
+            // Tag.
+            header.push(0x9b);
+
+            // Length (4 bytes, big endian).
+            header.extend_from_slice(
+                &u32::try_from(public_len)?.to_be_bytes());
+
+            Ok(())
+        },
+
+        Some(n) => Err(crate::Error::InvalidOperation(format!(
+            "don't know how to hash key for v{} signatures", n)
+        ).into()),
+    }
+}
+
 impl<P, R> Hash for Key4<P, R>
     where P: key::KeyParts,
           R: key::KeyRole,
@@ -466,16 +526,25 @@ impl<P, R> Hash for Key4<P, R>
 
         // We hash 9 bytes plus the MPIs.  But, the len doesn't
         // include the tag (1 byte) or the length (2 bytes).
-        let len = (9 - 3) + self.mpis().serialized_len() as u16;
+        let len = (9 - 3) + self.mpis().serialized_len();
 
+        // Note: When making a v6 signature over the key, we hash a
+        // four octet length instead of a two octet length.  Reserve
+        // two extra bytes.
+        //
         // XXX: Use SmallVec to avoid heap allocations.
-        let mut header: Vec<u8> = Vec::with_capacity(9);
+        let mut header: Vec<u8> = Vec::with_capacity(9 + 2);
 
-        // Tag.
-        header.push(0x99);
+        // XXX: Sadly, we still cannot return errors here.
+        if let Err(e) = write_key_hash_header(&mut header, len, hash) {
+            // In protest, we mis-compute the digest.
+            let _ = write!(hash, "{}", e);
 
-        // Length (2 bytes, big endian).
-        header.extend_from_slice(&len.to_be_bytes());
+            if cfg!(debug_assertions) {
+                // And complain in debug mode.
+                eprintln!("Key4::hash: {}", e);
+            }
+        }
 
         // Version.
         header.push(4);
@@ -507,16 +576,21 @@ impl<P, R> Hash for Key6<P, R>
 
         // We hash 15 bytes plus the MPIs.  But, the len doesn't
         // include the tag (1 byte) or the length (4 bytes).
-        let len = (15 - 5) + self.mpis().serialized_len() as u32;
+        let len = (15 - 5) + self.mpis().serialized_len();
 
         // XXX: Use SmallVec to avoid heap allocations.
         let mut header: Vec<u8> = Vec::with_capacity(15);
 
-        // Tag.
-        header.push(0x9b);
+        // XXX: Sadly, we still cannot return errors here.
+        if let Err(e) = write_key_hash_header(&mut header, len, hash) {
+            // In protest, we mis-compute the digest.
+            let _ = write!(hash, "{}", e);
 
-        // Length (4 bytes, big endian).
-        header.extend_from_slice(&len.to_be_bytes());
+            if cfg!(debug_assertions) {
+                // And complain in debug mode.
+                eprintln!("Key6::hash: {}", e);
+            }
+        }
 
         // Version.
         header.push(6);

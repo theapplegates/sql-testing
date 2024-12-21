@@ -1617,13 +1617,16 @@ impl<P, R> Key4<P, R>
 
     /// Computes and returns the `Key`'s `Fingerprint`.
     ///
-    /// See [Section 12.2 of RFC 4880].
+    /// See [Key IDs and Fingerprints].
     ///
-    /// [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
+    /// [Key IDs and Fingerprints]: https://www.rfc-editor.org/rfc/rfc9580.html#key-ids-fingerprints
     pub fn fingerprint(&self) -> Fingerprint {
         self.fingerprint.get_or_init(|| {
-            let mut h =
-                HashAlgorithm::SHA1.context().unwrap().for_digest();
+            let mut h = HashAlgorithm::SHA1.context()
+                .expect("SHA1 is MTI for RFC4880")
+            // v4 fingerprints are computed the same way a key is
+            // hashed for v4 signatures.
+                .for_signature(4);
 
             self.hash(&mut h);
 

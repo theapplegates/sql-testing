@@ -378,11 +378,15 @@ where P: KeyParts,
 
     /// Computes and returns the `Key`'s `Fingerprint`.
     ///
-    /// See [Section 12.2 of RFC 4880].
+    /// See [Key IDs and Fingerprints].
     ///
-    /// [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
+    /// [Key IDs and Fingerprints]: https://www.rfc-editor.org/rfc/rfc9580.html#key-ids-fingerprints
     pub fn fingerprint(&self) -> Fingerprint {
-        let mut h = HashAlgorithm::SHA256.context().unwrap().for_digest();
+        let mut h = HashAlgorithm::SHA256.context()
+            .expect("SHA256 is MTI for RFC9580")
+        // v6 fingerprints are computed the same way a key is hashed
+        // for v6 signatures.
+            .for_signature(6);
 
         self.hash(&mut h);
 
