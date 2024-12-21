@@ -144,7 +144,6 @@ use buffered_reader::BufferedReader;
 use crate::{
     crypto::{
         Signer,
-        hash::Digest,
     },
     Error,
     Result,
@@ -7314,9 +7313,6 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
     #[test]
     fn attested_key_signatures_dkgpg() -> Result<()> {
         const DUMP: bool = false;
-        use crate::{
-            crypto::hash::Digest,
-        };
         let p = &crate::policy::StandardPolicy::new();
 
         let test = Cert::from_bytes(crate::tests::key("1pa3pc-dkgpg.pgp"))?;

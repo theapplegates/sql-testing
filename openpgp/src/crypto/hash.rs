@@ -133,10 +133,9 @@ lazy_static::lazy_static! {
 /// Hasher capable of calculating a digest for the input byte stream.
 ///
 /// This provides an abstract interface to the hash functions used in
-/// OpenPGP.  `Digest`s can be are created using [`HashAlgorithm::context`].
-///
-///   [`HashAlgorithm::context`]: crate::types::HashAlgorithm::context()
-pub trait Digest: DynClone + Write + Send + Sync {
+/// OpenPGP.  It is used by the crypto backends to provide a uniform
+/// interface to hash functions.
+pub(crate) trait Digest: DynClone + Write + Send + Sync {
     /// Returns the algorithm.
     fn algo(&self) -> HashAlgorithm;
 
@@ -175,9 +174,40 @@ impl Digest for Box<dyn Digest> {
         self.as_ref().digest_size()
     }
 
-    /// Writes data into the hash function.
     fn update(&mut self, data: &[u8]) {
         self.as_mut().update(data)
+    }
+
+    fn digest(&mut self, digest: &mut [u8]) -> Result<()>{
+        self.as_mut().digest(digest)
+    }
+}
+
+/// A hash algorithm context.
+///
+/// Provides additional metadata for the hashing contexts.  This is
+/// implemented here once, so that the backends don't have to provide
+/// it.
+#[derive(Clone)]
+pub struct Context {
+    /// The underlying bare hash context.
+    ctx: Box<dyn Digest>,
+}
+
+impl Context {
+    /// Returns the algorithm.
+    pub fn algo(&self) -> HashAlgorithm {
+        self.ctx.algo()
+    }
+
+    /// Size of the digest in bytes
+    pub fn digest_size(&self) -> usize {
+        self.ctx.digest_size()
+    }
+
+    /// Writes data into the hash function.
+    pub fn update(&mut self, data: &[u8]) {
+        self.ctx.update(data)
     }
 
     /// Finalizes the hash function and writes the digest into the
@@ -185,12 +215,29 @@ impl Digest for Box<dyn Digest> {
     ///
     /// Resets the hash function contexts.
     ///
-    /// `digest` must be at least [`self.digest_size()`] bytes large,
+    /// `digest` must be at least `self.digest_size()` bytes large,
     /// otherwise the digest will be truncated.
-    ///
-    ///   [`self.digest_size()`]: Box::digest_size()
-    fn digest(&mut self, digest: &mut [u8]) -> Result<()>{
-        self.as_mut().digest(digest)
+    pub fn digest(&mut self, digest: &mut [u8]) -> Result<()>{
+        self.ctx.digest(digest)
+    }
+
+    /// Finalizes the hash function and computes the digest.
+    pub fn into_digest(mut self) -> Result<Vec<u8>>
+        where Self: std::marker::Sized
+    {
+        let mut digest = vec![0u8; self.digest_size()];
+        self.digest(&mut digest)?;
+        Ok(digest)
+    }
+}
+
+impl io::Write for Context {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.ctx.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.ctx.flush()
     }
 }
 
@@ -204,16 +251,20 @@ impl HashAlgorithm {
     /// [`HashAlgorithm::is_supported`].
     ///
     ///   [`HashAlgorithm::is_supported`]: HashAlgorithm::is_supported()
-    pub fn context(self) -> Result<Box<dyn Digest>> {
-        let hasher: Box<dyn Digest> = match self {
+    //#[deprecated]
+    pub fn context(self) -> Result<Context> {
+        let mut hasher: Box<dyn Digest> = match self {
             HashAlgorithm::SHA1 if ! cfg!(feature = "crypto-fuzzing") =>
                 Box::new(crate::crypto::backend::sha1cd::build()),
             _ => self.new_hasher()?,
         };
-        Ok(if let Some(prefix) = DUMP_HASHED_VALUES {
-            Box::new(HashDumper::new(hasher, prefix))
-        } else {
-            hasher
+
+        if let Some(prefix) = DUMP_HASHED_VALUES {
+            hasher = Box::new(HashDumper::new(hasher, prefix))
+        }
+
+        Ok(Context {
+            ctx: hasher,
         })
     }
 
@@ -355,11 +406,11 @@ impl io::Write for HashDumper {
 ///   [`Signature`'s hashing functions]: crate::packet::Signature#hashing-functions
 pub trait Hash {
     /// Updates the given hash with this object.
-    fn hash(&self, hash: &mut dyn Digest);
+    fn hash(&self, hash: &mut Context);
 }
 
 impl Hash for UserID {
-    fn hash(&self, hash: &mut dyn Digest) {
+    fn hash(&self, hash: &mut Context) {
         let len = self.value().len() as u32;
 
         let mut header = [0; 5];
@@ -372,7 +423,7 @@ impl Hash for UserID {
 }
 
 impl Hash for UserAttribute {
-    fn hash(&self, hash: &mut dyn Digest) {
+    fn hash(&self, hash: &mut Context) {
         let len = self.value().len() as u32;
 
         let mut header = [0; 5];
@@ -388,7 +439,7 @@ impl<P, R> Hash for Key<P, R>
     where P: key::KeyParts,
           R: key::KeyRole,
 {
-    fn hash(&self, hash: &mut dyn Digest) {
+    fn hash(&self, hash: &mut Context) {
         match self {
             Key::V4(k) => k.hash(hash),
             Key::V6(k) => k.hash(hash),
@@ -400,7 +451,7 @@ impl<P, R> Hash for Key4<P, R>
     where P: key::KeyParts,
           R: key::KeyRole,
 {
-    fn hash(&self, hash: &mut dyn Digest) {
+    fn hash(&self, hash: &mut Context) {
         use crate::serialize::MarshalInto;
 
         // We hash 9 bytes plus the MPIs.  But, the len doesn't
@@ -440,7 +491,7 @@ impl<P, R> Hash for Key6<P, R>
     where P: key::KeyParts,
           R: key::KeyRole,
 {
-    fn hash(&self, hash: &mut dyn Digest) {
+    fn hash(&self, hash: &mut Context) {
         use crate::serialize::MarshalInto;
 
         // We hash 15 bytes plus the MPIs.  But, the len doesn't
@@ -479,7 +530,7 @@ impl<P, R> Hash for Key6<P, R>
 }
 
 impl Hash for Signature {
-    fn hash(&self, hash: &mut dyn Digest) {
+    fn hash(&self, hash: &mut Context) {
         match self {
             Signature::V3(sig) => sig.hash(hash),
             Signature::V4(sig) => sig.hash(hash),
@@ -488,7 +539,7 @@ impl Hash for Signature {
 }
 
 impl Hash for Signature3 {
-    fn hash(&self, hash: &mut dyn Digest) {
+    fn hash(&self, hash: &mut Context) {
         Self::hash_signature(self, hash);
     }
 }
@@ -498,7 +549,7 @@ impl Signature3 {
     ///
     /// Because we need to call this from SignatureFields::hash, we
     /// provide this as associated method.
-    fn hash_signature(f: &signature::SignatureFields, hash: &mut dyn Digest) {
+    fn hash_signature(f: &signature::SignatureFields, hash: &mut Context) {
         // XXX: Annoyingly, we have no proper way of handling errors
         // here.
 
@@ -525,7 +576,7 @@ impl Signature3 {
 }
 
 impl Hash for Signature4 {
-    fn hash(&self, hash: &mut dyn Digest) {
+    fn hash(&self, hash: &mut Context) {
         Self::hash_signature(self, hash);
     }
 }
@@ -535,7 +586,7 @@ impl Signature4 {
     ///
     /// Because we need to call this from SignatureFields::hash, we
     /// provide this as associated method.
-    fn hash_signature(f: &signature::SignatureFields, mut hash: &mut dyn Digest)
+    fn hash_signature(f: &signature::SignatureFields, mut hash: &mut Context)
     {
         use crate::serialize::{Marshal, MarshalInto};
 
@@ -591,7 +642,7 @@ impl Signature4 {
 }
 
 impl Hash for signature::SignatureFields {
-    fn hash(&self, hash: &mut dyn Digest) {
+    fn hash(&self, hash: &mut Context) {
         match self.version() {
             3 => Signature3::hash_signature(self, hash),
             4 => Signature4::hash_signature(self, hash),
@@ -605,20 +656,20 @@ impl Hash for signature::SignatureFields {
 /// <a id="hashing-functions"></a>
 impl signature::SignatureFields {
     /// Hashes this standalone signature.
-    pub fn hash_standalone(&self, hash: &mut dyn Digest)
+    pub fn hash_standalone(&self, hash: &mut Context)
     {
         self.hash(hash);
     }
 
     /// Hashes this timestamp signature.
-    pub fn hash_timestamp(&self, hash: &mut dyn Digest)
+    pub fn hash_timestamp(&self, hash: &mut Context)
     {
         self.hash_standalone(hash);
     }
 
     /// Hashes this direct key signature over the specified primary
     /// key, and the primary key.
-    pub fn hash_direct_key<P>(&self, hash: &mut dyn Digest,
+    pub fn hash_direct_key<P>(&self, hash: &mut Context,
                               key: &Key<P, key::PrimaryRole>)
         where P: key::KeyParts,
     {
@@ -628,7 +679,7 @@ impl signature::SignatureFields {
 
     /// Hashes this subkey binding over the specified primary key and
     /// subkey, the primary key, and the subkey.
-    pub fn hash_subkey_binding<P, Q>(&self, hash: &mut dyn Digest,
+    pub fn hash_subkey_binding<P, Q>(&self, hash: &mut Context,
                                      key: &Key<P, key::PrimaryRole>,
                                      subkey: &Key<Q, key::SubordinateRole>)
         where P: key::KeyParts,
@@ -641,7 +692,7 @@ impl signature::SignatureFields {
 
     /// Hashes this primary key binding over the specified primary key
     /// and subkey, the primary key, and the subkey.
-    pub fn hash_primary_key_binding<P, Q>(&self, hash: &mut dyn Digest,
+    pub fn hash_primary_key_binding<P, Q>(&self, hash: &mut Context,
                                           key: &Key<P, key::PrimaryRole>,
                                           subkey: &Key<Q, key::SubordinateRole>)
         where P: key::KeyParts,
@@ -652,7 +703,7 @@ impl signature::SignatureFields {
 
     /// Hashes this user ID binding over the specified primary key and
     /// user ID, the primary key, and the userid.
-    pub fn hash_userid_binding<P>(&self, hash: &mut dyn Digest,
+    pub fn hash_userid_binding<P>(&self, hash: &mut Context,
                                   key: &Key<P, key::PrimaryRole>,
                                   userid: &UserID)
         where P: key::KeyParts,
@@ -667,7 +718,7 @@ impl signature::SignatureFields {
     /// attribute.
     pub fn hash_user_attribute_binding<P>(
         &self,
-        hash: &mut dyn Digest,
+        hash: &mut Context,
         key: &Key<P, key::PrimaryRole>,
         ua: &UserAttribute)
         where P: key::KeyParts,
@@ -684,7 +735,7 @@ impl signature::SignatureFields {
 impl Signature {
     /// Hashes this signature for use in a Third-Party Confirmation
     /// signature.
-    pub fn hash_for_confirmation(&self, hash: &mut dyn Digest) {
+    pub fn hash_for_confirmation(&self, hash: &mut Context) {
         match self {
             Signature::V3(s) => s.hash_for_confirmation(hash),
             Signature::V4(s) => s.hash_for_confirmation(hash),
@@ -698,7 +749,7 @@ impl Signature {
 impl Signature4 {
     /// Hashes this signature for use in a Third-Party Confirmation
     /// signature.
-    pub fn hash_for_confirmation(&self, hash: &mut dyn Digest) {
+    pub fn hash_for_confirmation(&self, hash: &mut Context) {
         use crate::serialize::{Marshal, MarshalInto};
         // Section 5.2.4 of RFC4880:
         //
@@ -744,7 +795,6 @@ impl Signature4 {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::Cert;
     use crate::parse::Parse;
 

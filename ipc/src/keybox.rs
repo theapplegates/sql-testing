@@ -8,7 +8,6 @@ use anyhow::Context;
 use buffered_reader::BufferedReader;
 
 use openpgp::cert::Cert;
-use openpgp::crypto::hash::Digest;
 use openpgp::parse::Parse;
 use openpgp::types::HashAlgorithm::SHA1;
 use openpgp::Result;

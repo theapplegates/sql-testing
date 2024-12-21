@@ -638,7 +638,7 @@ pub struct Signer<'a> {
     template: signature::SignatureBuilder,
     creation_time: Option<SystemTime>,
     hash_algo: HashAlgorithm,
-    hashes: Vec<HashingMode<Box<dyn crypto::hash::Digest>>>,
+    hashes: Vec<HashingMode<crypto::hash::Context>>,
     cookie: Cookie,
     position: u64,
 }
@@ -2340,7 +2340,7 @@ where 'b: 'a
     passwords: Vec<Password>,
     sym_algo: SymmetricAlgorithm,
     aead_algo: Option<AEADAlgorithm>,
-    hash: Box<dyn crypto::hash::Digest>,
+    hash: crypto::hash::Context,
     cookie: Cookie,
 }
 assert_send_and_sync!(Encryptor2<'_, '_>);

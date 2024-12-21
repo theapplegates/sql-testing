@@ -8,7 +8,7 @@ use std::time;
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
 
-use crate::crypto::{mpi, hash::{Hash, Digest}};
+use crate::crypto::{mpi, hash::Hash};
 use crate::packet::key::{
     KeyParts,
     KeyRole,

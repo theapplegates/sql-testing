@@ -28,7 +28,6 @@ use std::sync::atomic::Ordering;
 
 use crate::HashAlgorithm;
 use crate::Result;
-use crate::crypto::hash::Digest;
 use crate::packet::Key;
 use crate::packet::Signature;
 use crate::packet::key;

@@ -847,7 +847,7 @@ pub(crate) struct SignatureGroup {
     ops_count: usize,
 
     /// The hash contexts.
-    pub(crate) hashes: Vec<HashingMode<Box<dyn crypto::hash::Digest>>>,
+    pub(crate) hashes: Vec<HashingMode<crypto::hash::Context>>,
 }
 
 impl fmt::Debug for SignatureGroup {
@@ -2112,7 +2112,7 @@ impl OnePassSig3 {
                                 {
                                     if let Ok(ctx) = hash_algo.context() {
                                         cookie.sig_group_mut().hashes.push(
-                                            HashingMode::for_signature(Box::new(ctx), typ)
+                                            HashingMode::for_signature(ctx, typ)
                                         );
                                     }
                                 }
@@ -2276,7 +2276,7 @@ impl PacketParser<'_> {
                             {
                                 cookie.sig_group_mut().hashes.push(
                                     HashingMode::for_signature(
-                                        Box::new(hash_algo.context()?), typ));
+                                        hash_algo.context()?, typ));
                             }
                             break;
                         }

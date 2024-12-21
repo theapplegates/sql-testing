@@ -16,6 +16,9 @@
 ** API changes
    - Fingerprint::V5 removed
    - KeyID::V4 removed
+   - HashAlgorithm::context now returns crypto::hash::Context
+   - crypto::Hash::hash now takes a &mut crypto::hash::Context
+   - crypto::hash::Digest removed
 
 ** New functionality
    - Fingerprint::V6
@@ -62,6 +65,7 @@
    - PublicKeyAlgorithm::X448
    - PublicKeyAlgorithm::Ed25519
    - PublicKeyAlgorithm::Ed448
+   - crypto::hash::Context
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms

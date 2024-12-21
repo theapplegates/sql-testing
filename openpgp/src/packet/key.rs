@@ -89,7 +89,7 @@ use quickcheck::{Arbitrary, Gen};
 
 use crate::Error;
 use crate::cert::prelude::*;
-use crate::crypto::{self, mem::{self, Protected}, mpi, hash::{Hash, Digest}};
+use crate::crypto::{self, mem::{self, Protected}, mpi, hash::Hash};
 use crate::packet;
 use crate::packet::prelude::*;
 use crate::PublicKeyAlgorithm;

@@ -6,7 +6,6 @@ use std::fmt;
 use buffered_reader::BufferedReader;
 use buffered_reader::buffered_reader_generic_read_impl;
 
-use crate::crypto::hash::Digest;
 use crate::parse::{Cookie, HashesFor, Hashing};
 use crate::Result;
 use crate::types::HashAlgorithm;
@@ -118,8 +117,7 @@ impl<T> HashingMode<T> {
     }
 }
 
-impl<D> HashingMode<D>
-    where D: Digest + Clone
+impl HashingMode<crate::crypto::hash::Context>
 {
     /// Updates the given hash context.  When in text mode, normalize
     /// the line endings to "\r\n" on the fly.
@@ -456,7 +454,7 @@ impl<R: BufferedReader<Cookie>>
 ///  [`DetachedVerifier`]: crate::parse::stream::DetachedVerifier
 pub(crate) fn hash_buffered_reader<R>(reader: R,
                                       algos: &[HashingMode<HashAlgorithm>])
-    -> Result<Vec<HashingMode<Box<dyn crate::crypto::hash::Digest>>>>
+    -> Result<Vec<HashingMode<crate::crypto::hash::Context>>>
     where R: BufferedReader<crate::parse::Cookie>,
 {
     let mut reader

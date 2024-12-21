@@ -231,7 +231,7 @@ use std::borrow::Borrow;
 
 use crate::{
     cert::prelude::*,
-    crypto::{Signer, hash::{Hash, Digest}},
+    crypto::{Signer, hash::{self, Hash}},
     Error,
     KeyHandle,
     packet,
@@ -1593,7 +1593,7 @@ impl<'a> UserAttributeAmalgamation<'a> {
 }
 
 /// Attests to third-party certifications.
-fn attest_certifications_common<C, S>(hash: Box<dyn Digest>,
+fn attest_certifications_common<C, S>(hash: hash::Context,
                                       old_attestation: Option<Signature>,
                                       time: Option<SystemTime>,
                                       primary_signer: &mut dyn Signer,

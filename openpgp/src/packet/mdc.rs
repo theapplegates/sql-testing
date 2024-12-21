@@ -93,8 +93,8 @@ impl From<[u8; 20]> for MDC {
     }
 }
 
-impl From<Box<dyn crypto::hash::Digest>> for MDC {
-    fn from(mut hash: Box<dyn crypto::hash::Digest>) -> Self {
+impl From<crypto::hash::Context> for MDC {
+    fn from(mut hash: crypto::hash::Context) -> Self {
         let mut value : [u8; 20] = Default::default();
         let _ = hash.digest(&mut value[..]);
         value.into()

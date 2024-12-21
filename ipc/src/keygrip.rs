@@ -1,4 +1,5 @@
 use std::fmt;
+use std::io::Write;
 
 use sequoia_openpgp as openpgp;
 use openpgp::Error;
@@ -92,7 +93,7 @@ impl Keygrip {
         use self::PublicKey::*;
         let mut hash = HashAlgorithm::SHA1.context().unwrap();
 
-        fn hash_sexp_mpi(hash: &mut dyn hash::Digest, kind: char, mpi: &MPI)
+        fn hash_sexp_mpi(hash: &mut hash::Context, kind: char, mpi: &MPI)
         {
             // gcrypt's MPIs can be signed or unsigned.  Our MPIs are
             // always unsigned (well, for us they are opaque byte
@@ -115,7 +116,7 @@ impl Keygrip {
             hash_sexp(hash, kind, prefix, mpi.value());
         }
 
-        fn hash_sexp(hash: &mut dyn hash::Digest, kind: char, prefix: &[u8],
+        fn hash_sexp(hash: &mut hash::Context, kind: char, prefix: &[u8],
                      buf: &[u8])
         {
             write!(hash, "(1:{}{}:",
@@ -125,7 +126,7 @@ impl Keygrip {
             write!(hash, ")").unwrap();
         }
 
-        fn hash_ecc(hash: &mut dyn hash::Digest, curve: &Curve, q: &MPI)
+        fn hash_ecc(hash: &mut hash::Context, curve: &Curve, q: &MPI)
             -> Result<()>
         {
             for (i, name) in "pabgnhq".chars().enumerate() {

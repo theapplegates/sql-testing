@@ -1,7 +1,7 @@
 //! Low-level RSA tests.
 
 use crate::Result;
-use crate::crypto::{mpi, hash::Digest};
+use crate::crypto::mpi;
 use crate::packet::{prelude::*, signature::subpacket::*};
 use crate::types::*;
 
