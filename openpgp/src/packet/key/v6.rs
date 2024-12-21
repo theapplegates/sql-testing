@@ -382,16 +382,29 @@ where P: KeyParts,
     ///
     /// [Key IDs and Fingerprints]: https://www.rfc-editor.org/rfc/rfc9580.html#key-ids-fingerprints
     pub fn fingerprint(&self) -> Fingerprint {
-        let mut h = HashAlgorithm::SHA256.context()
-            .expect("SHA256 is MTI for RFC9580")
-        // v6 fingerprints are computed the same way a key is hashed
-        // for v6 signatures.
-            .for_signature(6);
+        let fp = self.common.fingerprint.get_or_init(|| {
+            let mut h = HashAlgorithm::SHA256.context()
+                .expect("SHA256 is MTI for RFC9580")
+            // v6 fingerprints are computed the same way a key is
+            // hashed for v6 signatures.
+                .for_signature(6);
 
-        self.hash(&mut h);
+            self.hash(&mut h);
 
-        let digest = h.into_digest().unwrap();
-        Fingerprint::from_bytes(digest.as_slice())
+            let mut digest = [0u8; 32];
+            let _ = h.digest(&mut digest);
+            Fingerprint::V6(digest)
+        });
+
+        // Currently, it could happen that a Key4 has its fingerprint
+        // computed, and is then converted to a Key6.  That is only
+        // possible within this crate, and should not happen.  Assert
+        // that.  The better way to handle this is to have a CommonKey
+        // struct which both Key4 and Key6 use, so that a Key6 does
+        // not start out as a Key4, preventing this issue.
+        debug_assert!(matches!(fp, Fingerprint::V6(_)));
+
+        fp.clone()
     }
 
     /// Computes and returns the `Key`'s `Key ID`.
