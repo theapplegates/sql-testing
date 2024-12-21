@@ -1622,7 +1622,8 @@ impl<P, R> Key4<P, R>
     /// [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
     pub fn fingerprint(&self) -> Fingerprint {
         self.fingerprint.get_or_init(|| {
-            let mut h = HashAlgorithm::SHA1.context().unwrap();
+            let mut h =
+                HashAlgorithm::SHA1.context().unwrap().for_digest();
 
             self.hash(&mut h);
 
@@ -2496,11 +2497,13 @@ mod tests {
             let hash = HashAlgorithm::default();
 
             // Sign.
+            let ctx = hash.context().unwrap().for_signature(key.version());
             let sig = SignatureBuilder::new(SignatureType::Binary)
-                .sign_hash(&mut keypair, hash.context().unwrap()).unwrap();
+                .sign_hash(&mut keypair, ctx).unwrap();
 
             // Verify.
-            sig.verify_hash(&key, hash.context().unwrap()).unwrap();
+            let ctx = hash.context().unwrap().for_signature(key.version());
+            sig.verify_hash(&key, ctx).unwrap();
         }
     }
 
@@ -2935,7 +2938,9 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
                 if for_signing {
                     use crate::crypto::Signer;
                     let hash = HashAlgorithm::default();
-                    let digest = hash.context()?.into_digest()?;
+                    let digest = hash.context()?
+                        .for_signature(pair.public().version())
+                        .into_digest()?;
                     let sig = pair.sign(hash, &digest)?;
                     pair.public().verify(&sig, hash, &digest)?;
                 } else {

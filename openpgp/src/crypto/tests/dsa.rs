@@ -38,7 +38,7 @@ fn fips_186_3() -> Result<()> {
                           g: mpi::MPI::new(g),
                           y: mpi::MPI::new(y),
                       })?.into();
-        let mut h = hash.context()?;
+        let mut h = hash.context()?.for_digest();
         h.update(msg);
         let mut d = h.into_digest()?;
         let sig: Signature =

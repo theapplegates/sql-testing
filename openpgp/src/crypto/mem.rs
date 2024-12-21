@@ -360,7 +360,8 @@ mod has_access_to_prekey {
         /// Computes the sealing key used to encrypt the memory.
         fn sealing_key(salt: &[u8; 32]) -> SessionKey {
             let mut ctx = HASH_ALGO.context()
-                .expect("Mandatory algorithm unsupported");
+                .expect("Mandatory algorithm unsupported")
+                .for_digest();
             ctx.update(salt);
             PREKEY.iter().for_each(|page| ctx.update(page));
             let mut sk: SessionKey = Protected::new(256/8).into();

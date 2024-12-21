@@ -1473,7 +1473,8 @@ impl<'a> UserIDAmalgamation<'a> {
         let time = time.into();
 
         // Hash the components like in a binding signature.
-        let mut hash = HashAlgorithm::default().context()?;
+        let mut hash = HashAlgorithm::default().context()?
+            .for_signature(primary_signer.public().version());
         self.cert().primary_key().hash(&mut hash);
         self.userid().hash(&mut hash);
 
@@ -1556,7 +1557,8 @@ impl<'a> UserAttributeAmalgamation<'a> {
         let time = time.into();
 
         // Hash the components like in a binding signature.
-        let mut hash = HashAlgorithm::default().context()?;
+        let mut hash = HashAlgorithm::default().context()?
+            .for_signature(primary_signer.public().version());
         self.cert().primary_key().hash(&mut hash);
         self.user_attribute().hash(&mut hash);
 
@@ -1615,7 +1617,8 @@ where C: IntoIterator<Item = S>,
 
     let mut attestations = Vec::new();
     for certification in certifications.into_iter() {
-        let mut h = hash_algo.context()?;
+        let mut h = hash_algo.context()?
+            .for_signature(primary_signer.public().version());
         certification.borrow().hash_for_confirmation(&mut h);
         attestations.push(h.into_digest()?);
     }
@@ -1820,7 +1823,8 @@ impl<'a> ValidUserIDAmalgamation<'a> {
 
         self.certifications()
             .filter_map(move |sig| {
-                let mut hash = hash_algo.and_then(|a| a.context().ok())?;
+                let mut hash = hash_algo.and_then(|a| a.context().ok())?
+                    .for_signature(sig.version());
                 sig.hash_for_confirmation(&mut hash);
                 let digest = hash.into_digest().ok()?;
                 if digests.contains(&digest[..]) {
@@ -1992,7 +1996,8 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
 
         self.certifications()
             .filter_map(move |sig| {
-                let mut hash = hash_algo.and_then(|a| a.context().ok())?;
+                let mut hash = hash_algo.and_then(|a| a.context().ok())?
+                    .for_signature(sig.version());
                 sig.hash_for_confirmation(&mut hash);
                 let digest = hash.into_digest().ok()?;
                 if digests.contains(&digest[..]) {

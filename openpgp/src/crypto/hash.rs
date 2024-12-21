@@ -13,7 +13,7 @@
 //! use sequoia_openpgp::types::HashAlgorithm;
 //!
 //! // Create a context and feed data to it.
-//! let mut ctx = HashAlgorithm::SHA512.context()?;
+//! let mut ctx = HashAlgorithm::SHA512.context()?.for_digest();
 //! ctx.update(&b"The quick brown fox jumps over the lazy dog."[..]);
 //!
 //! // Extract the digest.
@@ -223,6 +223,24 @@ impl io::Write for Context {
     }
 }
 
+/// Builds hash contexts.
+pub struct Builder(Context);
+
+impl Builder {
+    /// Returns a hash context for signing and verification of OpenPGP
+    /// signatures.
+    pub fn for_signature(self, _version: u8) -> Context {
+        self.0
+    }
+
+    /// Returns a hash context for general hashing, i.e. not for the
+    /// purpose of signing and verification of OpenPGP signatures
+    pub fn for_digest(self) -> Context {
+        self.0
+    }
+}
+
+
 impl HashAlgorithm {
     /// Creates a new hash context for this algorithm.
     ///
@@ -234,7 +252,7 @@ impl HashAlgorithm {
     ///
     ///   [`HashAlgorithm::is_supported`]: HashAlgorithm::is_supported()
     //#[deprecated]
-    pub fn context(self) -> Result<Context> {
+    pub fn context(self) -> Result<Builder> {
         // Create contexts only for known hashes.
         self.digest_size()?;
 
@@ -248,10 +266,10 @@ impl HashAlgorithm {
             hasher = Box::new(HashDumper::new(hasher, prefix))
         }
 
-        Ok(Context {
+        Ok(Builder(Context {
             algo: self,
             ctx: hasher,
-        })
+        }))
     }
 
     /// Returns the prefix of a serialized `DigestInfo` structure
@@ -783,7 +801,9 @@ mod test {
             let mut userid_sigs = 0;
             for (i, binding) in cert.userids().enumerate() {
                 for selfsig in binding.self_signatures() {
-                    let mut hash = selfsig.hash_algo().context().unwrap();
+                    let mut hash =
+                        selfsig.hash_algo().context().unwrap()
+                        .for_signature(selfsig.version());
                     selfsig.hash_userid_binding(
                         &mut hash,
                         cert.primary_key().key(),
@@ -802,7 +822,9 @@ mod test {
             for (i, a) in cert.user_attributes().enumerate()
             {
                 for selfsig in a.self_signatures() {
-                    let mut hash = selfsig.hash_algo().context().unwrap();
+                    let mut hash =
+                        selfsig.hash_algo().context().unwrap()
+                        .for_signature(selfsig.version());
                     selfsig.hash_user_attribute_binding(
                         &mut hash,
                         cert.primary_key().key(),
@@ -820,7 +842,9 @@ mod test {
             let mut subkey_sigs = 0;
             for (i, binding) in cert.subkeys().enumerate() {
                 for selfsig in binding.self_signatures() {
-                    let mut hash = selfsig.hash_algo().context().unwrap();
+                    let mut hash =
+                        selfsig.hash_algo().context().unwrap()
+                        .for_signature(selfsig.version());
                     selfsig.hash_subkey_binding(
                         &mut hash,
                         cert.primary_key().key(),

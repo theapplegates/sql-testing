@@ -384,7 +384,7 @@ impl OpenPGPRecordV1 {
     pub fn compute_checksum(&self) -> Result<Vec<u8>> {
         let hash_offset = self.data_offset() + self.data_length();
         let (hashed_data, _hash) = &self.bytes.split_at(hash_offset);
-        let mut ctx = SHA1.context()?;
+        let mut ctx = SHA1.context()?.for_digest();
         ctx.update(hashed_data);
         ctx.into_digest()
     }

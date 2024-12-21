@@ -7294,11 +7294,11 @@ fn accessors() {
 
     let pk_algo = PublicKeyAlgorithm::EdDSA;
     let hash_algo = HashAlgorithm::SHA512;
-    let hash = hash_algo.context().unwrap();
     let mut sig = signature::SignatureBuilder::new(crate::types::SignatureType::Binary);
     let mut key: crate::packet::key::SecretKey =
         crate::packet::key::Key4::generate_ecc(true, Curve::Ed25519).unwrap().into();
     let mut keypair = key.clone().into_keypair().unwrap();
+    let hash = hash_algo.context().unwrap().for_signature(key.version());
 
     // Cook up a timestamp without ns resolution.
     use std::convert::TryFrom;
@@ -7477,7 +7477,7 @@ fn accessors() {
         sig.clone().sign_hash(&mut keypair, hash.clone()).unwrap();
     assert_eq!(sig_.features().unwrap(), feats);
 
-    let digest = vec![0; hash_algo.context().unwrap().digest_size()];
+    let digest = vec![0; hash_algo.digest_size().unwrap()];
     sig = sig.set_signature_target(pk_algo, hash_algo, &digest).unwrap();
     let sig_ =
         sig.clone().sign_hash(&mut keypair, hash.clone()).unwrap();
@@ -8159,11 +8159,11 @@ fn issuer_default() -> Result<()> {
     use crate::types::Curve;
 
     let hash_algo = HashAlgorithm::SHA512;
-    let hash = hash_algo.context()?;
     let sig = signature::SignatureBuilder::new(crate::types::SignatureType::Binary);
     let key: crate::packet::key::SecretKey =
         crate::packet::key::Key4::generate_ecc(true, Curve::Ed25519)?.into();
     let mut keypair = key.into_keypair()?;
+    let hash = hash_algo.context()?.for_signature(keypair.public().version());
 
     // no issuer or issuer_fingerprint present, use default
     let sig_ = sig.sign_hash(&mut keypair, hash.clone())?;

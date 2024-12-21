@@ -365,7 +365,8 @@ impl mpi::SecretKeyMaterial {
             let good = match checksum {
                 mpi::SecretKeyChecksum::SHA1 => {
                     // Compute SHA1 hash.
-                    let mut hsh = HashAlgorithm::SHA1.context().unwrap();
+                    let mut hsh = HashAlgorithm::SHA1.context().unwrap()
+                        .for_digest();
                     hsh.update(data);
                     let mut our_chksum = [0u8; 20];
                     let _ = hsh.digest(&mut our_chksum);

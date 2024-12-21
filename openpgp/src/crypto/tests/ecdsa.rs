@@ -34,7 +34,7 @@ fn fips_186_4() -> Result<()> {
                           q: mpi::MPI::new_point(x, y,
                                                  curve.bits().unwrap()),
                       })?.into();
-        let mut h = hash.context()?;
+        let mut h = hash.context()?.for_digest();
         h.update(msg);
         let mut d = h.into_digest()?;
         let sig: Signature =

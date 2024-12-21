@@ -33,7 +33,7 @@ use hickory_resolver::TokioAsyncResolver;
 ///
 /// See: <https://datatracker.ietf.org/doc/html/rfc7929>
 fn generate_fqdn(local: &str, domain: &str) -> Result<String> {
-    let mut ctx = HashAlgorithm::SHA256.context()?;
+    let mut ctx = HashAlgorithm::SHA256.context()?.for_digest();
     ctx.update(local.as_bytes());
 
     let mut digest = vec![0; ctx.digest_size()];

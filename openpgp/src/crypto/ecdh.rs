@@ -173,7 +173,7 @@ pub fn decrypt_unwrap<R>(recipient: &Key<key::PublicParts, R>,
 ///   [Section 7 of RFC 6637]: https://tools.ietf.org/html/rfc6637#section-7
 fn kdf(x: &Protected, obits: usize, hash: HashAlgorithm, param: &[u8])
            -> Result<Protected> {
-    let mut hash = hash.context()?;
+    let mut hash = hash.context()?.for_digest();
     if obits > hash.digest_size() {
         return Err(
             Error::InvalidArgument("Hash digest too short".into()).into());

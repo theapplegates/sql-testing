@@ -911,8 +911,10 @@ mod tests {
             crate::packet::key::Key4::generate_ecc(true, crate::types::Curve::Ed25519)
             .unwrap().into();
         let mut pair = key.clone().into_keypair().unwrap();
+        let ctx =
+            hash.context().unwrap().for_signature(pair.public().version());
         let sig = crate::packet::signature::SignatureBuilder::new(SignatureType::Binary)
-            .sign_hash(&mut pair, hash.context().unwrap()).unwrap();
+            .sign_hash(&mut pair, ctx).unwrap();
 
         // 0: OnePassSig
         // => bad.
@@ -1023,8 +1025,10 @@ mod tests {
             crate::packet::key::Key4::generate_ecc(true, crate::types::Curve::Ed25519)
             .unwrap().into();
         let mut pair = key.clone().into_keypair().unwrap();
+        let ctx =
+            hash.context().unwrap().for_signature(pair.public().version());
         let sig = crate::packet::signature::SignatureBuilder::new(SignatureType::Binary)
-            .sign_hash(&mut pair, hash.context().unwrap()).unwrap();
+            .sign_hash(&mut pair, ctx).unwrap();
 
         // 0: Signature
         // => bad.

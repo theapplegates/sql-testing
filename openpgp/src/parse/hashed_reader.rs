@@ -221,7 +221,11 @@ impl<R: BufferedReader<Cookie>> HashedReader<R> {
 
         for mode in algos {
             let mode = mode.mapf(|algo| {
-                let ctx = algo.context()?;
+                let ctx = algo.context()?
+                // XXX: This is not quite correct, but since this is
+                // only important for hashing keys, which we don't do
+                // in streaming operation, we can get away with it.
+                    .for_digest();
                 Ok(ctx)
             })?;
 
@@ -547,7 +551,8 @@ mod test {
         ] {
             for chunk_size in &[ text.len(), 1 ] {
                 let mut ctx
-                    = HashingMode::Text(HashAlgorithm::SHA256.context()?);
+                    = HashingMode::Text(HashAlgorithm::SHA256.context()?
+                                        .for_digest());
                 for chunk in text.as_bytes().chunks(*chunk_size) {
                     ctx.update(chunk);
                 }

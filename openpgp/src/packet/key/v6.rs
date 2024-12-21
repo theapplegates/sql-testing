@@ -382,7 +382,7 @@ where P: KeyParts,
     ///
     /// [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
     pub fn fingerprint(&self) -> Fingerprint {
-        let mut h = HashAlgorithm::SHA256.context().unwrap();
+        let mut h = HashAlgorithm::SHA256.context().unwrap().for_digest();
 
         self.hash(&mut h);
 

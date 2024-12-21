@@ -1175,7 +1175,8 @@ impl crypto::mpi::SecretKeyMaterial {
         match checksum {
             crypto::mpi::SecretKeyChecksum::SHA1 => {
                 // The checksum is SHA1 over the serialized MPIs.
-                let mut hash = HashAlgorithm::SHA1.context().unwrap();
+                let mut hash =
+                    HashAlgorithm::SHA1.context().unwrap().for_digest();
                 self.serialize(&mut hash)?;
                 let mut digest = [0u8; 20];
                 let _ = hash.digest(&mut digest);

@@ -2017,11 +2017,12 @@ mod tests {
 
         // Add a newer direct key signature.
         use crate::crypto::hash::Hash;
-        let mut hash = HashAlgorithm::SHA512.context()?;
-        cert.primary_key().hash(&mut hash);
         let mut primary_signer =
             cert.primary_key().key().clone().parts_into_secret()?
             .into_keypair()?;
+        let mut hash = HashAlgorithm::SHA512.context()?
+            .for_signature(primary_signer.public().version());
+        cert.primary_key().hash(&mut hash);
         let sig = signature::SignatureBuilder::new(SignatureType::DirectKey)
             .set_signature_creation_time(then)?
             .sign_hash(&mut primary_signer, hash)?;

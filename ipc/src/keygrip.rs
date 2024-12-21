@@ -91,7 +91,8 @@ impl Keygrip {
     pub fn of(key: &PublicKey) -> Result<Keygrip> {
         use openpgp::crypto::hash;
         use self::PublicKey::*;
-        let mut hash = HashAlgorithm::SHA1.context().unwrap();
+        let mut hash =
+            HashAlgorithm::SHA1.context().unwrap().for_digest();
 
         fn hash_sexp_mpi(hash: &mut hash::Context, kind: char, mpi: &MPI)
         {

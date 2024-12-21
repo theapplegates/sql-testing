@@ -133,7 +133,8 @@ fn encode_local_part<S: AsRef<str>>(local_part: S) -> String {
     let local_part = local_part.as_ref();
 
     let mut digest = vec![0; 20];
-    let mut ctx = HashAlgorithm::SHA1.context().expect("must be implemented");
+    let mut ctx = HashAlgorithm::SHA1.context().expect("must be implemented")
+        .for_digest();
     ctx.update(local_part.as_bytes());
     let _ = ctx.digest(&mut digest);
 

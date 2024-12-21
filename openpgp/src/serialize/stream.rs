@@ -1272,7 +1272,8 @@ impl<'a> Signer<'a> {
             }
             let algo = acceptable_hashes[0];
             *signer_hash = algo;
-            let hash = algo.context()?;
+            let hash = algo.context()?
+                .for_signature(keypair.public().version());
 
             match keypair.public().version() {
                 4 => {
@@ -2340,6 +2341,7 @@ where 'b: 'a
     passwords: Vec<Password>,
     sym_algo: SymmetricAlgorithm,
     aead_algo: Option<AEADAlgorithm>,
+    /// For the MDC packet.
     hash: crypto::hash::Context,
     cookie: Cookie,
 }
@@ -2412,7 +2414,7 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
             passwords: Vec::new(),
             sym_algo: Default::default(),
             aead_algo: Default::default(),
-            hash: HashAlgorithm::SHA1.context().unwrap(),
+            hash: HashAlgorithm::SHA1.context().unwrap().for_digest(),
             cookie: Default::default(), // Will be fixed in build.
         }
     }
@@ -2454,7 +2456,7 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
             passwords: passwords.into_iter().map(|p| p.into()).collect(),
             sym_algo: Default::default(),
             aead_algo: Default::default(),
-            hash: HashAlgorithm::SHA1.context().unwrap(),
+            hash: HashAlgorithm::SHA1.context().unwrap().for_digest(),
             cookie: Default::default(), // Will be fixed in build.
         }
     }
@@ -2622,7 +2624,7 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
             passwords: Vec::with_capacity(0),
             sym_algo,
             aead_algo: Default::default(),
-            hash: HashAlgorithm::SHA1.context().unwrap(),
+            hash: HashAlgorithm::SHA1.context().unwrap().for_digest(),
             cookie: Default::default(), // Will be fixed in build.
         })
     }

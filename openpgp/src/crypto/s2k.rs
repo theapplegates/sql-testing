@@ -215,7 +215,7 @@ impl S2K {
             },
             &S2K::Simple { hash } | &S2K::Salted { hash, .. }
             | &S2K::Iterated { hash, .. } => password.map(|string| {
-                let mut hash = hash.context()?;
+                let mut hash = hash.context()?.for_digest();
 
                 // If the digest length is shorter than the key length,
                 // then we need to concatenate multiple hashes, each

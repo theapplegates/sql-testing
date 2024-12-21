@@ -1913,7 +1913,7 @@ impl Subpacket {
                 // roundtrip.  It will never verify, because we don't
                 // know the hash.
                 let digest_size =
-                    hash_algo.context().map(|c| c.digest_size())
+                    hash_algo.context().map(|c| c.for_digest().digest_size())
                     .unwrap_or(len);
 
                 if digest_size == 0 {
@@ -2111,6 +2111,7 @@ impl OnePassSig3 {
                                     })
                                 {
                                     if let Ok(ctx) = hash_algo.context() {
+                                        let ctx = ctx.for_signature(4);
                                         cookie.sig_group_mut().hashes.push(
                                             HashingMode::for_signature(ctx, typ)
                                         );
@@ -2243,6 +2244,13 @@ impl PacketParser<'_> {
                 "Must only be invoked on one-pass-signature packets".into())
             )?;
 
+        let sig_version = match ops.version() {
+            3 => 4,
+            n => return Err(Error::InvalidOperation(
+                format!("don't know how to hash for v{} one pass sig",
+                        n)).into()),
+        };
+
         let hash_algo = ops.hash_algo();
         let typ = ops.typ();
         let need_hash = HashingMode::for_signature(hash_algo, typ);
@@ -2274,9 +2282,12 @@ impl PacketParser<'_> {
                                     mode.map(|ctx| ctx.algo()) == need_hash
                                 })
                             {
+                                let ctx = hash_algo.context()?
+                                    .for_signature(sig_version);
+
                                 cookie.sig_group_mut().hashes.push(
                                     HashingMode::for_signature(
-                                        hash_algo.context()?, typ));
+                                        ctx, typ));
                             }
                             break;
                         }

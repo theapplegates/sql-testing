@@ -73,7 +73,7 @@ fn fips_186_3_verification() -> Result<()> {
                           e: mpi::MPI::new(e),
                           n: mpi::MPI::new(n),
                       })?.into();
-        let mut h = hash.context()?;
+        let mut h = hash.context()?.for_digest();
         h.update(msg);
         let mut d = h.into_digest()?;
         let sig: Signature =

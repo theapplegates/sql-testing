@@ -165,7 +165,7 @@ impl Entry {
         // - Hash algorithm: one byte, the hash algorithm
         // - Digest: HashAlgorithm::len() bytes, the digest's length
         // - Key: variable number of bytes, the key's MPIs
-        let mut context = HASH_ALGO.context()?;
+        let mut context = HASH_ALGO.context()?.for_digest();
 
         // Version.
         context.update(&[ 0u8 ]);
@@ -404,7 +404,8 @@ impl SignatureVerificationCache {
         // Sanity check the constants here: this function is run O(1)
         // times.
 
-        assert_eq!(HASH_ALGO.context().expect("have SHA-512").digest_size(),
+        assert_eq!(HASH_ALGO.context().expect("have SHA-512")
+                   .for_digest().digest_size(),
                    HASH_BYTES_UNTRUNCATED);
         assert!(HASH_BYTES_TRUNCATED <= HASH_BYTES_UNTRUNCATED);
 

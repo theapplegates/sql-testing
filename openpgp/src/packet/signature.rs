@@ -590,7 +590,8 @@ impl SignatureBuilder {
 
         self = self.pre_sign(signer)?;
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_standalone(&mut hash);
         self.sign(signer, hash.into_digest()?)
     }
@@ -703,7 +704,8 @@ impl SignatureBuilder {
 
         self = self.pre_sign(signer)?;
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_timestamp(&mut hash);
         self.sign(signer, hash.into_digest()?)
     }
@@ -831,7 +833,8 @@ impl SignatureBuilder {
 
         self = self.pre_sign(signer)?;
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         let pk = pk.into().unwrap_or_else(|| signer.public().role_as_primary());
         self.hash_direct_key(&mut hash, pk);
 
@@ -976,7 +979,8 @@ impl SignatureBuilder {
 
         let key = key.into().unwrap_or_else(|| signer.public().role_as_primary());
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_userid_binding(&mut hash, key, userid);
         self.sign(signer, hash.into_digest()?)
     }
@@ -1100,7 +1104,8 @@ impl SignatureBuilder {
         self = self.pre_sign(signer)?;
 
         let primary = primary.into().unwrap_or_else(|| signer.public().role_as_primary());
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_subkey_binding(&mut hash, primary, subkey);
         self.sign(signer, hash.into_digest()?)
     }
@@ -1248,7 +1253,8 @@ impl SignatureBuilder {
 
         self = self.pre_sign(subkey_signer)?;
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_primary_key_binding(&mut hash, primary, subkey);
         self.sign(subkey_signer, hash.into_digest()?)
     }
@@ -1388,7 +1394,8 @@ impl SignatureBuilder {
 
         let key = key.into().unwrap_or_else(|| signer.public().role_as_primary());
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_user_attribute_binding(&mut hash, key, ua);
         self.sign(signer, hash.into_digest()?)
     }
@@ -1548,7 +1555,8 @@ impl SignatureBuilder {
         }
 
         // Hash the message
-        let mut hash = self.hash_algo.context()?;
+        let mut hash =
+            self.hash_algo.context()?.for_signature(self.version());
         hash.update(msg.as_ref());
 
         self = self.pre_sign(signer)?;
@@ -2900,7 +2908,8 @@ impl Signature {
 
         // Standalone signatures are like binary-signatures over the
         // zero-sized string.
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_standalone(&mut hash);
         self.verify_digest_internal(key.parts_as_public().role_as_unspecified(),
                                     Some(hash.into_digest()?.into()))
@@ -2929,7 +2938,8 @@ impl Signature {
 
         // Timestamp signatures are like binary-signatures over the
         // zero-sized string.
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_timestamp(&mut hash);
         self.verify_digest_internal(
             key.parts_as_public().role_as_unspecified(),
@@ -2967,7 +2977,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_direct_key(&mut hash, pk);
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
@@ -3005,7 +3016,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_direct_key(&mut hash, pk);
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
@@ -3051,7 +3063,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_subkey_binding(&mut hash, pk, subkey);
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
@@ -3117,7 +3130,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_primary_key_binding(&mut hash, pk, subkey);
         self.verify_digest_internal(
             subkey.parts_as_public().role_as_unspecified(),
@@ -3158,7 +3172,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_subkey_binding(&mut hash, pk, subkey);
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
@@ -3200,7 +3215,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_userid_binding(&mut hash, pk, userid);
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
@@ -3239,7 +3255,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_userid_binding(&mut hash, pk, userid);
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
@@ -3285,7 +3302,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
 
         if self.attested_certifications()?
             .any(|d| d.len() != hash.digest_size())
@@ -3336,7 +3354,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_user_attribute_binding(&mut hash, pk, ua);
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
@@ -3376,7 +3395,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         self.hash_user_attribute_binding(&mut hash, pk, ua);
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
@@ -3422,7 +3442,8 @@ impl Signature {
             return Err(Error::UnsupportedSignatureType(self.typ()).into());
         }
 
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
 
         if self.attested_certifications()?
             .any(|d| d.len() != hash.digest_size())
@@ -3470,7 +3491,8 @@ impl Signature {
         }
 
         // Compute the digest.
-        let mut hash = self.hash_algo().context()?;
+        let mut hash =
+            self.hash_algo().context()?.for_signature(self.version());
         hash.update(msg.as_ref());
         self.hash(&mut hash);
         self.verify_digest_internal(
@@ -3846,7 +3868,7 @@ mod test {
     #[test]
     fn sign_verify() {
         let hash_algo = HashAlgorithm::SHA512;
-        let mut hash = vec![0; hash_algo.context().unwrap().digest_size()];
+        let mut hash = vec![0; hash_algo.digest_size().unwrap()];
         crypto::random(&mut hash);
 
         for key in &[
@@ -3882,13 +3904,15 @@ mod test {
                 .expect("secret key is encrypted/missing");
 
             let sig = SignatureBuilder::new(SignatureType::Binary);
-            let hash = hash_algo.context().unwrap();
+            let hash = hash_algo.context().unwrap()
+                .for_signature(pair.public().version());
 
             // Make signature.
             let sig = sig.sign_hash(&mut pair, hash).unwrap();
 
             // Good signature.
-            let mut hash = hash_algo.context().unwrap();
+            let mut hash = hash_algo.context().unwrap()
+                .for_signature(sig.version());
             sig.hash(&mut hash);
             let mut digest = vec![0u8; hash.digest_size()];
             hash.digest(&mut digest).unwrap();
@@ -3980,7 +4004,8 @@ mod test {
 
         let mut pair = key.into_keypair().unwrap();
         let msg = b"Hello, World";
-        let mut hash = HashAlgorithm::SHA256.context().unwrap();
+        let mut hash = HashAlgorithm::SHA256.context().unwrap()
+            .for_signature(pair.public().version());
 
         hash.update(&msg[..]);
 
@@ -4020,7 +4045,8 @@ mod test {
             = Key4::generate_ecc(true, Curve::Ed25519).unwrap().into();
         let mut pair = key.into_keypair().unwrap();
         let msg = b"Hello, World";
-        let mut hash = HashAlgorithm::SHA256.context().unwrap();
+        let mut hash = HashAlgorithm::SHA256.context().unwrap()
+            .for_signature(pair.public().version());
         hash.update(&msg[..]);
 
         let fp = Fingerprint::from_bytes(b"bbbbbbbbbbbbbbbbbbbb");
@@ -4086,7 +4112,8 @@ mod test {
         let p = Packet::from_bytes(crate::tests::file(
             "contrib/gnupg/timestamp-signature-by-alice.asc")).unwrap();
         if let Packet::Signature(sig) = p {
-            let mut hash = sig.hash_algo().context().unwrap();
+            let mut hash = sig.hash_algo().context().unwrap()
+                .for_signature(sig.version());
             sig.hash_standalone(&mut hash);
             let digest = hash.into_digest().unwrap();
             eprintln!("{}", crate::fmt::hex::encode(&digest));
@@ -4324,7 +4351,8 @@ mod test {
             = Key4::generate_ecc(true, Curve::Ed25519)?.into();
         let mut pair = key.into_keypair()?;
         let msg = b"Hello, World";
-        let mut hash = HashAlgorithm::SHA256.context()?;
+        let mut hash = HashAlgorithm::SHA256.context()?
+            .for_signature(pair.public().version());
         hash.update(&msg[..]);
 
         let fp = pair.public().fingerprint();
