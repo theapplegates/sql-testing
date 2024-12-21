@@ -5,14 +5,6 @@ use crate::types::{HashAlgorithm};
 macro_rules! impl_digest_for {
     ($t: path, $algo: ident) => {
         impl Digest for $t {
-            fn algo(&self) -> crate::types::HashAlgorithm {
-                crate::types::HashAlgorithm::$algo
-            }
-
-            fn digest_size(&self) -> usize {
-                nettle::hash::Hash::digest_size(self)
-            }
-
             fn update(&mut self, data: &[u8]) {
                 nettle::hash::Hash::update(self, data);
             }

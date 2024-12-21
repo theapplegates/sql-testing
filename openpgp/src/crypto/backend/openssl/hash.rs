@@ -8,8 +8,6 @@ use openssl::nid::Nid;
 
 #[derive(Clone)]
 struct OpenSslDigest {
-    digest_size: usize,
-    algo: HashAlgorithm,
     hasher: Hasher,
     update_result: std::result::Result<(), ErrorStack>,
 }
@@ -18,8 +16,6 @@ impl OpenSslDigest {
     fn new(algo: HashAlgorithm) -> Result<Self> {
         if let Some(md) = get_md(algo) {
             Ok(Self {
-                digest_size: md.size(),
-                algo,
                 update_result: Ok(()),
                 hasher: Hasher::new(md)?,
             })
@@ -30,14 +26,6 @@ impl OpenSslDigest {
 }
 
 impl Digest for OpenSslDigest {
-    fn algo(&self) -> HashAlgorithm {
-        self.algo
-    }
-
-    fn digest_size(&self) -> usize {
-        self.digest_size
-    }
-
     fn update(&mut self, data: &[u8]) {
         if self.update_result.is_ok() {
             self.update_result = self.hasher.update(data);

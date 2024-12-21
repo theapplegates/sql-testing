@@ -23,18 +23,6 @@ impl Clone for Hash {
 }
 
 impl Digest for Hash {
-    fn algo(&self) -> HashAlgorithm {
-        self.0.lock().expect("Mutex not to be poisoned")
-            .hash_algorithm().expect("CNG to not fail internally")
-            .try_into()
-            .expect("We created the object, algo is representable")
-    }
-
-    fn digest_size(&self) -> usize {
-        self.0.lock().expect("Mutex not to be poisoned")
-            .hash_size().expect("CNG to not fail internally")
-    }
-
     fn update(&mut self, data: &[u8]) {
         let _ = self.0.lock().expect("Mutex not to be poisoned").hash(data);
     }

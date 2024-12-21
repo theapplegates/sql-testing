@@ -5,23 +5,15 @@ use crate::{Error, Result};
 use crate::types::HashAlgorithm;
 
 #[derive(Clone)]
-struct Hash(HashAlgorithm, botan::HashFunction);
+struct Hash(botan::HashFunction);
 
 impl Digest for Hash {
-    fn algo(&self) -> HashAlgorithm {
-        self.0
-    }
-
-    fn digest_size(&self) -> usize {
-        self.1.output_length().expect("infallible")
-    }
-
     fn update(&mut self, data: &[u8]) {
-        self.1.update(data).expect("infallible");
+        self.0.update(data).expect("infallible");
     }
 
     fn digest(&mut self, digest: &mut [u8]) -> Result<()> {
-        let d = self.1.finish().expect("infallible");
+        let d = self.0.finish().expect("infallible");
         let l = d.len().min(digest.len());
         digest[..l].copy_from_slice(&d[..l]);
         Ok(())
@@ -68,7 +60,6 @@ impl HashAlgorithm {
     ///   [`HashAlgorithm::is_supported`]: HashAlgorithm::is_supported()
     pub(crate) fn new_hasher(self) -> Result<Box<dyn Digest>> {
         Ok(Box::new(Hash(
-            self,
             botan::HashFunction::new(self.botan_name()?)
                 .map_err(|_| Error::UnsupportedHashAlgorithm(self))?)))
     }

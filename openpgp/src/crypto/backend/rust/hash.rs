@@ -9,14 +9,6 @@ use crate::types::HashAlgorithm;
 macro_rules! impl_digest_for {
     ($ty:ty, $algo:ident) => {
         impl Digest for $ty {
-            fn algo(&self) -> HashAlgorithm {
-                HashAlgorithm::$algo
-            }
-
-            fn digest_size(&self) -> usize {
-                Self::output_size()
-            }
-
             fn update(&mut self, data: &[u8]) {
                 digest::Digest::update(self, data)
             }

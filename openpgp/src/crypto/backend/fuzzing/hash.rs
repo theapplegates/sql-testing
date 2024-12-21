@@ -17,23 +17,6 @@ impl io::Write for NullHasher {
 }
 
 impl Digest for NullHasher {
-    fn algo(&self) -> HashAlgorithm {
-        self.0
-    }
-
-    fn digest_size(&self) -> usize {
-        match self.0 {
-            HashAlgorithm::SHA1 => 20,
-            HashAlgorithm::SHA224 => 28,
-            HashAlgorithm::SHA256 => 32,
-            HashAlgorithm::SHA384 => 48,
-            HashAlgorithm::SHA512 => 64,
-            HashAlgorithm::RipeMD => 20,
-            HashAlgorithm::MD5 => 16,
-            _ => 32, // Made up.
-        }
-    }
-
     fn update(&mut self, data: &[u8]) {
         // Nop.
     }

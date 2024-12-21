@@ -136,12 +136,6 @@ lazy_static::lazy_static! {
 /// OpenPGP.  It is used by the crypto backends to provide a uniform
 /// interface to hash functions.
 pub(crate) trait Digest: DynClone + Write + Send + Sync {
-    /// Returns the algorithm.
-    fn algo(&self) -> HashAlgorithm;
-
-    /// Size of the digest in bytes
-    fn digest_size(&self) -> usize;
-
     /// Writes data into the hash function.
     fn update(&mut self, data: &[u8]);
 
@@ -153,27 +147,11 @@ pub(crate) trait Digest: DynClone + Write + Send + Sync {
     /// `digest` must be at least `self.digest_size()` bytes large,
     /// otherwise the digest will be truncated.
     fn digest(&mut self, digest: &mut [u8]) -> Result<()>;
-
-    /// Finalizes the hash function and computes the digest.
-    fn into_digest(mut self) -> Result<Vec<u8>>
-        where Self: std::marker::Sized
-    {
-        let mut digest = vec![0u8; self.digest_size()];
-        self.digest(&mut digest)?;
-        Ok(digest)
-    }
 }
 
 dyn_clone::clone_trait_object!(Digest);
 
 impl Digest for Box<dyn Digest> {
-    fn algo(&self) -> HashAlgorithm {
-        self.as_ref().algo()
-    }
-    fn digest_size(&self) -> usize {
-        self.as_ref().digest_size()
-    }
-
     fn update(&mut self, data: &[u8]) {
         self.as_mut().update(data)
     }
@@ -190,6 +168,9 @@ impl Digest for Box<dyn Digest> {
 /// it.
 #[derive(Clone)]
 pub struct Context {
+    /// The hash algorithm.
+    algo: HashAlgorithm,
+
     /// The underlying bare hash context.
     ctx: Box<dyn Digest>,
 }
@@ -197,12 +178,13 @@ pub struct Context {
 impl Context {
     /// Returns the algorithm.
     pub fn algo(&self) -> HashAlgorithm {
-        self.ctx.algo()
+        self.algo
     }
 
-    /// Size of the digest in bytes
+    /// Size of the digest in bytes.
     pub fn digest_size(&self) -> usize {
-        self.ctx.digest_size()
+        self.algo.digest_size()
+            .expect("we only create Contexts for known hash algos")
     }
 
     /// Writes data into the hash function.
@@ -253,6 +235,9 @@ impl HashAlgorithm {
     ///   [`HashAlgorithm::is_supported`]: HashAlgorithm::is_supported()
     //#[deprecated]
     pub fn context(self) -> Result<Context> {
+        // Create contexts only for known hashes.
+        self.digest_size()?;
+
         let mut hasher: Box<dyn Digest> = match self {
             HashAlgorithm::SHA1 if ! cfg!(feature = "crypto-fuzzing") =>
                 Box::new(crate::crypto::backend::sha1cd::build()),
@@ -264,6 +249,7 @@ impl HashAlgorithm {
         }
 
         Ok(Context {
+            algo: self,
             ctx: hasher,
         })
     }
@@ -356,13 +342,6 @@ impl Drop for HashDumper {
 }
 
 impl Digest for HashDumper {
-    fn algo(&self) -> HashAlgorithm {
-        self.hasher.algo()
-    }
-
-    fn digest_size(&self) -> usize {
-        self.hasher.digest_size()
-    }
     fn update(&mut self, data: &[u8]) {
         self.hasher.update(data);
         self.sink.write_all(data).unwrap();
