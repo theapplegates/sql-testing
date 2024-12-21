@@ -171,6 +171,10 @@ pub struct Context {
     /// The hash algorithm.
     algo: HashAlgorithm,
 
+    /// Whether we are hashing for a signature, and if so, which
+    /// version.
+    for_signature: Option<u8>,
+
     /// The underlying bare hash context.
     ctx: Box<dyn Digest>,
 }
@@ -211,6 +215,12 @@ impl Context {
         self.digest(&mut digest)?;
         Ok(digest)
     }
+
+    /// Returns whether we are hashing for a signature, and if so,
+    /// which version.
+    fn for_signature(&self) -> Option<u8> {
+        self.for_signature.clone()
+    }
 }
 
 impl io::Write for Context {
@@ -229,8 +239,10 @@ pub struct Builder(Context);
 impl Builder {
     /// Returns a hash context for signing and verification of OpenPGP
     /// signatures.
-    pub fn for_signature(self, _version: u8) -> Context {
-        self.0
+    pub fn for_signature(self, version: u8) -> Context {
+        let mut ctx = self.0;
+        ctx.for_signature = Some(version);
+        ctx
     }
 
     /// Returns a hash context for general hashing, i.e. not for the
@@ -268,6 +280,7 @@ impl HashAlgorithm {
 
         Ok(Builder(Context {
             algo: self,
+            for_signature: None,
             ctx: hasher,
         }))
     }
