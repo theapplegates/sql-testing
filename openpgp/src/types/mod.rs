@@ -1526,6 +1526,25 @@ impl HashAlgorithm {
         }
     }
 
+    /// Returns the digest size for this algorithm.
+    pub fn digest_size(&self) -> Result<usize> {
+        match self {
+            HashAlgorithm::MD5 =>    Ok(16),
+            HashAlgorithm::SHA1 =>   Ok(20),
+            HashAlgorithm::RipeMD => Ok(20),
+            HashAlgorithm::SHA256 => Ok(32),
+            HashAlgorithm::SHA384 => Ok(48),
+            HashAlgorithm::SHA512 => Ok(64),
+            HashAlgorithm::SHA224 => Ok(28),
+            HashAlgorithm::SHA3_256 => Ok(32),
+            HashAlgorithm::SHA3_512 => Ok(64),
+            HashAlgorithm::Private(_) =>
+                Err(Error::UnsupportedHashAlgorithm(*self).into()),
+            HashAlgorithm::Unknown(_) =>
+                Err(Error::UnsupportedHashAlgorithm(*self).into()),
+        }
+    }
+
     /// Returns an iterator over all valid variants.
     ///
     /// Returns an iterator over all known variants.  This does not

@@ -66,6 +66,7 @@
    - PublicKeyAlgorithm::Ed25519
    - PublicKeyAlgorithm::Ed448
    - crypto::hash::Context
+   - HashAlgorithm::digest_size
 
 ** Deprecated functionality
    - SubpacketTag::PreferredAEADAlgorithms
