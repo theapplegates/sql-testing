@@ -468,28 +468,29 @@ impl<P, R> Hash for Key4<P, R>
         // include the tag (1 byte) or the length (2 bytes).
         let len = (9 - 3) + self.mpis().serialized_len() as u16;
 
-        let mut header = [
-            // Tag.  Note: we use this whether
-            0x99u8,
+        // XXX: Use SmallVec to avoid heap allocations.
+        let mut header: Vec<u8> = Vec::with_capacity(9);
 
-            // Length (2 bytes, big endian).  Fixup later.
-            0, 0,
+        // Tag.
+        header.push(0x99);
 
-            // Version.
-            4,
+        // Length (2 bytes, big endian).
+        header.extend_from_slice(&len.to_be_bytes());
 
-            // Creation time.  Fixup later.
-            0, 0, 0, 0,
+        // Version.
+        header.push(4);
 
-            // Algorithm.
-            self.pk_algo().into(),
-        ];
-
-        // Fixup length and creation time and hash the header.
-        header[1..3].copy_from_slice(&len.to_be_bytes());
-        header[4..8].copy_from_slice(&u32::from(
+        // Creation time.
+        let creation_time: u32 =
             Timestamp::try_from(self.creation_time())
-            .unwrap_or_else(|_| Timestamp::from(0))).to_be_bytes());
+            .unwrap_or_else(|_| Timestamp::from(0))
+            .into();
+        header.extend_from_slice(&creation_time.to_be_bytes());
+
+        // Algorithm.
+        header.push(self.pk_algo().into());
+
+        // Hash the header.
         hash.update(&header[..]);
 
         // MPIs.
@@ -508,7 +509,8 @@ impl<P, R> Hash for Key6<P, R>
         // include the tag (1 byte) or the length (4 bytes).
         let len = (15 - 5) + self.mpis().serialized_len() as u32;
 
-        let mut header: Vec<u8> = Vec::with_capacity(9);
+        // XXX: Use SmallVec to avoid heap allocations.
+        let mut header: Vec<u8> = Vec::with_capacity(15);
 
         // Tag.
         header.push(0x9b);
@@ -532,6 +534,8 @@ impl<P, R> Hash for Key6<P, R>
         // Length of all MPIs.
         header.extend_from_slice(
             &(self.mpis().serialized_len() as u32).to_be_bytes());
+
+        // Hash the header.
         hash.update(&header[..]);
 
         // MPIs.
