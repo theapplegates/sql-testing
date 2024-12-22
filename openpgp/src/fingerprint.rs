@@ -71,9 +71,14 @@ impl fmt::Display for Fingerprint {
 
 impl fmt::Debug for Fingerprint {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Fingerprint")
-            .field(&self.to_string())
-            .finish()
+        match self {
+            Fingerprint::V4(_) =>
+                write!(f, "Fingerprint::V4({})", self),
+            Fingerprint::V6(_) =>
+                write!(f, "Fingerprint::V6({})", self),
+            Fingerprint::Invalid(_) =>
+                write!(f, "Fingerprint::Invalid({})", self),
+        }
     }
 }
 
