@@ -213,6 +213,7 @@ mod compressed_data;
 pub use self::compressed_data::CompressedData;
 pub mod seip;
 pub mod skesk;
+pub use skesk::SKESK;
 pub mod pkesk;
 mod mdc;
 pub use self::mdc::MDC;
@@ -1122,50 +1123,6 @@ impl DerefMut for PKESK {
         match self {
             PKESK::V3(ref mut p) => p,
         }
-    }
-}
-
-/// Holds a symmetrically encrypted session key.
-///
-/// The session key is used to decrypt the actual ciphertext, which is
-/// typically stored in a [SEIP] or [AED] packet.  See [Section 5.3 of
-/// RFC 4880] for details.
-///
-/// An SKESK packet is not normally instantiated directly.  In most
-/// cases, you'll create one as a side-effect of encrypting a message
-/// using the [streaming serializer], or parsing an encrypted message
-/// using the [`PacketParser`].
-///
-/// Note: This enum cannot be exhaustively matched to allow future
-/// extensions.
-///
-/// [Section 5.3 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.3
-/// [streaming serializer]: crate::serialize::stream
-/// [`PacketParser`]: crate::parse::PacketParser
-#[non_exhaustive]
-#[derive(PartialEq, Eq, Hash, Clone, Debug)]
-pub enum SKESK {
-    /// SKESK packet version 4.
-    V4(self::skesk::SKESK4),
-
-    /// SKESK packet version 6.
-    V6(self::skesk::SKESK6),
-}
-assert_send_and_sync!(SKESK);
-
-impl SKESK {
-    /// Gets the version.
-    pub fn version(&self) -> u8 {
-        match self {
-            SKESK::V4(_) => 4,
-            SKESK::V6(_) => 6,
-        }
-    }
-}
-
-impl From<SKESK> for Packet {
-    fn from(p: SKESK) -> Self {
-        Packet::SKESK(p)
     }
 }
 
