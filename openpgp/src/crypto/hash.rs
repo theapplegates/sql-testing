@@ -1,9 +1,9 @@
 //! Cryptographic hash functions and hashing of OpenPGP data
 //! structures.
 //!
-//! This module provides trait [`Digest`] representing a hash function
-//! context independent of the cryptographic backend, as well as trait
-//! [`Hash`] that handles hashing of OpenPGP data structures.
+//! This module provides struct [`Context`] representing a hash
+//! function context independent of the cryptographic backend, as well
+//! as trait [`Hash`] that handles hashing of OpenPGP data structures.
 //!
 //!
 //! # Examples
