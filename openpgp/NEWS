@@ -21,6 +21,11 @@
    - crypto::hash::Digest removed
    - SKESK::V5 removed
    - SKESK5 removed
+   - PacketParser::decrypt: The parameter `algo` is now polymorphic
+     over `Into<Option<SymmetricAlgorithm>>`.
+   - DecryptionHelper::decrypt: The function `decrypt` now takes an
+     optional symmetric algorithm.
+   - SKESK::decrypt now returns an optional symmetric algorithm.
 
 ** New functionality
    - Fingerprint::V6

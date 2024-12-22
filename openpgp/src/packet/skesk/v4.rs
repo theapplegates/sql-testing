@@ -322,11 +322,11 @@ mod test {
             fn decrypt<D>(&mut self, _: &[PKESK], skesks: &[SKESK],
                           _: Option<SymmetricAlgorithm>,
                           mut decrypt: D) -> Result<Option<Fingerprint>>
-            where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
+            where D: FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool
             {
                 assert_eq!(skesks.len(), 1);
                 let (cipher, sk) = skesks[0].decrypt(&"password".into())?;
-                assert_eq!(cipher, SymmetricAlgorithm::AES256);
+                assert_eq!(cipher, Some(SymmetricAlgorithm::AES256));
                 let r = decrypt(cipher, &sk);
                 assert!(r);
                 Ok(None)

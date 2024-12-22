@@ -39,7 +39,7 @@ impl DecryptionHelper for PasswordHelper {
         mut decrypt: D,
     ) -> Result<Option<Fingerprint>>
     where
-        D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool,
+        D: FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool,
     {
         // Finally, try to decrypt using the SKESKs.
         for skesk in skesks {
@@ -135,7 +135,7 @@ impl DecryptionHelper for CertHelper<'_> {
         mut decrypt: D,
     ) -> Result<Option<Fingerprint>>
     where
-        D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool,
+        D: FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool,
     {
         let p = &StandardPolicy::new();
 

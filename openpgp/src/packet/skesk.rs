@@ -63,16 +63,20 @@ impl SKESK {
         }
     }
 
-    /// Derives the key inside this SKESK from `password`. Returns a
-    /// tuple of the symmetric cipher to use with the key and the key
-    /// itself.
+    /// Derives the key inside this SKESK from `password`.
+    ///
+    /// Returns a tuple of the symmetric cipher to use with the key
+    /// and the key itself, if this information is parsed from the
+    /// SKESK4 pakcket.  The symmetric cipher will be omitted for
+    /// SKESK6 packets, which don't carry that information.
     pub fn decrypt(&self, password: &Password)
-        -> Result<(SymmetricAlgorithm, SessionKey)>
+        -> Result<(Option<SymmetricAlgorithm>, SessionKey)>
     {
         match self {
-            SKESK::V4(ref s) => s.decrypt(password),
+            SKESK::V4(s) => s.decrypt(password)
+                .map(|(algo, sk)| (Some(algo), sk)),
             SKESK::V6(ref s) =>
-                Ok((SymmetricAlgorithm::Unencrypted, s.decrypt(password)?)),
+                Ok((None, s.decrypt(password)?)),
         }
     }
 }

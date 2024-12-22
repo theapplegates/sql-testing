@@ -121,7 +121,7 @@ impl<'a> DecryptionHelper for Helper<'a> {
                   sym_algo: Option<SymmetricAlgorithm>,
                   mut decrypt: D)
                   -> openpgp::Result<Option<openpgp::Fingerprint>>
-        where D: FnMut(SymmetricAlgorithm, &SessionKey) -> bool
+        where D: FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool
     {
         let key = self.secret.keys().unencrypted_secret()
             .with_policy(self.policy, None)
@@ -131,7 +131,7 @@ impl<'a> DecryptionHelper for Helper<'a> {
         let mut pair = key.into_keypair()?;
 
         pkesks[0].decrypt(&mut pair, sym_algo)
-            .map(|(algo, session_key)| decrypt(algo, &session_key));
+            .map(|(algo, session_key)| decrypt(Some(algo), &session_key));
 
         // XXX: In production code, return the Fingerprint of the
         // recipient's Cert here

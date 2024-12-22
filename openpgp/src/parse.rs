@@ -6117,8 +6117,18 @@ impl<'a> PacketParser<'a> {
     /// OpenPGP].
     ///
     ///   [Format Oracles on OpenPGP]: https://www.ssi.gouv.fr/uploads/2015/05/format-Oracles-on-OpenPGP.pdf
-    pub fn decrypt(&mut self, algo: SymmetricAlgorithm, key: &SessionKey)
-        -> Result<()>
+    pub fn decrypt<A>(&mut self, algo: A, key: &SessionKey)
+                      -> Result<()>
+    where
+        A: Into<Option<SymmetricAlgorithm>>,
+    {
+        self.decrypt_(algo.into(), key)
+    }
+
+    fn decrypt_(&mut self,
+                algo: Option<SymmetricAlgorithm>,
+                key: &SessionKey)
+                -> Result<()>
     {
         let indent = self.recursion_depth();
         tracer!(TRACE, "PacketParser::decrypt", indent);
@@ -6132,14 +6142,22 @@ impl<'a> PacketParser<'a> {
                 "Packet not encrypted.".to_string()).into());
         }
 
-        if algo.key_size()? != key.len () {
-            return Err(Error::InvalidOperation(
-                format!("Bad key size: {} expected: {}",
-                        key.len(), algo.key_size()?)).into());
-        }
-
         match self.packet.clone() {
             Packet::SEIP(_) => {
+                let algo = if let Some(a) = algo {
+                    a
+                } else {
+                    return Err(Error::InvalidOperation(
+                        "Trying to decrypt a SEIPDv1 packet: \
+                         no symmetric algorithm given".into()).into());
+                };
+
+                if algo.key_size()? != key.len () {
+                    return Err(Error::InvalidOperation(
+                        format!("Bad key size: {} expected: {}",
+                                key.len(), algo.key_size()?)).into());
+                }
+
                 // Get the first blocksize plus two bytes and check
                 // whether we can decrypt them using the provided key.
                 // Don't actually consume them in case we can't.
@@ -6582,7 +6600,7 @@ mod test {
                 let key = crate::fmt::from_hex(test.key_hex, false)
                     .unwrap().into();
 
-                pp.decrypt(test.algo, &key).unwrap();
+                pp.decrypt(Some(test.algo), &key).unwrap();
             } else {
                 panic!("Expected a SEIP/AED packet.  Got: {:?}", ppr);
             }
@@ -6679,7 +6697,7 @@ mod test {
                     Packet::SEIP(_) | Packet::AED(_) => {
                         let key = crate::fmt::from_hex(test.key_hex, false)
                             .unwrap().into();
-                        pp.decrypt(test.algo, &key).unwrap();
+                        pp.decrypt(Some(test.algo), &key).unwrap();
                     },
                     Packet::Literal(_) => {
                         assert!(! saw_literal);
