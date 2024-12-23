@@ -33,6 +33,7 @@
    - key::SecretKeyMaterial::encrypt_in_place now takes a &Key.
    - key::Encrypted::decrypt now takes a &Key.
    - key::Unencrypted::encrypt now takes a &Key.
+   - Curve is now marked as non-exhaustive
 
 ** Policy changes
    - Version 4 DSA keys and signatures will be rejected from the

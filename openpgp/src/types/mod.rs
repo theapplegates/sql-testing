@@ -386,6 +386,7 @@ impl PublicKeyAlgorithm {
 /// Note: This enum cannot be exhaustively matched to allow future
 /// extensions.
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[non_exhaustive]
 pub enum Curve {
     /// NIST curve P-256.
     NistP256,
