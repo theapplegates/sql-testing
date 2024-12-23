@@ -1,8 +1,4 @@
 [package]
-# Implementing v6 OpenPGP requires breaking the API.  Prevent
-# accidental publishing.
-publish = false
-
 name = "sequoia-openpgp"
 description = "OpenPGP data types and associated machinery"
 version = "2.0.0-alpha.0"
