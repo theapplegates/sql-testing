@@ -2116,7 +2116,7 @@ pub enum DataFormat {
     Text,
 
     /// Unknown format specifier.
-    Unknown(char),
+    Unknown(u8),
 }
 assert_send_and_sync!(DataFormat);
 
@@ -2135,37 +2135,24 @@ impl Default for DataFormat {
 
 impl From<u8> for DataFormat {
     fn from(u: u8) -> Self {
-        (u as char).into()
-    }
-}
-
-impl From<char> for DataFormat {
-    fn from(c: char) -> Self {
-        use self::DataFormat::*;
-        match c {
-            'b' => Binary,
-            #[allow(deprecated)]
-            't' => Text,
-            'u' => Unicode,
-            c => Unknown(c),
+        #[allow(deprecated)]
+        match u {
+            b'b' => DataFormat::Binary,
+            b'u' => DataFormat::Unicode,
+            b't' => DataFormat::Text,
+            _ => DataFormat::Unknown(u),
         }
     }
 }
 
 impl From<DataFormat> for u8 {
     fn from(f: DataFormat) -> u8 {
-        char::from(f) as u8
-    }
-}
-
-impl From<DataFormat> for char {
-    fn from(f: DataFormat) -> char {
         use self::DataFormat::*;
         match f {
-            Binary => 'b',
+            Binary => b'b',
+            Unicode => b'u',
             #[allow(deprecated)]
-            Text => 't',
-            Unicode => 'u',
+            Text => b't',
             Unknown(c) => c,
         }
     }
@@ -2493,7 +2480,7 @@ mod tests {
         fn df_parse(df: DataFormat) -> bool {
             match df {
                 DataFormat::Unknown(u) =>
-                    u != 'b' && u != 't' && u != 'u',
+                    u != b'b' && u != b't' && u != b'u',
                 _ => true
             }
         }

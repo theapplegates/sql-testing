@@ -46,6 +46,7 @@
    - NullPolicy::new is now marked as unsafe
    - DataFormat::MIME removed
    - DataFormat::Text is deprecated in favor of DataFormat::Unicode
+   - DataFormat::Unknown is a u8 now
 
 ** Policy changes
    - Version 4 DSA keys and signatures will be rejected from the
