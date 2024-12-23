@@ -1951,7 +1951,7 @@ mod test {
             Cert::from_bytes(crate::tests::key("dsa2048-elgamal3072.pgp"))?;
         assert_eq!(cert.keys().count(), 2);
         assert_eq!(cert.keys().supported().count(), 1);
-        let p = &crate::policy::NullPolicy::new();
+        let p = unsafe { &crate::policy::NullPolicy::new() };
         assert_eq!(cert.keys().with_policy(p, None).count(), 2);
         assert_eq!(cert.keys().with_policy(p, None).supported().count(), 1);
         Ok(())

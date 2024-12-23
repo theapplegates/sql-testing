@@ -1852,7 +1852,7 @@ assert_send_and_sync!(NullPolicy);
 
 impl NullPolicy {
     /// Instantiates a new `NullPolicy`.
-    pub const fn new() -> Self {
+    pub const unsafe fn new() -> Self {
         NullPolicy {}
     }
 }

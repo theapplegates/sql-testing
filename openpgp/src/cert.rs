@@ -3919,17 +3919,16 @@ impl<'a> ValidCert<'a> {
     /// use openpgp::policy::{StandardPolicy, NullPolicy};
     ///
     /// # fn main() -> openpgp::Result<()> {
-    /// let sp = &StandardPolicy::new();
-    /// let np = &NullPolicy::new();
-    ///
     /// #     let (cert, _) =
     /// #         CertBuilder::general_purpose(None, Some("alice@example.org"))
     /// #         .generate()?;
+    /// let sp = &StandardPolicy::new();
     /// let vc = cert.with_policy(sp, None)?;
     ///
     /// // ...
     ///
     /// // Now with a different policy.
+    /// let np = unsafe { &NullPolicy::new() };
     /// let vc = vc.with_policy(np, None)?;
     /// #     Ok(())
     /// # }
@@ -6915,7 +6914,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
     fn issue_531() -> Result<()> {
         let cert =
             Cert::from_bytes(crate::tests::key("peter-sha1-backsig.pgp"))?;
-        let p = &crate::policy::NullPolicy::new();
+        let p = unsafe { &crate::policy::NullPolicy::new() };
         assert_eq!(cert.with_policy(p, None)?.keys().for_signing().count(), 1);
         let mut p = crate::policy::StandardPolicy::new();
         p.reject_hash(HashAlgorithm::SHA1);
@@ -6929,7 +6928,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
     fn issue_539() -> Result<()> {
         let cert =
             Cert::from_bytes(crate::tests::key("peter-expired-backsig.pgp"))?;
-        let p = &crate::policy::NullPolicy::new();
+        let p = unsafe { &crate::policy::NullPolicy::new() };
         assert_eq!(cert.with_policy(p, None)?.keys().for_signing().count(), 0);
         let p = &crate::policy::StandardPolicy::new();
         assert_eq!(cert.with_policy(p, None)?.keys().for_signing().count(), 0);
@@ -7501,7 +7500,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
             crate::tests::key("pgp5-dsa-elg-v3-subkey-binding.pgp"))?;
         assert_eq!(c.bad_signatures().count(), 0);
 
-        let np = crate::policy::NullPolicy::new();
+        let np = unsafe { crate::policy::NullPolicy::new() };
 
         // The subkey is interesting because it is bound using a v3
         // signature.

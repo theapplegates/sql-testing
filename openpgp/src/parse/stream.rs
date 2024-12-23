@@ -3921,7 +3921,7 @@ EK8=
                 crate::tests::key(c))?.collect::<Result<Vec<_>>>()?;
 
             // The Microsoft cert uses SHA-1.
-            let p = &NP::new();
+            let p = unsafe { &NP::new() };
             eprintln!("Parsing {}...", m);
             let mut verifier = VerifierBuilder::from_bytes(
                 crate::tests::message(m))?

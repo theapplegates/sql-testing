@@ -3776,7 +3776,7 @@ mod test {
             }
         }
 
-        let p = &crate::policy::NullPolicy::new();
+        let p = unsafe { &crate::policy::NullPolicy::new() };
 
         for chunks in 0..3 {
             for msg_len in
@@ -4202,7 +4202,7 @@ mod test {
             }
         }
 
-        let p = &NullPolicy::new();
+        let p = unsafe { &NullPolicy::new() };
         let mut v = DecryptorBuilder::from_bytes(&sink)?.with_policy(p, None, Helper)?;
         let mut content = vec![];
         v.read_to_end(&mut content)?;
