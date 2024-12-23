@@ -47,7 +47,7 @@ impl AEADAlgorithm {
         nonce: &[u8],
         op: CipherOp,
     ) -> Result<Box<dyn Aead>> {
-
+        #[allow(deprecated)]
         match self {
             AEADAlgorithm::EAX => match sym_algo {
                 SymmetricAlgorithm::AES128 => match op {

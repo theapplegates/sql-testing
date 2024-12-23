@@ -113,6 +113,7 @@ impl SymmetricAlgorithm {
     /// Returns whether this algorithm is supported by the crypto backend.
     pub(crate) fn is_supported_by_backend(&self) -> bool {
         use self::SymmetricAlgorithm::*;
+        #[allow(deprecated)]
         match self {
             AES128 | AES192 | AES256 | TripleDES => true,
             _ => false,
