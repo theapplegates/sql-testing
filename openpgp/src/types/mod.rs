@@ -1451,9 +1451,9 @@ impl From<HashAlgorithm> for u8 {
 }
 
 impl FromStr for HashAlgorithm {
-    type Err = ();
+    type Err = Error;
 
-    fn from_str(s: &str) -> result::Result<Self, ()> {
+    fn from_str(s: &str) -> result::Result<Self, Error> {
         if s.eq_ignore_ascii_case("MD5") {
             Ok(HashAlgorithm::MD5)
         } else if s.eq_ignore_ascii_case("SHA1") {
@@ -1473,7 +1473,8 @@ impl FromStr for HashAlgorithm {
         } else if s.eq_ignore_ascii_case("SHA3-512") {
             Ok(HashAlgorithm::SHA3_512)
         } else {
-            Err(())
+            Err(Error::InvalidArgument(format!(
+                "Unknown hash algorithm {:?}", s)))
         }
     }
 }

@@ -48,6 +48,7 @@
    - DataFormat::Text is deprecated in favor of DataFormat::Unicode
    - DataFormat::Unknown is a u8 now
    - Curve::bits now returns Result<usize>
+   - HashAlgorithm::from_str now returns Result<Self, crate::Error>
 
 ** Policy changes
    - Version 4 DSA keys and signatures will be rejected from the
