@@ -34,6 +34,14 @@
    - key::Encrypted::decrypt now takes a &Key.
    - key::Unencrypted::encrypt now takes a &Key.
    - Curve is now marked as non-exhaustive
+   - armor::Kind is now marked as non-exhaustive
+   - armor::ReaderMode is now marked as non-exhaustive
+   - cert::Ciphersuite is now marked as non-exhaustive
+   - Profile is now marked as non-exhaustive
+   - packet::Tag is now marked as non-exhaustive
+   - user_attribute::Subpacket is now marked as non-exhaustive
+   - user_attribute::Image is now marked as non-exhaustive
+   - parse::Dearmor is now marked as non-exhaustive
 
 ** Policy changes
    - Version 4 DSA keys and signatures will be rejected from the

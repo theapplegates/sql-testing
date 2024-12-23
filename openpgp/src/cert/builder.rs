@@ -63,6 +63,7 @@ pub use key::{
 /// # }
 /// ```
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Debug)]
+#[non_exhaustive]
 pub enum CipherSuite {
     /// EdDSA and ECDH over Curve25519 with SHA512 and AES256
     Cv25519,

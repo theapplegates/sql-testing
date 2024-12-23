@@ -213,6 +213,7 @@ impl<'a> Iterator for SubpacketIterator<'a> {
 ///
 ///   [Section 5.12 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.12
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Subpacket {
     /// Image subpacket.
     ///
@@ -251,6 +252,7 @@ impl Arbitrary for Subpacket {
 ///
 ///   [Section 5.12.1 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.12.1
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Image {
     /// A JPEG image format.
     JPEG(Box<[u8]>),

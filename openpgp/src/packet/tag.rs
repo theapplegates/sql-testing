@@ -13,6 +13,7 @@ use crate::packet::Packet;
 ///
 /// The values correspond to the serialized format.
 #[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
 pub enum Tag {
     /// Reserved Packet tag.
     Reserved,

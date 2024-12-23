@@ -82,8 +82,10 @@ fn main() -> openpgp::Result<()> {
 
     // UserAttribute statistics.
     let mut ua_image_count = vec![0; 256];
+    let mut ua_image_unknown_variant_count = 0;
     let mut ua_unknown_count = vec![0; 256];
     let mut ua_invalid_count = 0;
+    let mut ua_unknown_variant_count = 0;
 
     // Key statistics.
     let mut pk_algo_size: HashMap<PublicKeyAlgorithm, HashMap<usize, usize>> =
@@ -259,9 +261,13 @@ fn main() -> openpgp::Result<()> {
                                     ua_image_count[n as usize] += 1,
                                 Image::Unknown(n, _) =>
                                     ua_image_count[n as usize] += 1,
+                                _ =>
+                                    ua_image_unknown_variant_count += 1,
                             },
                             Ok(Subpacket::Unknown(n, _)) =>
                                 ua_unknown_count[n as usize] += 1,
+                            Ok(_) =>
+                                ua_unknown_variant_count += 1,
                             Err(_) => ua_invalid_count += 1,
                         }
                     }
@@ -572,13 +578,13 @@ fn main() -> openpgp::Result<()> {
         println!();
         println!("# User Attribute Subpacket statistics");
         println!();
-        println!("{:>18} {:>9}",
+        println!("{:>21} {:>9}",
                  "", "count",);
         println!("----------------------------");
         for t in 0..256 {
             let n = ua_image_count[t];
             if n > 0 {
-                println!("{:>18} {:>9}",
+                println!("{:>21} {:>9}",
                          match t {
                              1 =>         "Image::JPEG".into(),
                              100..=110 => format!("Image::Private({})", t),
@@ -586,14 +592,22 @@ fn main() -> openpgp::Result<()> {
                          }, n);
             }
         }
+        if ua_image_unknown_variant_count > 0 {
+            println!("{:>21} {:>9}", "Unknown image variant",
+                     ua_image_unknown_variant_count);
+        }
         for t in 0..256 {
             let n = ua_unknown_count[t];
             if n > 0 {
-                println!("{:>18} {:>9}", format!("Unknown({})", t), n);
+                println!("{:>21} {:>9}", format!("Unknown({})", t), n);
             }
         }
+        if ua_unknown_variant_count > 0 {
+            println!("{:>21} {:>9}", "Unknown variant",
+                     ua_unknown_variant_count);
+        }
         if ua_invalid_count > 0 {
-            println!("{:>18} {:>9}", "Invalid", ua_invalid_count);
+            println!("{:>21} {:>9}", "Invalid", ua_invalid_count);
         }
     }
 
