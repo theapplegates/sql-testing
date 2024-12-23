@@ -416,6 +416,19 @@ impl std::hash::Hash for ProtectedMPI {
     }
 }
 
+#[cfg(test)]
+impl Arbitrary for ProtectedMPI {
+    fn arbitrary(g: &mut Gen) -> Self {
+        loop {
+            let buf = <Vec<u8>>::arbitrary(g);
+
+            if ! buf.is_empty() && buf[0] != 0 {
+                break ProtectedMPI::from(buf);
+            }
+        }
+    }
+}
+
 impl ProtectedMPI {
     /// Creates new MPI encoding an uncompressed EC point.
     ///
@@ -1024,30 +1037,30 @@ impl SecretKeyMaterial {
         #[allow(deprecated)]
         match pk {
             RSAEncryptSign | RSASign | RSAEncrypt => Ok(SecretKeyMaterial::RSA {
-                d: MPI::arbitrary(g).into(),
-                p: MPI::arbitrary(g).into(),
-                q: MPI::arbitrary(g).into(),
-                u: MPI::arbitrary(g).into(),
+                d: ProtectedMPI::arbitrary(g),
+                p: ProtectedMPI::arbitrary(g),
+                q: ProtectedMPI::arbitrary(g),
+                u: ProtectedMPI::arbitrary(g),
             }),
 
             DSA => Ok(SecretKeyMaterial::DSA {
-                x: MPI::arbitrary(g).into(),
+                x: ProtectedMPI::arbitrary(g),
             }),
 
             ElGamalEncryptSign | ElGamalEncrypt => Ok(SecretKeyMaterial::ElGamal {
-                x: MPI::arbitrary(g).into(),
+                x: ProtectedMPI::arbitrary(g),
             }),
 
             EdDSA => Ok(SecretKeyMaterial::EdDSA {
-                scalar: MPI::arbitrary(g).into(),
+                scalar: ProtectedMPI::arbitrary(g),
             }),
 
             ECDSA => Ok(SecretKeyMaterial::ECDSA {
-                scalar: MPI::arbitrary(g).into(),
+                scalar: ProtectedMPI::arbitrary(g),
             }),
 
             ECDH => Ok(SecretKeyMaterial::ECDH {
-                scalar: MPI::arbitrary(g).into(),
+                scalar: ProtectedMPI::arbitrary(g),
             }),
 
             X25519 => Ok(SecretKeyMaterial::X25519 {
