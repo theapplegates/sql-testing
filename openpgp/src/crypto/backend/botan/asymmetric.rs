@@ -506,8 +506,7 @@ impl<R> Key4<SecretParts, R>
         let mut rng = RandomNumberGenerator::new_userspace()?;
         let hash = crate::crypto::ecdh::default_ecdh_kdf_hash(&curve);
         let sym = crate::crypto::ecdh::default_ecdh_kek_cipher(&curve);
-        let field_sz_bits = curve.bits()
-            .ok_or_else(|| Error::UnsupportedEllipticCurve(curve.clone()))?;
+        let field_sz_bits = curve.bits()?;
 
         match (curve, for_signing) {
             (Curve::Ed25519, true) =>

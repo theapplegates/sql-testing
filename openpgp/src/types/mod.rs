@@ -437,32 +437,33 @@ impl Curve {
     /// gauge the security of a particular curve. This function exists
     /// only because some legacy PGP application like HKP need it.
     ///
-    /// Returns `None` for unknown curves.
-    ///
     /// # Examples
     ///
     /// ```rust
+    /// # fn main() -> sequoia_openpgp::Result<()> {
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::types::Curve;
     ///
-    /// assert_eq!(Curve::NistP256.bits(), Some(256));
-    /// assert_eq!(Curve::NistP384.bits(), Some(384));
-    /// assert_eq!(Curve::Ed25519.bits(), Some(256));
-    /// assert_eq!(Curve::Unknown(Box::new([0x2B, 0x11])).bits(), None);
+    /// assert_eq!(Curve::NistP256.bits()?, 256);
+    /// assert_eq!(Curve::NistP384.bits()?, 384);
+    /// assert_eq!(Curve::Ed25519.bits()?, 256);
+    /// assert!(Curve::Unknown(Box::new([0x2B, 0x11])).bits().is_err());
+    /// # Ok(()) }
     /// ```
-    pub fn bits(&self) -> Option<usize> {
+    pub fn bits(&self) -> Result<usize> {
         use self::Curve::*;
 
         match self {
-            NistP256 => Some(256),
-            NistP384 => Some(384),
-            NistP521 => Some(521),
-            BrainpoolP256 => Some(256),
-            Unknown(_) if self.is_brainpoolp384() => Some(384),
-            BrainpoolP512 => Some(512),
-            Ed25519 => Some(256),
-            Cv25519 => Some(256),
-            Unknown(_) => None,
+            NistP256 => Ok(256),
+            NistP384 => Ok(384),
+            NistP521 => Ok(521),
+            BrainpoolP256 => Ok(256),
+            Unknown(_) if self.is_brainpoolp384() => Ok(384),
+            BrainpoolP512 => Ok(512),
+            Ed25519 => Ok(256),
+            Cv25519 => Ok(256),
+            Unknown(_) =>
+                Err(Error::UnsupportedEllipticCurve(self.clone()).into()),
         }
     }
 
@@ -485,7 +486,6 @@ impl Curve {
     pub fn field_size(&self) -> Result<usize> {
         self.bits()
             .map(|bits| (bits + 7) / 8)
-            .ok_or_else(|| Error::UnsupportedEllipticCurve(self.clone()).into())
     }
 }
 
@@ -666,8 +666,6 @@ impl Curve {
     #[deprecated(note = "Use bits()", since = "1.17.0")]
     pub fn len(&self) -> Result<usize> {
         self.bits()
-            .ok_or_else(|| Error::UnsupportedEllipticCurve(self.clone()).into())
-
     }
 
     /// Returns whether this algorithm is supported.

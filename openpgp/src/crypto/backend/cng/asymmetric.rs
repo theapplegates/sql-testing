@@ -228,10 +228,7 @@ impl KeyPair {
                     // allows leading zeros to be stripped.
                     // Padding has to be unconditional; otherwise we have a
                     // secret-dependent branch.
-                    let curve_bits = curve.bits().ok_or_else(||
-                        Error::UnsupportedEllipticCurve(curve.clone())
-                    )?;
-                    let curve_bytes = (curve_bits + 7) / 8;
+                    let curve_bytes = curve.field_size()?;
                     let secret = scalar.value_padded(curve_bytes);
 
                     use cng::asymmetric::{ecc::{NistP256, NistP384, NistP521}, Ecdsa};
