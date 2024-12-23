@@ -2088,7 +2088,7 @@ impl ReasonForRevocation {
 /// use openpgp::message::Message;
 ///
 /// let mut packets = Vec::new();
-/// let mut lit = Literal::new(DataFormat::Text);
+/// let mut lit = Literal::new(DataFormat::Unicode);
 /// lit.set_body(b"data".to_vec());
 /// packets.push(lit.into());
 ///
@@ -2103,16 +2103,17 @@ pub enum DataFormat {
     /// This is a hint that the content is probably binary data.
     Binary,
 
-    /// Text data.
-    ///
-    /// This is a hint that the content is probably text; the encoding
-    /// is not specified.
-    Text,
-
     /// Text data, probably valid UTF-8.
     ///
     /// This is a hint that the content is probably UTF-8 encoded.
     Unicode,
+
+    /// Text data.
+    ///
+    /// This is a hint that the content is probably text; the encoding
+    /// is not specified.
+    #[deprecated(note = "Use Dataformat::Unicode instead.")]
+    Text,
 
     /// Unknown format specifier.
     Unknown(char),
@@ -2143,6 +2144,7 @@ impl From<char> for DataFormat {
         use self::DataFormat::*;
         match c {
             'b' => Binary,
+            #[allow(deprecated)]
             't' => Text,
             'u' => Unicode,
             c => Unknown(c),
@@ -2161,6 +2163,7 @@ impl From<DataFormat> for char {
         use self::DataFormat::*;
         match f {
             Binary => 'b',
+            #[allow(deprecated)]
             Text => 't',
             Unicode => 'u',
             Unknown(c) => c,
@@ -2174,6 +2177,7 @@ impl fmt::Display for DataFormat {
         match *self {
             Binary =>
                 f.write_str("Binary data"),
+            #[allow(deprecated)]
             Text =>
                 f.write_str("Text data"),
             Unicode =>

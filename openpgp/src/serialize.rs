@@ -3912,7 +3912,7 @@ mod test {
     // reparse them, and make sure we get the same result.
     #[test]
     fn serialize_test_3() {
-        use crate::types::DataFormat::Text as T;
+        use crate::types::DataFormat::Unicode as T;
 
         // serialize_test_1 and serialize_test_2 parse a byte stream.
         // This tests creates the message, and then serializes and

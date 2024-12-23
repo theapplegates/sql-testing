@@ -3345,7 +3345,7 @@ mod test {
     use crate::{Packet, PacketPile, Profile, packet::CompressedData};
     use crate::parse::{Parse, PacketParserResult, PacketParser};
     use super::*;
-    use crate::types::DataFormat::Text as T;
+    use crate::types::DataFormat::Unicode as T;
     use crate::policy::Policy;
     use crate::policy::StandardPolicy as P;
 
@@ -3355,7 +3355,7 @@ mod test {
         {
             let m = Message::new(&mut o);
             let mut ustr = ArbitraryWriter::new(m, Tag::Literal).unwrap();
-            ustr.write_all(b"t").unwrap(); // type
+            ustr.write_all(b"u").unwrap(); // type
             ustr.write_all(b"\x00").unwrap(); // fn length
             ustr.write_all(b"\x00\x00\x00\x00").unwrap(); // date
             ustr.write_all(b"Hello world.").unwrap(); // body
@@ -3364,7 +3364,7 @@ mod test {
 
         let mut pp = PacketParser::from_bytes(&o).unwrap().unwrap();
         if let Packet::Literal(ref l) = pp.packet {
-                assert_eq!(l.format(), DataFormat::Text);
+                assert_eq!(l.format(), DataFormat::Unicode);
                 assert_eq!(l.filename(), None);
                 assert_eq!(l.date(), None);
         } else {

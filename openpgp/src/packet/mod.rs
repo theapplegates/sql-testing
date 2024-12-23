@@ -773,7 +773,7 @@ impl<'a> Iter<'a> {
     /// #     use openpgp::parse::Parse;
     /// #     use openpgp::types::DataFormat;
     /// #
-    /// #     let mut lit = Literal::new(DataFormat::Text);
+    /// #     let mut lit = Literal::new(DataFormat::Unicode);
     /// #     lit.set_body(b"test".to_vec());
     /// #     let lit = Packet::from(lit);
     /// #

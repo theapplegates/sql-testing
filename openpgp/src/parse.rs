@@ -3291,7 +3291,9 @@ fn literal_parser_test () {
         let content = pp.steal_eof().unwrap();
         let p = pp.finish().unwrap();
         if let &Packet::Literal(ref p) = p {
-            assert_eq!(p.format(), DataFormat::Text);
+            #[allow(deprecated)] {
+                assert_eq!(p.format(), DataFormat::Text);
+            }
             assert_eq!(p.filename().unwrap()[..],
                        b"manifesto.txt"[..]);
             assert_eq!(p.date().unwrap(), Timestamp::from(1508000649).into());

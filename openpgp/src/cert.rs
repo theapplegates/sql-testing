@@ -2843,7 +2843,7 @@ impl Cert {
     ///
     ///
     /// // Try and merge a literal data packet.
-    /// let mut lit = Literal::new(DataFormat::Text);
+    /// let mut lit = Literal::new(DataFormat::Unicode);
     /// lit.set_body(b"test".to_vec());
     ///
     /// // Merging packets that are known to not belong to a

@@ -45,6 +45,7 @@
    - impl From<MPI> for ProtectedMPI has been removed
    - NullPolicy::new is now marked as unsafe
    - DataFormat::MIME removed
+   - DataFormat::Text is deprecated in favor of DataFormat::Unicode
 
 ** Policy changes
    - Version 4 DSA keys and signatures will be rejected from the

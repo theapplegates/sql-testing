@@ -1463,7 +1463,8 @@ impl<'a> Reader<'a> {
                 }
 
                 // Now, we have the whole text.
-                let mut literal = Literal::new(DataFormat::Text);
+                // XXX: We optimistically assume that it is UTF-8 encoded.
+                let mut literal = Literal::new(DataFormat::Unicode);
                 literal.set_body(text);
                 literal
             };

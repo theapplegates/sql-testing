@@ -533,7 +533,7 @@ impl ::std::ops::Deref for Message {
 mod tests {
     use super::*;
 
-    use crate::types::DataFormat::Text;
+    use crate::types::DataFormat::Unicode;
     use crate::HashAlgorithm;
     use crate::types::CompressionAlgorithm;
     use crate::SymmetricAlgorithm;
@@ -842,7 +842,7 @@ mod tests {
         // 0: Literal
         // => good.
         let mut packets = Vec::new();
-        let mut lit = Literal::new(Text);
+        let mut lit = Literal::new(Unicode);
         lit.set_body(b"data".to_vec());
         packets.push(lit.into());
 
@@ -852,7 +852,7 @@ mod tests {
 
     #[test]
     fn compressed_part() {
-        let mut lit = Literal::new(Text);
+        let mut lit = Literal::new(Unicode);
         lit.set_body(b"data".to_vec());
 
         // 0: CompressedData
@@ -914,7 +914,7 @@ mod tests {
 
     #[test]
     fn one_pass_sig_part() {
-        let mut lit = Literal::new(Text);
+        let mut lit = Literal::new(Unicode);
         lit.set_body(b"data".to_vec());
 
         let hash = crate::types::HashAlgorithm::SHA512;
@@ -1028,7 +1028,7 @@ mod tests {
 
     #[test]
     fn signature_part() {
-        let mut lit = Literal::new(Text);
+        let mut lit = Literal::new(Unicode);
         lit.set_body(b"data".to_vec());
 
         let hash = crate::types::HashAlgorithm::SHA512;
@@ -1080,7 +1080,7 @@ mod tests {
         // internal interfaces to progressively build up more
         // complicated messages.
 
-        let mut lit = Literal::new(Text);
+        let mut lit = Literal::new(Unicode);
         lit.set_body(b"data".to_vec());
 
         // 0: SK-ESK

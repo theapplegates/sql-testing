@@ -252,7 +252,7 @@ impl PacketPile {
     /// # use openpgp::{Result, types::{CompressionAlgorithm, DataFormat},
     /// #     Packet, PacketPile, packet::Literal, packet::CompressedData};
     /// # fn main() -> Result<()> {
-    /// # let mut lit = Literal::new(DataFormat::Text);
+    /// # let mut lit = Literal::new(DataFormat::Unicode);
     /// # lit.set_body(b"test".to_vec());
     /// # let packets = vec![lit.into()];
     /// let pile = PacketPile::from(packets);
@@ -306,7 +306,7 @@ impl PacketPile {
     /// # use openpgp::{Result, types::{CompressionAlgorithm, DataFormat},
     /// #     Packet, PacketPile, packet::Literal, packet::CompressedData};
     /// # fn main() -> Result<()> {
-    /// # let mut lit = Literal::new(DataFormat::Text);
+    /// # let mut lit = Literal::new(DataFormat::Unicode);
     /// # lit.set_body(b"test".to_vec());
     /// # let packets = vec![lit.into()];
     /// let mut pile = PacketPile::from(packets);
@@ -367,7 +367,7 @@ impl PacketPile {
     /// #     Packet, PacketPile, packet::Literal, packet::CompressedData};
     /// # fn main() -> Result<()> {
     /// // A compressed data packet that contains a literal data packet.
-    /// let mut literal = Literal::new(DataFormat::Text);
+    /// let mut literal = Literal::new(DataFormat::Unicode);
     /// literal.set_body(b"old".to_vec());
     /// let mut compressed =
     ///     CompressedData::new(CompressionAlgorithm::Uncompressed);
@@ -375,7 +375,7 @@ impl PacketPile {
     /// let mut pile = PacketPile::from(Packet::from(compressed));
     ///
     /// // Replace the literal data packet.
-    /// let mut literal = Literal::new(DataFormat::Text);
+    /// let mut literal = Literal::new(DataFormat::Unicode);
     /// literal.set_body(b"new".to_vec());
     /// pile.replace(
     ///     &[0, 0], 1,
@@ -453,7 +453,7 @@ impl PacketPile {
     /// #     Packet, PacketPile, packet::Literal, packet::Tag};
     /// # use std::iter::Iterator;
     /// # fn main() -> Result<()> {
-    /// let mut lit = Literal::new(DataFormat::Text);
+    /// let mut lit = Literal::new(DataFormat::Unicode);
     /// lit.set_body(b"test".to_vec());
     ///
     /// let pile = PacketPile::from(vec![lit.into()]);
@@ -475,7 +475,7 @@ impl PacketPile {
     /// # use openpgp::{Result, types::{CompressionAlgorithm, DataFormat},
     /// #     Packet, PacketPile, packet::Literal, packet::CompressedData};
     /// # fn main() -> Result<()> {
-    /// let mut lit = Literal::new(DataFormat::Text);
+    /// let mut lit = Literal::new(DataFormat::Unicode);
     /// lit.set_body(b"test".to_vec());
     ///
     /// let pile = PacketPile::from(vec![lit.into()]);
@@ -497,7 +497,7 @@ impl PacketPile {
     /// # use openpgp::{Result, types::{CompressionAlgorithm, DataFormat},
     /// #     Packet, PacketPile, packet::Literal, packet::Tag};
     /// # fn main() -> Result<()> {
-    /// let mut lit = Literal::new(DataFormat::Text);
+    /// let mut lit = Literal::new(DataFormat::Unicode);
     /// lit.set_body(b"test".to_vec());
     ///
     /// let pile = PacketPile::from(vec![lit.into()]);
@@ -688,7 +688,7 @@ mod test {
     use super::*;
 
     use crate::types::CompressionAlgorithm;
-    use crate::types::DataFormat::Text;
+    use crate::types::DataFormat::Unicode;
     use crate::packet::Literal;
     use crate::packet::CompressedData;
     use crate::packet::seip::SEIP1;
@@ -906,7 +906,7 @@ mod test {
 
         let mut cd = CompressedData::new(CompressionAlgorithm::Uncompressed);
         for t in text.iter() {
-            let mut lit = Literal::new(Text);
+            let mut lit = Literal::new(Unicode);
             lit.set_body(t.to_vec());
             cd = cd.push(lit.into())
         }
@@ -977,9 +977,9 @@ mod test {
         // 0: Literal("one")
         // =>
         // 0: Literal("two")
-        let mut one = Literal::new(Text);
+        let mut one = Literal::new(Unicode);
         one.set_body(b"one".to_vec());
-        let mut two = Literal::new(Text);
+        let mut two = Literal::new(Unicode);
         two.set_body(b"two".to_vec());
         let mut packets : Vec<Packet> = Vec::new();
         packets.push(one.into());
@@ -1010,7 +1010,7 @@ mod test {
 
         let mut packets : Vec<Packet> = Vec::new();
         for text in initial.iter() {
-            let mut lit = Literal::new(Text);
+            let mut lit = Literal::new(Unicode);
             lit.set_body(text.to_vec());
             packets.push(lit.into())
         }
@@ -1022,7 +1022,7 @@ mod test {
 
                     let mut replacement : Vec<Packet> = Vec::new();
                     for &text in inserted[0..insert].iter() {
-                        let mut lit = Literal::new(Text);
+                        let mut lit = Literal::new(Unicode);
                         lit.set_body(text.to_vec());
                         replacement.push(lit.into());
                     }
@@ -1063,7 +1063,7 @@ mod test {
 
         let mut cd = CompressedData::new(CompressionAlgorithm::Uncompressed);
         for l in initial.iter() {
-            let mut lit = Literal::new(Text);
+            let mut lit = Literal::new(Unicode);
             lit.set_body(l.to_vec());
             cd = cd.push(lit.into());
         }
@@ -1076,7 +1076,7 @@ mod test {
 
                     let mut replacement : Vec<Packet> = Vec::new();
                     for &text in inserted[0..insert].iter() {
-                        let mut lit = Literal::new(Text);
+                        let mut lit = Literal::new(Unicode);
                         lit.set_body(text.to_vec());
                         replacement.push(lit.into());
                     }
@@ -1110,7 +1110,7 @@ mod test {
         }
 
         // Make sure out-of-range accesses error out.
-        let mut one = Literal::new(Text);
+        let mut one = Literal::new(Unicode);
         one.set_body(b"one".to_vec());
         let mut packets : Vec<Packet> = Vec::new();
         packets.push(one.into());

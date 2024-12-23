@@ -1257,7 +1257,7 @@ mod test {
             .into();
 
         // A literal packet.  (This is a valid OpenPGP Message.)
-        let mut lit = Literal::new(DataFormat::Text);
+        let mut lit = Literal::new(DataFormat::Unicode);
         lit.set_body(b"test".to_vec());
         let lit = Packet::from(lit);
 
@@ -1426,7 +1426,7 @@ mod test {
             certs_orig.push(cert);
 
             if literal {
-                let mut lit = Literal::new(DataFormat::Text);
+                let mut lit = Literal::new(DataFormat::Unicode);
                 lit.set_body(b"data".to_vec());
 
                 Packet::from(lit).serialize(&mut data)?;
