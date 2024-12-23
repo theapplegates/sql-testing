@@ -10,7 +10,7 @@ use std::{
 };
 
 use sequoia_openpgp::{
-    crypto::{mem, mpi::{MPI, ProtectedMPI}, Password, SessionKey, Signer},
+    crypto::{mem, mpi::ProtectedMPI, Password, SessionKey, Signer},
     fmt::hex,
     packet::{
         key::{Key4, PrimaryRole},
@@ -131,8 +131,6 @@ fn test_protected_mpi() {
     let v: ProtectedMPI = NEEDLE.to_vec().into();
     check_secret(v.value());
     let v: ProtectedMPI = mem::Protected::from(NEEDLE).into();
-    check_secret(v.value());
-    let v: ProtectedMPI = MPI::new(NEEDLE).into();
     check_secret(v.value());
 }
 

@@ -42,6 +42,7 @@
    - user_attribute::Subpacket is now marked as non-exhaustive
    - user_attribute::Image is now marked as non-exhaustive
    - parse::Dearmor is now marked as non-exhaustive
+   - impl From<MPI> for ProtectedMPI has been removed
 
 ** Policy changes
    - Version 4 DSA keys and signatures will be rejected from the

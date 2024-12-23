@@ -820,8 +820,8 @@ where
             n: mpi::MPI::new(blob.modulus()).into(),
         };
 
-        let p = mpi::MPI::new(blob.prime1());
-        let q = mpi::MPI::new(blob.prime2());
+        let p = mpi::ProtectedMPI::from(blob.prime1());
+        let q = mpi::ProtectedMPI::from(blob.prime2());
         // RSA prime generation in CNG returns them in arbitrary order but
         // RFC 4880 expects `p < q`
         let (p, q) = rsa_sort_pq(p, q);
@@ -833,8 +833,8 @@ where
             .expect("CNG to generate a valid RSA key (where p, q are coprime)");
 
         let private = mpi::SecretKeyMaterial::RSA {
-            p: p.into(),
-            q: q.into(),
+            p: p,
+            q: q,
             d: blob.priv_exp().into(),
             u: u.to_bytes_be().into(),
         };
@@ -893,13 +893,13 @@ where
                 let field_sz = cng_curve.key_bits() as usize;
 
                 let q = mpi::MPI::new_point(blob.x(), blob.y(), field_sz);
-                let scalar = mpi::MPI::new(blob.d());
+                let scalar = mpi::ProtectedMPI::from(blob.d());
 
                 if for_signing {
                     Ok((
                         PublicKeyAlgorithm::ECDSA,
                         mpi::PublicKey::ECDSA { curve, q },
-                        mpi::SecretKeyMaterial::ECDSA { scalar: scalar.into() },
+                        mpi::SecretKeyMaterial::ECDSA { scalar },
                     ))
                 } else {
                     let hash =
@@ -910,7 +910,7 @@ where
                     Ok((
                         PublicKeyAlgorithm::ECDH,
                         mpi::PublicKey::ECDH { curve, q, hash, sym },
-                        mpi::SecretKeyMaterial::ECDH { scalar: scalar.into() },
+                        mpi::SecretKeyMaterial::ECDH { scalar },
                     ))
                 }
             },
@@ -935,8 +935,8 @@ fn round_up_to_multiple_of(n: usize, m: usize) -> usize {
 /// explicit abstraction.  The reason is that the function's
 /// expression also "works" (as in it compiles) for byte slices, but
 /// does the wrong thing, see [`crate::crypto::rsa_sort_raw_pq`].
-fn rsa_sort_pq(p: mpi::MPI, q: mpi::MPI)
-               -> (mpi::MPI, mpi::MPI)
+fn rsa_sort_pq(p: mpi::ProtectedMPI, q: mpi::ProtectedMPI)
+               -> (mpi::ProtectedMPI, mpi::ProtectedMPI)
 {
     if p < q {
         (p, q)

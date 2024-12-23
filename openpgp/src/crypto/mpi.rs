@@ -380,16 +380,6 @@ impl From<Protected> for ProtectedMPI {
     }
 }
 
-// XXX: In 2.0, get rid of this conversion.  If the value has been
-// parsed into an MPI, it may have already leaked.
-impl From<MPI> for ProtectedMPI {
-    fn from(m: MPI) -> Self {
-        ProtectedMPI {
-            value: m.value.into(),
-        }
-    }
-}
-
 impl PartialOrd for ProtectedMPI {
     fn partial_cmp(&self, other: &ProtectedMPI) -> Option<Ordering> {
         Some(self.cmp(other))
