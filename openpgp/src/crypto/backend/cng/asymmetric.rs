@@ -167,8 +167,9 @@ impl Asymmetric for super::Backend {
         // didn't figure out how to do that properly, see
         // https://github.com/emgre/win-crypto-ng/issues/47
         let _ = p_bits;
+        #[allow(deprecated)]
         Err(Error::UnsupportedPublicKeyAlgorithm(
-            PublicKeyAlgorithm::ElGamalEncrypt).into())
+            PublicKeyAlgorithm::DSA).into())
     }
 }
 
