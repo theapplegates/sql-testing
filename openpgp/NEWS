@@ -44,6 +44,7 @@
    - parse::Dearmor is now marked as non-exhaustive
    - impl From<MPI> for ProtectedMPI has been removed
    - NullPolicy::new is now marked as unsafe
+   - DataFormat::MIME removed
 
 ** Policy changes
    - Version 4 DSA keys and signatures will be rejected from the

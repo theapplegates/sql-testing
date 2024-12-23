@@ -2114,25 +2114,16 @@ pub enum DataFormat {
     /// This is a hint that the content is probably UTF-8 encoded.
     Unicode,
 
-    /// MIME message.
-    ///
-    /// This is defined in [Section 5.10 of RFC4880bis].
-    ///
-    ///   [Section 5.10 of RFC4880bis]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-05#section-5.10
-    #[deprecated(since = "1.10.0", note = "Do not use as semantics are unclear")]
-    MIME,
-
     /// Unknown format specifier.
     Unknown(char),
 }
 assert_send_and_sync!(DataFormat);
 
 #[allow(deprecated)]
-const DATA_FORMAT_VARIANTS: [DataFormat; 4] = [
+const DATA_FORMAT_VARIANTS: [DataFormat; 3] = [
     DataFormat::Binary,
     DataFormat::Text,
     DataFormat::Unicode,
-    DataFormat::MIME,
 ];
 
 impl Default for DataFormat {
@@ -2154,8 +2145,6 @@ impl From<char> for DataFormat {
             'b' => Binary,
             't' => Text,
             'u' => Unicode,
-            #[allow(deprecated)]
-            'm' => MIME,
             c => Unknown(c),
         }
     }
@@ -2174,8 +2163,6 @@ impl From<DataFormat> for char {
             Binary => 'b',
             Text => 't',
             Unicode => 'u',
-            #[allow(deprecated)]
-            MIME => 'm',
             Unknown(c) => c,
         }
     }
@@ -2191,9 +2178,6 @@ impl fmt::Display for DataFormat {
                 f.write_str("Text data"),
             Unicode =>
                 f.write_str("Text data (UTF-8)"),
-            #[allow(deprecated)]
-            MIME =>
-                f.write_str("MIME message body part"),
             Unknown(c) =>
                 f.write_fmt(format_args!(
                     "Unknown data format identifier {:?}", c)),
@@ -2505,7 +2489,7 @@ mod tests {
         fn df_parse(df: DataFormat) -> bool {
             match df {
                 DataFormat::Unknown(u) =>
-                    u != 'b' && u != 't' && u != 'u' && u != 'm',
+                    u != 'b' && u != 't' && u != 'u',
                 _ => true
             }
         }
