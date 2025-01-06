@@ -15,6 +15,8 @@
    - Padding::with_policy now takes a closure
    - PKESK3::new now takes Option<KeyID>
    - PKESK3::recipient now returns Option<KeyID>
+   - message::Token is now private
+   - message::MessageParserError is now private
 
 * Changes in 2.0.0.alpha.0
   The major new feature is the support for RFC9580, which modernizes

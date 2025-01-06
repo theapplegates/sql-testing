@@ -5872,7 +5872,6 @@ impl <'a> PacketParser<'a> {
                     // this as opaque content to the message validator.
                     let mut path = self.path().to_vec();
                     path.push(0);
-                    #[allow(deprecated)]
                     self.state.message_validator.push_token(
                         message::Token::OpaqueContent, &path);
                 }

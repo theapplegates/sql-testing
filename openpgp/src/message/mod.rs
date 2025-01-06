@@ -21,9 +21,6 @@
 //!
 //! [Section 11.3 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-11.3
 
-// XXX: For Token.  Drop this once Token is private.
-#![allow(deprecated)]
-
 use std::convert::TryFrom;
 use std::fmt;
 use std::io;
@@ -40,10 +37,10 @@ use crate::packet::Tag;
 use crate::parse::{Cookie, Parse};
 
 mod lexer;
-lalrpop_util::lalrpop_mod!(#[allow(clippy::all, deprecated)] grammar, "/message/grammar.rs");
+lalrpop_util::lalrpop_mod!(#[allow(clippy::all)] grammar, "/message/grammar.rs");
 
 use self::lexer::{Lexer, LexicalError};
-pub use self::lexer::Token;
+pub(crate) use self::lexer::Token;
 
 use lalrpop_util::ParseError;
 
@@ -55,7 +52,7 @@ use self::grammar::MessageParser;
 /// extensions.
 #[non_exhaustive]
 #[derive(Debug, Clone)]
-pub enum MessageParserError {
+pub (crate) enum MessageParserError {
     /// A parser error.
     Parser(ParseError<usize, Token, LexicalError>),
     /// An OpenPGP error.
