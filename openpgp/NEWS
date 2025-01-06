@@ -12,6 +12,7 @@
    - ComponentBundle::other_revocations2 renamed to ComponentBundle::other_revocations
    - Signature::verify renamed to Signature::verify_document
    - armor::Reader::new removed
+   - Padding::with_policy now takes a closure
 
 * Changes in 2.0.0.alpha.0
   The major new feature is the support for RFC9580, which modernizes
