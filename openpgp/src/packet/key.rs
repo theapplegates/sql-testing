@@ -2792,7 +2792,7 @@ mod tests {
             let key: Key<key::SecretParts, key::UnspecifiedRole> = key.into();
             let mut keypair = key.clone().into_keypair().unwrap();
             let cipher = SymmetricAlgorithm::AES256;
-            let sk = SessionKey::new(cipher.key_size().unwrap());
+            let sk = SessionKey::new(cipher.key_size().unwrap()).unwrap();
 
             let pkesk = PKESK3::for_recipient(cipher, &sk, &key).unwrap();
             let (cipher_, sk_) = pkesk.decrypt(&mut keypair, None)
@@ -3095,7 +3095,7 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
 
     #[test]
     fn encrypt_huge_plaintext() -> Result<()> {
-        let sk = crate::crypto::SessionKey::new(256);
+        let sk = crate::crypto::SessionKey::new(256).unwrap();
 
         if PublicKeyAlgorithm::RSAEncryptSign.is_supported() {
             let rsa2k: Key<SecretParts, UnspecifiedRole> =
@@ -3148,7 +3148,8 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
 
     #[test]
     fn ed25519_secret_is_not_reversed() {
-        let private_key: &[u8] = &crate::crypto::SessionKey::new(32);
+        let private_key: &[u8] =
+            &crate::crypto::SessionKey::new(32).unwrap();
         let key: Key4<_, UnspecifiedRole> = Key4::import_secret_ed25519(private_key, None).unwrap();
         if let crate::packet::key::SecretKeyMaterial::Unencrypted(key) = key.secret() {
             key.map(|secret| {
@@ -3288,7 +3289,7 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
                     pair.public().verify(&sig, hash, &digest)?;
                 } else {
                     use crate::crypto::{SessionKey, Decryptor};
-                    let sk = SessionKey::new(32);
+                    let sk = SessionKey::new(32).unwrap();
                     let ciphertext = pair.public().encrypt(&sk)?;
                     assert_eq!(pair.decrypt(&ciphertext, Some(sk.len()))?, sk);
                 }
@@ -3336,7 +3337,7 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
                         }
 
                         use crate::crypto::SessionKey;
-                        let sk = SessionKey::new(32);
+                        let sk = SessionKey::new(32).unwrap();
                         let ciphertext = key.encrypt(&sk)?;
                         if let Ciphertext::ECDH { e, .. } = &ciphertext {
                             if curve == Curve::Cv25519 {

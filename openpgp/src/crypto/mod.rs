@@ -104,7 +104,7 @@ impl SessionKey {
     /// use openpgp::packet::prelude::*;
     ///
     /// let cipher = SymmetricAlgorithm::AES256;
-    /// let sk = SessionKey::new(cipher.key_size().unwrap());
+    /// let sk = SessionKey::new(cipher.key_size()?)?;
     ///
     /// let key: Key<key::SecretParts, key::UnspecifiedRole> =
     ///     Key4::generate_ecc(false, Curve::Cv25519)?.into();
@@ -113,10 +113,10 @@ impl SessionKey {
     ///     PKESK3::for_recipient(cipher, &sk, &key)?.into();
     /// # Ok(()) }
     /// ```
-    pub fn new(size: usize) -> Self {
+    pub fn new(size: usize) -> Result<Self> {
         let mut sk: mem::Protected = vec![0; size].into();
         random(&mut sk);
-        Self(sk)
+        Ok(Self(sk))
     }
 
     /// Returns a reference to the inner [`mem::Protected`].

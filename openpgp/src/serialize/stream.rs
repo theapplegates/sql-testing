@@ -2992,7 +2992,8 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
         // Reuse existing session key or generate a new one.
         let sym_key_size = self.sym_algo.key_size()?;
         let sk = self.session_key.take()
-            .unwrap_or_else(|| SessionKey::new(sym_key_size));
+            .map(|sk| Ok(sk))
+            .unwrap_or_else(|| SessionKey::new(sym_key_size))?;
         if sk.len() != sym_key_size {
             return Err(Error::InvalidOperation(
                 format!("{} requires a {} bit key, but session key has {}",
