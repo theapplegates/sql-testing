@@ -4221,7 +4221,8 @@ mod test {
             .for_signature(pair.public().version());
         hash.update(&msg[..]);
 
-        let fp = Fingerprint::from_bytes(b"bbbbbbbbbbbbbbbbbbbb");
+        let fp =
+            Fingerprint::from_bytes(4, b"bbbbbbbbbbbbbbbbbbbb").unwrap();
         let keyid = KeyID::from(&fp);
 
         // First, make sure any superfluous subpackets are removed,
