@@ -27,6 +27,9 @@
    - mem::Encrypted::new is now fallible
    - crypto::random is now fallible
    - RegexSet::everything is now infallible
+   - Cert::revocation_keys now returns an unboxed iterator
+   - ValidCert::revocation_keys no longer takes a policy argument
+   - ValidCert::revocation_keys now returns an unboxed iterator
 
 * Changes in 2.0.0.alpha.0
   The major new feature is the support for RFC9580, which modernizes

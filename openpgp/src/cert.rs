@@ -1225,7 +1225,7 @@ impl Cert {
     /// # Ok(()) }
     /// ```
     pub fn revocation_keys<'a>(&'a self, policy: &dyn Policy)
-        -> Box<dyn Iterator<Item = &'a RevocationKey> + 'a>
+        -> impl Iterator<Item = &'a RevocationKey> + 'a
     {
         let mut keys = std::collections::HashSet::new();
 
@@ -1250,7 +1250,7 @@ impl Cert {
             .flat_map(|sig| sig.revocation_keys())
             .for_each(|rk| { keys.insert(rk); });
 
-        Box::new(keys.into_iter())
+        keys.into_iter()
     }
 
     /// Converts the certificate into an iterator over a sequence of
@@ -4423,18 +4423,15 @@ impl<'a> ValidCert<'a> {
     ///     .generate()?;
     ///
     /// // Make sure Alice is listed as a designated revoker for Bob.
-    /// assert_eq!(bob.with_policy(p, None)?.revocation_keys(None)
+    /// assert_eq!(bob.with_policy(p, None)?.revocation_keys()
     ///            .collect::<Vec<&RevocationKey>>(),
     ///            vec![&(&alice).into()]);
     /// # Ok(()) }
     /// ```
-    pub fn revocation_keys<P>(&self, policy: P)
-        -> Box<dyn Iterator<Item = &'a RevocationKey> + 'a>
-    where
-        P: Into<Option<&'a dyn Policy>>,
+    pub fn revocation_keys(&self)
+        -> impl Iterator<Item = &'a RevocationKey> + 'a
     {
-        self.cert.revocation_keys(
-            policy.into().unwrap_or_else(|| self.policy()))
+        self.cert.revocation_keys(self.policy())
     }
 }
 
