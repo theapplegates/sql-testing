@@ -2065,7 +2065,10 @@ impl From<mpi::SecretKeyMaterial> for Unencrypted {
 
         mpis.serialize_into(&mut plaintext[1..])
             .expect("MPI serialization to vec failed");
-        Unencrypted { mpis: mem::Encrypted::new(plaintext), }
+        Unencrypted {
+            mpis: mem::Encrypted::new(plaintext)
+                .expect("encrypting memory failed"),
+        }
     }
 }
 

@@ -212,13 +212,15 @@ assert_send_and_sync!(Password);
 
 impl From<Vec<u8>> for Password {
     fn from(v: Vec<u8>) -> Self {
-        Password(mem::Encrypted::new(v.into()))
+        Password(mem::Encrypted::new(v.into())
+                 .expect("encrypting memory failed"))
     }
 }
 
 impl From<Box<[u8]>> for Password {
     fn from(v: Box<[u8]>) -> Self {
-        Password(mem::Encrypted::new(v.into()))
+        Password(mem::Encrypted::new(v.into())
+                 .expect("encrypting memory failed"))
     }
 }
 
