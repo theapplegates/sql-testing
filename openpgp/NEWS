@@ -17,6 +17,7 @@
    - PKESK3::recipient now returns Option<KeyID>
    - message::Token is now private
    - message::MessageParserError is now private
+   - cert::CipherSuite no longer implements PartialOrd, Ord
 
 * Changes in 2.0.0.alpha.0
   The major new feature is the support for RFC9580, which modernizes
