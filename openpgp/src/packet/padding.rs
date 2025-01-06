@@ -56,7 +56,7 @@ impl Padding {
     /// length) will come on top.
     pub fn new(size: usize) -> Result<Padding> {
         let mut v = vec![0; size];
-        crate::crypto::random(&mut v);
+        crate::crypto::random(&mut v)?;
         Ok(v.into())
     }
 

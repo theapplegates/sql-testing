@@ -343,7 +343,7 @@ mod has_access_to_prekey {
             let mut pages = Vec::new();
             for _ in 0..ENCRYPTED_MEMORY_PREKEY_PAGES {
                 let mut page = vec![0; ENCRYPTED_MEMORY_PAGE_SIZE];
-                crate::crypto::random(&mut page);
+                crate::crypto::random(&mut page)?;
                 pages.push(page.into());
             }
             Ok(pages.into())
@@ -384,7 +384,7 @@ mod has_access_to_prekey {
             }
 
             let mut salt = [0; 32];
-            crate::crypto::random(&mut salt);
+            crate::crypto::random(&mut salt)?;
             let mut ciphertext = Protected::new(
                 p.len() + 2 * AEAD_ALGO.digest_size().expect("supported"));
 

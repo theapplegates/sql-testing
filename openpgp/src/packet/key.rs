@@ -2134,7 +2134,7 @@ impl Unencrypted {
             use crate::serialize::MarshalInto;
 
             let mut iv = vec![0; aead.nonce_size()?];
-            crypto::random(&mut iv);
+            crypto::random(&mut iv)?;
 
             let schedule = Key253Schedule::new(
                 match key.role() {
@@ -2161,7 +2161,7 @@ impl Unencrypted {
         } else {
             // Ciphertext is preceded by a random block.
             let mut trash = vec![0u8; symm.block_size()?];
-            crypto::random(&mut trash);
+            crypto::random(&mut trash)?;
 
             let mut esk = Vec::new();
             let mut encryptor = Encryptor::new(symm, &derived_key, &mut esk)?;

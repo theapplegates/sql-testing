@@ -1764,7 +1764,7 @@ impl SignatureBuilder {
             (SBVersion::V6 { .. }, 4) => SBVersion::V4 {},
             (SBVersion::V4 {}, 6) => {
                 let mut salt = vec![0; self.fields.hash_algo().salt_size()?];
-                crate::crypto::random(&mut salt);
+                crate::crypto::random(&mut salt)?;
                 SBVersion::V6 { salt }
             },
             (SBVersion::V6 { salt }, 6) => SBVersion::V6 { salt },
@@ -1795,7 +1795,7 @@ impl SignatureBuilder {
                 // Add a salt to v4 signatures to make the signature
                 // unpredictable.
                 let mut salt = [0; 32];
-                crate::crypto::random(&mut salt);
+                crate::crypto::random(&mut salt)?;
                 self = self.set_notation("salt@notations.sequoia-pgp.org",
                                          salt, None, false)?;
             },
@@ -4040,7 +4040,7 @@ mod test {
     fn sign_verify() {
         let hash_algo = HashAlgorithm::SHA512;
         let mut hash = vec![0; hash_algo.digest_size().unwrap()];
-        crypto::random(&mut hash);
+        crypto::random(&mut hash).unwrap();
 
         for key in &[
             "testy-private.pgp",

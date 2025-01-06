@@ -63,9 +63,9 @@ pub fn backend() -> String {
 /// consider using [`SessionKey::new`].
 ///
 ///   [`SessionKey::new`]: crate::crypto::SessionKey::new()
-pub fn random<B: AsMut<[u8]>>(mut buf: B) {
+pub fn random<B: AsMut<[u8]>>(mut buf: B) -> Result<()> {
     use backend::interface::Backend;
-    backend::Backend::random(buf.as_mut()).unwrap();
+    backend::Backend::random(buf.as_mut())
 }
 
 /// Holds a session key.
@@ -115,7 +115,7 @@ impl SessionKey {
     /// ```
     pub fn new(size: usize) -> Result<Self> {
         let mut sk: mem::Protected = vec![0; size].into();
-        random(&mut sk);
+        random(&mut sk)?;
         Ok(Self(sk))
     }
 
