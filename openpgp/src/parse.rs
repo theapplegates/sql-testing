@@ -2299,7 +2299,7 @@ impl PacketParser<'_> {
     ///         pp.start_hashing()?;
     ///     }
     ///     if let Packet::Signature(sig) = &mut pp.packet {
-    ///         good |= sig.verify(signer).is_ok();
+    ///         good |= sig.verify_document(signer).is_ok();
     ///     }
     ///     // Start parsing the next packet, recursing.
     ///     ppr = pp.recurse()?.1;
