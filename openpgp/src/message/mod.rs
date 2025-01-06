@@ -1219,7 +1219,7 @@ mod tests {
         packets.insert(
             1,
             PKESK3::new(
-                "0000111122223333".parse().unwrap(),
+                Some("0000111122223333".parse().unwrap()),
                 PublicKeyAlgorithm::RSAEncrypt,
                 Ciphertext::RSA { c: MPI::new(&[]) }).unwrap().into());
 

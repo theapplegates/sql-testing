@@ -33,7 +33,7 @@ pub struct PKESK3 {
     /// CTB header fields.
     pub(crate) common: packet::Common,
     /// Key ID of the key this is encrypted to.
-    recipient: KeyID,
+    recipient: Option<KeyID>,
     /// Public key algorithm used to encrypt the session key.
     pk_algo: PublicKeyAlgorithm,
     /// The encrypted session key.
@@ -44,10 +44,18 @@ assert_send_and_sync!(PKESK3);
 
 impl PKESK3 {
     /// Creates a new PKESK3 packet.
-    pub fn new(recipient: KeyID,
+    pub fn new(recipient: Option<KeyID>,
                pk_algo: PublicKeyAlgorithm,
                encrypted_session_key: Ciphertext)
                -> Result<PKESK3> {
+        // Normalize recipient.
+        let recipient =
+            if recipient.as_ref().map(KeyID::is_wildcard).unwrap_or(true) {
+                None
+            } else {
+                recipient
+            };
+
         Ok(PKESK3 {
             common: Default::default(),
             recipient,
@@ -69,7 +77,7 @@ impl PKESK3 {
     {
         Ok(PKESK3{
             common: Default::default(),
-            recipient: recipient.keyid(),
+            recipient: Some(recipient.keyid()),
             pk_algo: recipient.pk_algo(),
             esk: packet::PKESK::encrypt_common(
                 Some(algo), session_key,
@@ -78,12 +86,12 @@ impl PKESK3 {
     }
 
     /// Gets the recipient.
-    pub fn recipient(&self) -> &KeyID {
-        &self.recipient
+    pub fn recipient(&self) -> Option<&KeyID> {
+        self.recipient.as_ref()
     }
 
     /// Sets the recipient.
-    pub fn set_recipient(&mut self, recipient: KeyID) -> KeyID {
+    pub fn set_recipient(&mut self, recipient: Option<KeyID>) -> Option<KeyID> {
         ::std::mem::replace(&mut self.recipient, recipient)
     }
 
@@ -160,7 +168,8 @@ impl Arbitrary for PKESK3 {
             }
         };
 
-        PKESK3::new(KeyID::arbitrary(g), pk_algo, ciphertext).unwrap()
+        let keyid = bool::arbitrary(g).then_some(KeyID::arbitrary(g));
+        PKESK3::new(keyid, pk_algo, ciphertext).unwrap()
     }
 }
 

@@ -3009,7 +3009,7 @@ impl<'a, 'b> Encryptor2<'a, 'b> {
             } else {
                 let mut pkesk =
                     PKESK3::for_recipient(self.sym_algo, &sk, recipient.key)?;
-                pkesk.set_recipient(recipient.keyid.clone());
+                pkesk.set_recipient(Some(recipient.keyid.clone()));
                 Packet::PKESK(pkesk.into()).serialize(&mut inner)?;
             }
         }

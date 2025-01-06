@@ -65,14 +65,7 @@ impl PKESK {
     /// Gets the recipient.
     pub fn recipient(&self) -> Option<KeyHandle> {
         match self {
-            PKESK::V3(p) => {
-                let id = p.recipient();
-                if id.is_wildcard() {
-                    None
-                } else {
-                    Some(id.into())
-                }
-            },
+            PKESK::V3(p) => p.recipient().map(Into::into),
             PKESK::V6(p) => p.recipient().map(Into::into),
         }
     }

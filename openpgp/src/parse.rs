@@ -3887,16 +3887,26 @@ impl PKESK3 {
     fn parse(mut php: PacketHeaderParser) -> Result<PacketParser> {
         tracer!(TRACE, "PKESK3::parse", php.recursion_depth());
         make_php_try!(php);
-        let mut keyid = [0u8; 8];
-        keyid.copy_from_slice(&php_try!(php.parse_bytes("keyid", 8)));
+
+        let keyid = {
+            let mut keyid = [0u8; 8];
+            keyid.copy_from_slice(&php_try!(php.parse_bytes("keyid", 8)));
+
+            let keyid = KeyID::from_bytes(&keyid);
+            if keyid.is_wildcard() {
+                None
+            } else {
+                Some(keyid)
+            }
+        };
+
         let pk_algo: PublicKeyAlgorithm = php_try!(php.parse_u8("pk_algo")).into();
         if ! pk_algo.for_encryption() {
             return php.fail("not an encryption algorithm");
         }
         let mpis = crypto::mpi::Ciphertext::_parse(pk_algo, &mut php)?;
 
-        let pkesk = php_try!(PKESK3::new(KeyID::from_bytes(&keyid),
-                                         pk_algo, mpis));
+        let pkesk = php_try!(PKESK3::new(keyid, pk_algo, mpis));
         php.ok(pkesk.into())
     }
 }
