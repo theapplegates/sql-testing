@@ -41,8 +41,9 @@ use crate::packet::key;
 use crate::packet::key::{Key4, Key6};
 use crate::packet::Signature;
 use crate::packet::signature::{self, Signature3, Signature4, Signature6};
+use crate::Error;
 use crate::Result;
-use crate::types::Timestamp;
+use crate::types::{SignatureType, Timestamp};
 
 use std::fs::{File, OpenOptions};
 use std::io::{self, Write};
@@ -1021,6 +1022,55 @@ impl Signature {
         -> Result<()>
         where P: key::KeyParts,
     {
+        if let Some(salt) = self.salt() {
+            hash.update(salt);
+        }
+        key.hash(hash);
+        ua.hash(hash);
+        self.hash(hash);
+        Ok(())
+    }
+
+    /// Hashes this user ID attestation over the specified primary key and
+    /// user ID, the primary key, and the userid.
+    pub fn hash_userid_attestation<P>(&self, hash: &mut Context,
+                                  key: &Key<P, key::PrimaryRole>,
+                                  userid: &UserID)
+                                  -> Result<()>
+        where P: key::KeyParts,
+    {
+        match self.typ() {
+            SignatureType::AttestationKey => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
+        if let Some(salt) = self.salt() {
+            hash.update(salt);
+        }
+        key.hash(hash);
+        userid.hash(hash);
+        self.hash(hash);
+        Ok(())
+    }
+
+    /// Hashes this user attribute attestation over the specified primary
+    /// key and user attribute, the primary key, and the user
+    /// attribute.
+    pub fn hash_user_attribute_attestation<P>(
+        &self,
+        hash: &mut Context,
+        key: &Key<P, key::PrimaryRole>,
+        ua: &UserAttribute)
+        -> Result<()>
+        where P: key::KeyParts,
+    {
+        match self.typ() {
+            SignatureType::AttestationKey => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.salt() {
             hash.update(salt);
         }

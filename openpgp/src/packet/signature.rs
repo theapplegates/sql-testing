@@ -3468,10 +3468,6 @@ impl Signature {
               Q: key::KeyParts,
               R: key::KeyRole,
     {
-        if self.typ() != SignatureType::AttestationKey {
-            return Err(Error::UnsupportedSignatureType(self.typ()).into());
-        }
-
         let mut hash =
             self.hash_algo().context()?.for_signature(self.version());
 
@@ -3483,7 +3479,7 @@ impl Signature {
                        .into());
         }
 
-        self.hash_userid_binding(&mut hash, pk, userid)?;
+        self.hash_userid_attestation(&mut hash, pk, userid)?;
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
             Some(hash.into_digest()?.into()))
@@ -3608,10 +3604,6 @@ impl Signature {
               Q: key::KeyParts,
               R: key::KeyRole,
     {
-        if self.typ() != SignatureType::AttestationKey {
-            return Err(Error::UnsupportedSignatureType(self.typ()).into());
-        }
-
         let mut hash =
             self.hash_algo().context()?.for_signature(self.version());
 
@@ -3623,7 +3615,7 @@ impl Signature {
                        .into());
         }
 
-        self.hash_user_attribute_binding(&mut hash, pk, ua)?;
+        self.hash_user_attribute_attestation(&mut hash, pk, ua)?;
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
             Some(hash.into_digest()?.into()))

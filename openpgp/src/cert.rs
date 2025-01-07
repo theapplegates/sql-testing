@@ -2050,13 +2050,13 @@ impl Cert {
                                            String::from_utf8_lossy(
                                                binding.userid().value())),
                                    binding.attestations, sig,
-                                   hash_userid_binding, binding.userid());
+                                   hash_userid_attestation, binding.userid());
                     }
 
                     for binding in self.user_attributes.iter_mut() {
                         check_one!("user attribute",
                                    binding.attestations, sig,
-                                   hash_user_attribute_binding,
+                                   hash_user_attribute_attestation,
                                    binding.user_attribute());
                     }
                 },
