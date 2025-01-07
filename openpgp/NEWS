@@ -35,6 +35,13 @@
    - All hash functions defined on Signature and SignatureBuilder,
      such as Signature::hash_standalone, now check the signature type
    - crypto::hash::Hash::hash is now fallible
+   - stream::Signer::new, stream::Signer::with_template, and
+     stream::Signer::add_signer are now fallible: the streaming signer
+     now computes the set of acceptable hash algorithms as signers are
+     added via the constructors and Signer::add_signer, and returns an
+     error if that set ever gets empty
+   - stream::Signer::hash_algo now returns an error if the given
+     algorithm is not acceptable for the set of signers
 
 ** New functionality
    - Signature::hash_userid_attestation

@@ -7360,7 +7360,7 @@ mod test {
             let mut message = Signer::with_template(
                 message, signing_keypair,
                 signature::SignatureBuilder::new(SignatureType::Text)
-            ).detached().build()?;
+            )?.detached().build()?;
             message.write_all(data)?;
             message.finalize()?;
         }
