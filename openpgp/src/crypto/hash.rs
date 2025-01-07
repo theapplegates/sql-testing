@@ -824,7 +824,6 @@ impl signature::SignatureBuilder {
     {
         match self.typ() {
             SignatureType::Standalone => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -841,7 +840,6 @@ impl signature::SignatureBuilder {
     {
         match self.typ() {
             SignatureType::Timestamp => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -863,7 +861,6 @@ impl signature::SignatureBuilder {
         match self.typ() {
             SignatureType::DirectKey => (),
             SignatureType::KeyRevocation => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -887,7 +884,6 @@ impl signature::SignatureBuilder {
         match self.typ() {
             SignatureType::SubkeyBinding => (),
             SignatureType::SubkeyRevocation => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -911,7 +907,6 @@ impl signature::SignatureBuilder {
     {
         match self.typ() {
             SignatureType::PrimaryKeyBinding => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -938,7 +933,6 @@ impl signature::SignatureBuilder {
             SignatureType::CasualCertification => (),
             SignatureType::PositiveCertification => (),
             SignatureType::CertificationRevocation => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -968,7 +962,6 @@ impl signature::SignatureBuilder {
             SignatureType::CasualCertification => (),
             SignatureType::PositiveCertification => (),
             SignatureType::CertificationRevocation => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -992,7 +985,6 @@ impl Signature {
     {
         match self.typ() {
             SignatureType::Standalone => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -1009,7 +1001,6 @@ impl Signature {
     {
         match self.typ() {
             SignatureType::Timestamp => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -1030,7 +1021,6 @@ impl Signature {
         match self.typ() {
             SignatureType::DirectKey => (),
             SignatureType::KeyRevocation => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -1054,7 +1044,6 @@ impl Signature {
         match self.typ() {
             SignatureType::SubkeyBinding => (),
             SignatureType::SubkeyRevocation => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -1078,7 +1067,6 @@ impl Signature {
     {
         match self.typ() {
             SignatureType::PrimaryKeyBinding => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -1105,7 +1093,6 @@ impl Signature {
             SignatureType::CasualCertification => (),
             SignatureType::PositiveCertification => (),
             SignatureType::CertificationRevocation => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -1135,7 +1122,6 @@ impl Signature {
             SignatureType::CasualCertification => (),
             SignatureType::PositiveCertification => (),
             SignatureType::CertificationRevocation => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -1158,7 +1144,6 @@ impl Signature {
     {
         match self.typ() {
             SignatureType::AttestationKey => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 
@@ -1184,7 +1169,6 @@ impl Signature {
     {
         match self.typ() {
             SignatureType::AttestationKey => (),
-            SignatureType::Unknown(_) => (),
             _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
         }
 

@@ -6440,7 +6440,6 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
 
         let primary: Key<_, key::PrimaryRole> =
             key::Key4::generate_ecc(true, Curve::Ed25519)?.into();
-        let mut primary_pair = primary.clone().into_keypair()?;
         let cert = Cert::try_from(vec![primary.into()])?;
 
         // We now add components without binding signatures.  They
@@ -6475,16 +6474,10 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         let mut fake_key = packet::Unknown::new(
             packet::Tag::PublicSubkey, anyhow::anyhow!("fake key"));
         fake_key.set_body("fake key".into());
-        let fake_binding = signature::SignatureBuilder::new(
-                SignatureType::Unknown(SignatureType::SubkeyBinding.into()))
-            .sign_standalone(&mut primary_pair)?;
-        let cert = cert.insert_packets(vec![Packet::from(fake_key),
-                                           fake_binding.clone().into()])?;
+        let cert = cert.insert_packets(vec![Packet::from(fake_key)])?;
         assert_eq!(cert.unknowns().count(), 1);
         assert_eq!(cert.unknowns().next().unwrap().unknown().tag(),
                    packet::Tag::PublicSubkey);
-        assert_eq!(cert.unknowns().next().unwrap().self_signatures().collect::<Vec<_>>(),
-                   vec![&fake_binding]);
 
         Ok(())
     }
