@@ -4288,7 +4288,7 @@ mod test {
         if let Packet::Signature(sig) = p {
             let mut hash = sig.hash_algo().context().unwrap()
                 .for_signature(sig.version());
-            sig.hash_standalone(&mut hash).unwrap();
+            sig.hash_timestamp(&mut hash).unwrap();
             let digest = hash.into_digest().unwrap();
             eprintln!("{}", crate::fmt::hex::encode(&digest));
             sig.verify_timestamp(alpha.primary_key().key()).unwrap();
