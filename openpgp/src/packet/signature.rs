@@ -615,12 +615,6 @@ impl SignatureBuilder {
     pub fn sign_standalone(mut self, signer: &mut dyn Signer)
                            -> Result<Signature>
     {
-        match self.typ {
-            SignatureType::Standalone => (),
-            SignatureType::Unknown(_) => (),
-            _ => return Err(Error::UnsupportedSignatureType(self.typ).into()),
-        }
-
         self = self.pre_sign(signer)?;
 
         let mut hash =
@@ -729,12 +723,6 @@ impl SignatureBuilder {
     pub fn sign_timestamp(mut self, signer: &mut dyn Signer)
                           -> Result<Signature>
     {
-        match self.typ {
-            SignatureType::Timestamp => (),
-            SignatureType::Unknown(_) => (),
-            _ => return Err(Error::UnsupportedSignatureType(self.typ).into()),
-        }
-
         self = self.pre_sign(signer)?;
 
         let mut hash =
@@ -857,13 +845,6 @@ impl SignatureBuilder {
         -> Result<Signature>
     where PK: Into<Option<&'a Key<key::PublicParts, key::PrimaryRole>>>
     {
-        match self.typ {
-            SignatureType::DirectKey => (),
-            SignatureType::KeyRevocation => (),
-            SignatureType::Unknown(_) => (),
-            _ => return Err(Error::UnsupportedSignatureType(self.typ).into()),
-        }
-
         self = self.pre_sign(signer)?;
 
         let mut hash =
@@ -998,16 +979,6 @@ impl SignatureBuilder {
         -> Result<Signature>
         where PK: Into<Option<&'a Key<key::PublicParts, key::PrimaryRole>>>
     {
-        match self.typ {
-            SignatureType::GenericCertification => (),
-            SignatureType::PersonaCertification => (),
-            SignatureType::CasualCertification => (),
-            SignatureType::PositiveCertification => (),
-            SignatureType::CertificationRevocation => (),
-            SignatureType::Unknown(_) => (),
-            _ => return Err(Error::UnsupportedSignatureType(self.typ).into()),
-        }
-
         self = self.pre_sign(signer)?;
 
         let key = key.into().unwrap_or_else(|| signer.public().role_as_primary());
@@ -1127,13 +1098,6 @@ impl SignatureBuilder {
         where Q: key::KeyParts,
               PK: Into<Option<&'a Key<key::PublicParts, key::PrimaryRole>>>,
     {
-        match self.typ {
-            SignatureType::SubkeyBinding => (),
-            SignatureType::SubkeyRevocation => (),
-            SignatureType::Unknown(_) => (),
-            _ => return Err(Error::UnsupportedSignatureType(self.typ).into()),
-        }
-
         self = self.pre_sign(signer)?;
 
         let primary = primary.into().unwrap_or_else(|| signer.public().role_as_primary());
@@ -1278,12 +1242,6 @@ impl SignatureBuilder {
         where P: key::KeyParts,
               Q: key::KeyParts,
     {
-        match self.typ {
-            SignatureType::PrimaryKeyBinding => (),
-            SignatureType::Unknown(_) => (),
-            _ => return Err(Error::UnsupportedSignatureType(self.typ).into()),
-        }
-
         self = self.pre_sign(subkey_signer)?;
 
         let mut hash =
@@ -1413,16 +1371,6 @@ impl SignatureBuilder {
         -> Result<Signature>
         where PK: Into<Option<&'a Key<key::PublicParts, key::PrimaryRole>>>
     {
-        match self.typ {
-            SignatureType::GenericCertification => (),
-            SignatureType::PersonaCertification => (),
-            SignatureType::CasualCertification => (),
-            SignatureType::PositiveCertification => (),
-            SignatureType::CertificationRevocation => (),
-            SignatureType::Unknown(_) => (),
-            _ => return Err(Error::UnsupportedSignatureType(self.typ).into()),
-        }
-
         self = self.pre_sign(signer)?;
 
         let key = key.into().unwrap_or_else(|| signer.public().role_as_primary());

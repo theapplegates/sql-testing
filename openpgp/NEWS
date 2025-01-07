@@ -32,6 +32,8 @@
    - ValidCert::revocation_keys now returns an unboxed iterator
    - All hash functions defined on Signature and SignatureBuilder,
      such as Signature::hash_standalone, are now fallible
+   - All hash functions defined on Signature and SignatureBuilder,
+     such as Signature::hash_standalone, now check the signature type
 
 ** New functionality
    - Signature::hash_userid_attestation

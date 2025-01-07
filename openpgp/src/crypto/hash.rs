@@ -822,6 +822,12 @@ impl signature::SignatureBuilder {
     pub fn hash_standalone(&self, hash: &mut Context)
                            -> Result<()>
     {
+        match self.typ() {
+            SignatureType::Standalone => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.prefix_salt() {
             hash.update(salt);
         }
@@ -833,7 +839,18 @@ impl signature::SignatureBuilder {
     pub fn hash_timestamp(&self, hash: &mut Context)
                           -> Result<()>
     {
-        self.hash_standalone(hash)
+        match self.typ() {
+            SignatureType::Timestamp => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
+
+        if let Some(salt) = self.prefix_salt() {
+            hash.update(salt);
+        }
+        self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this direct key signature over the specified primary
@@ -843,6 +860,13 @@ impl signature::SignatureBuilder {
                               -> Result<()>
         where P: key::KeyParts,
     {
+        match self.typ() {
+            SignatureType::DirectKey => (),
+            SignatureType::KeyRevocation => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.prefix_salt() {
             hash.update(salt);
         }
@@ -860,6 +884,13 @@ impl signature::SignatureBuilder {
         where P: key::KeyParts,
               Q: key::KeyParts,
     {
+        match self.typ() {
+            SignatureType::SubkeyBinding => (),
+            SignatureType::SubkeyRevocation => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.prefix_salt() {
             hash.update(salt);
         }
@@ -878,10 +909,18 @@ impl signature::SignatureBuilder {
         where P: key::KeyParts,
               Q: key::KeyParts,
     {
+        match self.typ() {
+            SignatureType::PrimaryKeyBinding => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.prefix_salt() {
             hash.update(salt);
         }
-        self.hash_subkey_binding(hash, key, subkey)?;
+        key.hash(hash);
+        subkey.hash(hash);
+        self.hash(hash);
         Ok(())
     }
 
@@ -893,6 +932,16 @@ impl signature::SignatureBuilder {
                                   -> Result<()>
         where P: key::KeyParts,
     {
+        match self.typ() {
+            SignatureType::GenericCertification => (),
+            SignatureType::PersonaCertification => (),
+            SignatureType::CasualCertification => (),
+            SignatureType::PositiveCertification => (),
+            SignatureType::CertificationRevocation => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.prefix_salt() {
             hash.update(salt);
         }
@@ -913,6 +962,16 @@ impl signature::SignatureBuilder {
         -> Result<()>
         where P: key::KeyParts,
     {
+        match self.typ() {
+            SignatureType::GenericCertification => (),
+            SignatureType::PersonaCertification => (),
+            SignatureType::CasualCertification => (),
+            SignatureType::PositiveCertification => (),
+            SignatureType::CertificationRevocation => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.prefix_salt() {
             hash.update(salt);
         }
@@ -931,6 +990,12 @@ impl Signature {
     pub fn hash_standalone(&self, hash: &mut Context)
                            -> Result<()>
     {
+        match self.typ() {
+            SignatureType::Standalone => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.salt() {
             hash.update(salt);
         }
@@ -942,7 +1007,17 @@ impl Signature {
     pub fn hash_timestamp(&self, hash: &mut Context)
                           -> Result<()>
     {
-        self.hash_standalone(hash)
+        match self.typ() {
+            SignatureType::Timestamp => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
+        if let Some(salt) = self.salt() {
+            hash.update(salt);
+        }
+        self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this direct key signature over the specified primary
@@ -952,6 +1027,13 @@ impl Signature {
                               -> Result<()>
         where P: key::KeyParts,
     {
+        match self.typ() {
+            SignatureType::DirectKey => (),
+            SignatureType::KeyRevocation => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.salt() {
             hash.update(salt);
         }
@@ -969,6 +1051,13 @@ impl Signature {
         where P: key::KeyParts,
               Q: key::KeyParts,
     {
+        match self.typ() {
+            SignatureType::SubkeyBinding => (),
+            SignatureType::SubkeyRevocation => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.salt() {
             hash.update(salt);
         }
@@ -987,10 +1076,18 @@ impl Signature {
         where P: key::KeyParts,
               Q: key::KeyParts,
     {
+        match self.typ() {
+            SignatureType::PrimaryKeyBinding => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.salt() {
             hash.update(salt);
         }
-        self.hash_subkey_binding(hash, key, subkey)?;
+        key.hash(hash);
+        subkey.hash(hash);
+        self.hash(hash);
         Ok(())
     }
 
@@ -1002,6 +1099,16 @@ impl Signature {
                                   -> Result<()>
         where P: key::KeyParts,
     {
+        match self.typ() {
+            SignatureType::GenericCertification => (),
+            SignatureType::PersonaCertification => (),
+            SignatureType::CasualCertification => (),
+            SignatureType::PositiveCertification => (),
+            SignatureType::CertificationRevocation => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.salt() {
             hash.update(salt);
         }
@@ -1022,6 +1129,16 @@ impl Signature {
         -> Result<()>
         where P: key::KeyParts,
     {
+        match self.typ() {
+            SignatureType::GenericCertification => (),
+            SignatureType::PersonaCertification => (),
+            SignatureType::CasualCertification => (),
+            SignatureType::PositiveCertification => (),
+            SignatureType::CertificationRevocation => (),
+            SignatureType::Unknown(_) => (),
+            _ => return Err(Error::UnsupportedSignatureType(self.typ()).into()),
+        }
+
         if let Some(salt) = self.salt() {
             hash.update(salt);
         }
