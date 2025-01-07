@@ -2578,7 +2578,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                 // signature.
                 use crate::crypto::hash::Hash;
                 let mut hash = mode.as_ref().clone();
-                sig.hash(&mut hash);
+                sig.hash(&mut hash)?;
 
                 // Attach digest to the signature.
                 let mut digest = vec![0; hash.digest_size()];

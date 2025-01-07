@@ -1475,8 +1475,8 @@ impl<'a> UserIDAmalgamation<'a> {
         // Hash the components like in a binding signature.
         let mut hash = HashAlgorithm::default().context()?
             .for_signature(primary_signer.public().version());
-        self.cert().primary_key().hash(&mut hash);
-        self.userid().hash(&mut hash);
+        self.cert().primary_key().hash(&mut hash)?;
+        self.userid().hash(&mut hash)?;
 
         // Check if there is a previous attestation.  If so, we need
         // that to robustly override it.
@@ -1559,8 +1559,8 @@ impl<'a> UserAttributeAmalgamation<'a> {
         // Hash the components like in a binding signature.
         let mut hash = HashAlgorithm::default().context()?
             .for_signature(primary_signer.public().version());
-        self.cert().primary_key().hash(&mut hash);
-        self.user_attribute().hash(&mut hash);
+        self.cert().primary_key().hash(&mut hash)?;
+        self.user_attribute().hash(&mut hash)?;
 
         // Check if there is a previous attestation.  If so, we need
         // that to robustly override it.

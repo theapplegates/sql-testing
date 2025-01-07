@@ -1425,7 +1425,7 @@ impl SignatureBuilder {
 
         self = self.pre_sign(signer)?;
 
-        self.hash(&mut hash);
+        self.hash(&mut hash)?;
         let mut digest = vec![0u8; hash.digest_size()];
         hash.digest(&mut digest)?;
 
@@ -1542,7 +1542,7 @@ impl SignatureBuilder {
 
         self = self.pre_sign(signer)?;
 
-        self.hash(&mut hash);
+        self.hash(&mut hash)?;
         let mut digest = vec![0u8; hash.digest_size()];
         hash.digest(&mut digest)?;
 
@@ -2815,7 +2815,7 @@ impl Signature {
         where P: key::KeyParts,
               R: key::KeyRole,
     {
-        self.hash(&mut hash);
+        self.hash(&mut hash)?;
         self.verify_digest_internal(
             key.parts_as_public().role_as_unspecified(),
             Some(hash.into_digest()?.into()))
@@ -3604,7 +3604,7 @@ impl Signature {
         let mut hash =
             self.hash_algo().context()?.for_signature(self.version());
         hash.update(msg.as_ref());
-        self.hash(&mut hash);
+        self.hash(&mut hash)?;
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
             Some(hash.into_digest()?.into()))
@@ -4024,7 +4024,7 @@ mod test {
             // Good signature.
             let mut hash = hash_algo.context().unwrap()
                 .for_signature(sig.version());
-            sig.hash(&mut hash);
+            sig.hash(&mut hash).unwrap();
             let mut digest = vec![0u8; hash.digest_size()];
             hash.digest(&mut digest).unwrap();
             sig.verify_digest(pair.public(), &digest[..]).unwrap();

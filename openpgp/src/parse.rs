@@ -1517,7 +1517,7 @@ impl Signature {
 
         if let Some((level, mut hash)) = computed_digest {
             if let Packet::Signature(ref mut sig) = pp.packet {
-                sig.hash(&mut hash);
+                sig.hash(&mut hash)?;
 
                 let mut digest = vec![0u8; hash.digest_size()];
                 let _ = hash.digest(&mut digest);

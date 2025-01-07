@@ -34,6 +34,7 @@
      such as Signature::hash_standalone, are now fallible
    - All hash functions defined on Signature and SignatureBuilder,
      such as Signature::hash_standalone, now check the signature type
+   - crypto::hash::Hash::hash is now fallible
 
 ** New functionality
    - Signature::hash_userid_attestation

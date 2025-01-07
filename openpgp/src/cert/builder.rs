@@ -2027,7 +2027,7 @@ mod tests {
             .into_keypair()?;
         let mut hash = HashAlgorithm::SHA512.context()?
             .for_signature(primary_signer.public().version());
-        cert.primary_key().hash(&mut hash);
+        cert.primary_key().hash(&mut hash)?;
         let sig = signature::SignatureBuilder::new(SignatureType::DirectKey)
             .set_signature_creation_time(then)?
             .sign_hash(&mut primary_signer, hash)?;
