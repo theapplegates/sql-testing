@@ -819,23 +819,27 @@ impl Hash for signature::SignatureBuilder {
 impl signature::SignatureBuilder {
     /// Hashes this standalone signature.
     pub fn hash_standalone(&self, hash: &mut Context)
+                           -> Result<()>
     {
         if let Some(salt) = self.prefix_salt() {
             hash.update(salt);
         }
         self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this timestamp signature.
     pub fn hash_timestamp(&self, hash: &mut Context)
+                          -> Result<()>
     {
-        self.hash_standalone(hash);
+        self.hash_standalone(hash)
     }
 
     /// Hashes this direct key signature over the specified primary
     /// key, and the primary key.
     pub fn hash_direct_key<P>(&self, hash: &mut Context,
                               key: &Key<P, key::PrimaryRole>)
+                              -> Result<()>
         where P: key::KeyParts,
     {
         if let Some(salt) = self.prefix_salt() {
@@ -843,6 +847,7 @@ impl signature::SignatureBuilder {
         }
         key.hash(hash);
         self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this subkey binding over the specified primary key and
@@ -850,6 +855,7 @@ impl signature::SignatureBuilder {
     pub fn hash_subkey_binding<P, Q>(&self, hash: &mut Context,
                                      key: &Key<P, key::PrimaryRole>,
                                      subkey: &Key<Q, key::SubordinateRole>)
+                                     -> Result<()>
         where P: key::KeyParts,
               Q: key::KeyParts,
     {
@@ -859,6 +865,7 @@ impl signature::SignatureBuilder {
         key.hash(hash);
         subkey.hash(hash);
         self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this primary key binding over the specified primary key
@@ -866,13 +873,15 @@ impl signature::SignatureBuilder {
     pub fn hash_primary_key_binding<P, Q>(&self, hash: &mut Context,
                                           key: &Key<P, key::PrimaryRole>,
                                           subkey: &Key<Q, key::SubordinateRole>)
+                                          -> Result<()>
         where P: key::KeyParts,
               Q: key::KeyParts,
     {
         if let Some(salt) = self.prefix_salt() {
             hash.update(salt);
         }
-        self.hash_subkey_binding(hash, key, subkey);
+        self.hash_subkey_binding(hash, key, subkey)?;
+        Ok(())
     }
 
     /// Hashes this user ID binding over the specified primary key and
@@ -880,6 +889,7 @@ impl signature::SignatureBuilder {
     pub fn hash_userid_binding<P>(&self, hash: &mut Context,
                                   key: &Key<P, key::PrimaryRole>,
                                   userid: &UserID)
+                                  -> Result<()>
         where P: key::KeyParts,
     {
         if let Some(salt) = self.prefix_salt() {
@@ -888,6 +898,7 @@ impl signature::SignatureBuilder {
         key.hash(hash);
         userid.hash(hash);
         self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this user attribute binding over the specified primary
@@ -898,6 +909,7 @@ impl signature::SignatureBuilder {
         hash: &mut Context,
         key: &Key<P, key::PrimaryRole>,
         ua: &UserAttribute)
+        -> Result<()>
         where P: key::KeyParts,
     {
         if let Some(salt) = self.prefix_salt() {
@@ -906,6 +918,7 @@ impl signature::SignatureBuilder {
         key.hash(hash);
         ua.hash(hash);
         self.hash(hash);
+        Ok(())
     }
 }
 
@@ -915,23 +928,27 @@ impl signature::SignatureBuilder {
 impl Signature {
     /// Hashes this standalone signature.
     pub fn hash_standalone(&self, hash: &mut Context)
+                           -> Result<()>
     {
         if let Some(salt) = self.salt() {
             hash.update(salt);
         }
         self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this timestamp signature.
     pub fn hash_timestamp(&self, hash: &mut Context)
+                          -> Result<()>
     {
-        self.hash_standalone(hash);
+        self.hash_standalone(hash)
     }
 
     /// Hashes this direct key signature over the specified primary
     /// key, and the primary key.
     pub fn hash_direct_key<P>(&self, hash: &mut Context,
                               key: &Key<P, key::PrimaryRole>)
+                              -> Result<()>
         where P: key::KeyParts,
     {
         if let Some(salt) = self.salt() {
@@ -939,6 +956,7 @@ impl Signature {
         }
         key.hash(hash);
         self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this subkey binding over the specified primary key and
@@ -946,6 +964,7 @@ impl Signature {
     pub fn hash_subkey_binding<P, Q>(&self, hash: &mut Context,
                                      key: &Key<P, key::PrimaryRole>,
                                      subkey: &Key<Q, key::SubordinateRole>)
+                                     -> Result<()>
         where P: key::KeyParts,
               Q: key::KeyParts,
     {
@@ -955,6 +974,7 @@ impl Signature {
         key.hash(hash);
         subkey.hash(hash);
         self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this primary key binding over the specified primary key
@@ -962,13 +982,15 @@ impl Signature {
     pub fn hash_primary_key_binding<P, Q>(&self, hash: &mut Context,
                                           key: &Key<P, key::PrimaryRole>,
                                           subkey: &Key<Q, key::SubordinateRole>)
+                                          -> Result<()>
         where P: key::KeyParts,
               Q: key::KeyParts,
     {
         if let Some(salt) = self.salt() {
             hash.update(salt);
         }
-        self.hash_subkey_binding(hash, key, subkey);
+        self.hash_subkey_binding(hash, key, subkey)?;
+        Ok(())
     }
 
     /// Hashes this user ID binding over the specified primary key and
@@ -976,6 +998,7 @@ impl Signature {
     pub fn hash_userid_binding<P>(&self, hash: &mut Context,
                                   key: &Key<P, key::PrimaryRole>,
                                   userid: &UserID)
+                                  -> Result<()>
         where P: key::KeyParts,
     {
         if let Some(salt) = self.salt() {
@@ -984,6 +1007,7 @@ impl Signature {
         key.hash(hash);
         userid.hash(hash);
         self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this user attribute binding over the specified primary
@@ -994,6 +1018,7 @@ impl Signature {
         hash: &mut Context,
         key: &Key<P, key::PrimaryRole>,
         ua: &UserAttribute)
+        -> Result<()>
         where P: key::KeyParts,
     {
         if let Some(salt) = self.salt() {
@@ -1002,11 +1027,14 @@ impl Signature {
         key.hash(hash);
         ua.hash(hash);
         self.hash(hash);
+        Ok(())
     }
 
     /// Hashes this signature for use in a Third-Party Confirmation
     /// signature.
-    pub fn hash_for_confirmation(&self, hash: &mut Context) {
+    pub fn hash_for_confirmation(&self, hash: &mut Context)
+                                 -> Result<()>
+    {
         match self {
             Signature::V3(s) => s.hash_for_confirmation(hash),
             Signature::V4(s) => s.hash_for_confirmation(hash),
@@ -1021,7 +1049,9 @@ impl Signature {
 impl Signature4 {
     /// Hashes this signature for use in a Third-Party Confirmation
     /// signature.
-    pub fn hash_for_confirmation(&self, hash: &mut Context) {
+    pub fn hash_for_confirmation(&self, hash: &mut Context)
+                                 -> Result<()>
+    {
         use crate::serialize::{Marshal, MarshalInto};
         // Section 5.2.4 of RFC4880:
         //
@@ -1050,18 +1080,19 @@ impl Signature4 {
             .min(std::u16::MAX as usize);
         body.extend(&(l as u16).to_be_bytes());
          // Assumes well-formedness.
-        let _ = self.hashed_area().serialize(&mut body);
+        self.hashed_area().serialize(&mut body)?;
 
         // The unhashed area.
         body.extend(&[0, 0]); // Size replaced by zero.
         // Unhashed packets omitted.
 
         body.extend(self.digest_prefix());
-        let _ = self.mpis().serialize(&mut body);
+        self.mpis().serialize(&mut body)?;
 
         hash.update(&[0x88]);
         hash.update(&(body.len() as u32).to_be_bytes());
         hash.update(&body);
+        Ok(())
     }
 }
 
@@ -1082,7 +1113,7 @@ mod test {
                     selfsig.hash_userid_binding(
                         &mut hash,
                         cert.primary_key().key(),
-                        binding.userid());
+                        binding.userid()).unwrap();
                     let h = hash.into_digest().unwrap();
                     if &h[..2] != selfsig.digest_prefix() {
                         eprintln!("{:?}: {:?} / {:?}",
@@ -1103,7 +1134,7 @@ mod test {
                     selfsig.hash_user_attribute_binding(
                         &mut hash,
                         cert.primary_key().key(),
-                        a.user_attribute());
+                        a.user_attribute()).unwrap();
                     let h = hash.into_digest().unwrap();
                     if &h[..2] != selfsig.digest_prefix() {
                         eprintln!("{:?}: {:?} / {:?}",
@@ -1123,7 +1154,7 @@ mod test {
                     selfsig.hash_subkey_binding(
                         &mut hash,
                         cert.primary_key().key(),
-                        binding.key());
+                        binding.key()).unwrap();
                     let h = hash.into_digest().unwrap();
                     if &h[..2] != selfsig.digest_prefix() {
                         eprintln!("{:?}: {:?}", i, binding);

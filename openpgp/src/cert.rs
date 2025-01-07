@@ -1547,7 +1547,7 @@ impl Cert {
                     match sig.hash_algo().context().and_then(|ctx| {
                         let mut ctx = ctx.for_signature(sig.version());
                         if matches!(sig.typ(), $sig_type_pat) {
-                            sig.$hash_method(&mut ctx, key, $($hash_args),*);
+                            sig.$hash_method(&mut ctx, key, $($hash_args),*)?;
                             ctx.into_digest()
                         } else {
                             Err(Error::UnsupportedSignatureType(sig.typ()).into())
@@ -1611,7 +1611,7 @@ impl Cert {
                     match sig.hash_algo().context().and_then(|ctx| {
                         let mut ctx = ctx.for_signature(sig.version());
                         if matches!(sig.typ(), $sig_type_pat) {
-                            sig.$hash_method(&mut ctx, key, $($verify_args),*);
+                            sig.$hash_method(&mut ctx, key, $($verify_args),*)?;
                             ctx.into_digest()
                         } else {
                             Err(Error::UnsupportedSignatureType(sig.typ()).into())
@@ -1846,7 +1846,7 @@ impl Cert {
                                  ctx.for_signature($sig.version());
 
                              $sig.$hash_method(&mut ctx, key,
-                                              $($verify_args),*);
+                                              $($verify_args),*)?;
                              ctx.into_digest()
                          })
                      {
@@ -1942,7 +1942,7 @@ impl Cert {
                                 let mut ctx =
                                     ctx.for_signature($sig.version());
                                 $sig.$hash_method(&mut ctx, key,
-                                                 $($verify_args),*);
+                                                 $($verify_args),*)?;
                                 ctx.into_digest()
                             })
                         {
@@ -7346,7 +7346,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
             // Hash the certification.
             let mut h = attestation.hash_algo().context()?
                 .for_signature(attestation.version());
-            certification.hash_for_confirmation(&mut h);
+            certification.hash_for_confirmation(&mut h)?;
             let digest = h.into_digest()?;
 
             if DUMP {
