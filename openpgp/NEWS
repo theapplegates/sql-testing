@@ -54,6 +54,8 @@
    - SubkeyRevocationBuilder no longer derefs to SignatureBuilder
    - UserIDRevocationBuilder no longer derefs to SignatureBuilder
    - UserAttributeRevocationBuilder no longer derefs to SignatureBuilder
+   - Parse::from_buffered_reader is now mandatory
+   - Parse::from_reader is no longer mandatory
 
 ** New functionality
    - Signature::hash_userid_attestation

@@ -68,10 +68,8 @@
 use std::borrow::Cow;
 use std::convert::TryFrom;
 use std::fmt;
-use std::io::Read;
-use std::path::Path;
 
-use buffered_reader::{BufferedReader, Dup, EOF, File, Generic, Memory};
+use buffered_reader::{BufferedReader, Dup, EOF, Memory};
 
 use crate::Fingerprint;
 use crate::KeyID;
@@ -469,14 +467,6 @@ impl<'a> Parse<'a, RawCert<'a>> for RawCert<'a> {
             Err(crate::Error::MalformedCert("No data".into()).into())
         }
     }
-
-    /// Returns the first RawCert encountered in the reader.
-    ///
-    /// Returns an error if there are multiple certificates.
-    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
-        let br = Generic::with_cookie(reader, None, Cookie::default());
-        Self::from_buffered_reader(br)
-    }
 }
 
 impl<'a> crate::seal::Sealed for RawCert<'a> {}
@@ -665,16 +655,6 @@ impl<'a> Parse<'a, RawCertParser<'a>> for RawCertParser<'a>
         R: BufferedReader<Cookie> + 'a
     {
         RawCertParser::new(reader)
-    }
-
-    /// Initializes a `RawCertParser` from a `Read`er.
-    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
-        RawCertParser::new(Generic::with_cookie(reader, None, Default::default()))
-    }
-
-    /// Initializes a `RawCertParser` from a `File`.
-    fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        RawCertParser::new(File::with_cookie(path, Default::default())?)
     }
 
     /// Initializes a `RawCertParser` from a byte string.

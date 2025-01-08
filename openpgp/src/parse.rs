@@ -283,41 +283,46 @@ pub(crate) const RECOVERY_THRESHOLD: usize = 32 * 1024;
 /// related data structures.
 pub trait Parse<'a, T> {
     /// Reads from the given buffered reader.
+    ///
+    /// Implementations of this function should be short.  Ideally,
+    /// they should hand of the reader to a private function erasing
+    /// the readers type by invoking [`BufferedReader::into_boxed`].
     fn from_buffered_reader<R>(reader: R) -> Result<T>
     where
-        R: BufferedReader<Cookie> + 'a,
-    {
-        // XXXv2: Make this function the mandatory one instead of
-        // Parse::from_reader.
-
-        // Currently, we express the default implementation over
-        // Self::from_reader, which is no worse than using from_reader
-        // directly.
-        Self::from_reader(reader)
-    }
+        R: BufferedReader<Cookie> + 'a;
 
     /// Reads from the given reader.
-    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<T>;
+    ///
+    /// The default implementation just uses
+    /// [`Parse::from_buffered_reader`], but implementations can
+    /// provide their own specialized version.
+    fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<T> {
+        Self::from_buffered_reader(
+            buffered_reader::Generic::with_cookie(reader,
+                                                  None,
+                                                  Default::default()))
+    }
 
     /// Reads from the given file.
     ///
-    /// The default implementation just uses [`from_reader(..)`], but
-    /// implementations can provide their own specialized version.
-    ///
-    /// [`from_reader(..)`]: Parse::from_reader
+    /// The default implementation just uses
+    /// [`Parse::from_buffered_reader`], but implementations can
+    /// provide their own specialized version.
     fn from_file<P: AsRef<Path>>(path: P) -> Result<T>
     {
-        Self::from_reader(::std::fs::File::open(path)?)
+        Self::from_buffered_reader(
+            buffered_reader::File::with_cookie(path.as_ref(),
+                                               Default::default())?)
     }
 
     /// Reads from the given slice.
     ///
-    /// The default implementation just uses [`from_reader(..)`], but
-    /// implementations can provide their own specialized version.
-    ///
-    /// [`from_reader(..)`]: Parse::from_reader
+    /// The default implementation just uses
+    /// [`Parse::from_buffered_reader`], but implementations can
+    /// provide their own specialized version.
     fn from_bytes<D: AsRef<[u8]> + ?Sized + Send + Sync>(data: &'a D) -> Result<T> {
-        Self::from_reader(io::Cursor::new(data))
+        Self::from_buffered_reader(
+            buffered_reader::Memory::with_cookie(data.as_ref(), Default::default()))
     }
 }
 
@@ -361,18 +366,6 @@ macro_rules! impl_parse_with_buffered_reader {
                 R: BufferedReader<Cookie> + 'a,
             {
                 Ok($from_buffered_reader(reader.into_boxed())?)
-            }
-
-            fn from_reader<R: 'a + Read + Send + Sync>(reader: R) -> Result<Self> {
-                let br = buffered_reader::Generic::with_cookie(
-                    reader, None, Cookie::default());
-                Self::from_buffered_reader(br)
-            }
-
-            fn from_bytes<D: AsRef<[u8]> + ?Sized + Send + Sync>(data: &'a D) -> Result<Self> {
-                let br = buffered_reader::Memory::with_cookie(
-                    data.as_ref(), Default::default());
-                Self::from_buffered_reader(br)
             }
         }
     }
@@ -4724,33 +4717,6 @@ impl<'a> Parse<'a, PacketParserResult<'a>> for PacketParser<'a> {
         R: BufferedReader<Cookie> + 'a,
     {
         PacketParserBuilder::from_buffered_reader(reader)?.build()
-    }
-
-    /// Starts parsing an OpenPGP message stored in a `std::io::Read` object.
-    ///
-    /// This function returns a `PacketParser` for the first packet in
-    /// the stream.
-    fn from_reader<R: io::Read + 'a + Send + Sync>(reader: R)
-            -> Result<PacketParserResult<'a>> {
-        PacketParserBuilder::from_reader(reader)?.build()
-    }
-
-    /// Starts parsing an OpenPGP message stored in a file named `path`.
-    ///
-    /// This function returns a `PacketParser` for the first packet in
-    /// the stream.
-    fn from_file<P: AsRef<Path>>(path: P)
-            -> Result<PacketParserResult<'a>> {
-        PacketParserBuilder::from_file(path)?.build()
-    }
-
-    /// Starts parsing an OpenPGP message stored in a buffer.
-    ///
-    /// This function returns a `PacketParser` for the first packet in
-    /// the stream.
-    fn from_bytes<D: AsRef<[u8]> + ?Sized + Send + Sync>(data: &'a D)
-            -> Result<PacketParserResult<'a>> {
-        PacketParserBuilder::from_bytes(data)?.build()
     }
 }
 

@@ -1065,27 +1065,6 @@ impl<'a> Parse<'a, VerifierBuilder<'a>>
     {
         VerifierBuilder::new(reader)
     }
-
-    fn from_reader<R>(reader: R) -> Result<VerifierBuilder<'a>>
-        where R: io::Read + 'a + Send + Sync,
-    {
-        VerifierBuilder::new(buffered_reader::Generic::with_cookie(
-            reader, None, Default::default()))
-    }
-
-    fn from_file<P>(path: P) -> Result<VerifierBuilder<'a>>
-        where P: AsRef<Path>,
-    {
-        VerifierBuilder::new(buffered_reader::File::with_cookie(
-            path, Default::default())?)
-    }
-
-    fn from_bytes<D>(data: &'a D) -> Result<VerifierBuilder<'a>>
-        where D: AsRef<[u8]> + ?Sized,
-    {
-        VerifierBuilder::new(buffered_reader::Memory::with_cookie(
-            data.as_ref(), Default::default()))
-    }
 }
 
 impl<'a> VerifierBuilder<'a> {
@@ -1473,27 +1452,6 @@ impl<'a> Parse<'a, DetachedVerifierBuilder<'a>>
     {
         DetachedVerifierBuilder::new(reader)
     }
-
-    fn from_reader<R>(reader: R) -> Result<DetachedVerifierBuilder<'a>>
-        where R: io::Read + 'a + Send + Sync,
-    {
-        DetachedVerifierBuilder::new(buffered_reader::Generic::with_cookie(
-            reader, None, Default::default()))
-    }
-
-    fn from_file<P>(path: P) -> Result<DetachedVerifierBuilder<'a>>
-        where P: AsRef<Path>,
-    {
-        DetachedVerifierBuilder::new(buffered_reader::File::with_cookie(
-            path, Default::default())?)
-    }
-
-    fn from_bytes<D>(data: &'a D) -> Result<DetachedVerifierBuilder<'a>>
-        where D: AsRef<[u8]> + ?Sized,
-    {
-        DetachedVerifierBuilder::new(buffered_reader::Memory::with_cookie(
-            data.as_ref(), Default::default()))
-    }
 }
 
 impl<'a> DetachedVerifierBuilder<'a> {
@@ -1838,27 +1796,6 @@ impl<'a> Parse<'a, DecryptorBuilder<'a>>
         R: BufferedReader<Cookie> + 'a,
     {
         DecryptorBuilder::new(reader)
-    }
-
-    fn from_reader<R>(reader: R) -> Result<DecryptorBuilder<'a>>
-        where R: io::Read + 'a + Send + Sync,
-    {
-        DecryptorBuilder::new(buffered_reader::Generic::with_cookie(
-            reader, None, Default::default()))
-    }
-
-    fn from_file<P>(path: P) -> Result<DecryptorBuilder<'a>>
-        where P: AsRef<Path>,
-    {
-        DecryptorBuilder::new(buffered_reader::File::with_cookie(
-            path, Default::default())?)
-    }
-
-    fn from_bytes<D>(data: &'a D) -> Result<DecryptorBuilder<'a>>
-        where D: AsRef<[u8]> + ?Sized,
-    {
-        DecryptorBuilder::new(buffered_reader::Memory::with_cookie(
-            data.as_ref(), Default::default()))
     }
 }
 

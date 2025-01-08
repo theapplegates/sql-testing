@@ -127,14 +127,12 @@
 //! [`Signature::verify_userid_revocation`]: crate::packet::Signature::verify_userid_revocation()
 //! [`Signature::verify_user_attribute_revocation`]: crate::packet::Signature::verify_user_attribute_revocation()
 
-use std::io;
 use std::collections::btree_map::BTreeMap;
 use std::collections::btree_map::Entry;
 use std::collections::hash_map::DefaultHasher;
 use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::hash::Hasher;
-use std::path::Path;
 use std::mem;
 use std::fmt;
 use std::time;
@@ -670,36 +668,6 @@ impl<'a> Parse<'a, Cert> for Cert {
         R: BufferedReader<Cookie> + 'a,
     {
         Cert::try_from(PacketParser::from_buffered_reader(reader)?)
-    }
-
-    /// Parses and returns a certificate.
-    ///
-    /// The reader must return an OpenPGP-encoded certificate.
-    ///
-    /// If `reader` contains multiple certificates, this returns an
-    /// error.  Use [`CertParser`] if you want to parse a keyring.
-    fn from_reader<R: io::Read + Send + Sync>(reader: R) -> Result<Self> {
-        Cert::try_from(PacketParser::from_reader(reader)?)
-    }
-
-    /// Parses and returns a certificate.
-    ///
-    /// The file must contain an OpenPGP-encoded certificate.
-    ///
-    /// If the file contains multiple certificates, this returns an
-    /// error.  Use [`CertParser`] if you want to parse a keyring.
-    fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        Cert::try_from(PacketParser::from_file(path)?)
-    }
-
-    /// Parses and returns a certificate.
-    ///
-    /// `buf` must contain an OpenPGP-encoded certificate.
-    ///
-    /// If `buf` contains multiple certificates, this returns an
-    /// error.  Use [`CertParser`] if you want to parse a keyring.
-    fn from_bytes<D: AsRef<[u8]> + ?Sized + Send + Sync>(data: &'a D) -> Result<Self> {
-        Cert::try_from(PacketParser::from_bytes(data)?)
     }
 }
 

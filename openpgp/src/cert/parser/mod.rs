@@ -1,7 +1,6 @@
 use std::io;
 use std::mem;
 use std::vec;
-use std::path::Path;
 
 use buffered_reader::BufferedReader;
 use lalrpop_util::ParseError;
@@ -602,21 +601,6 @@ impl<'a> Parse<'a, CertParser<'a>> for CertParser<'a>
         R: BufferedReader<Cookie> + 'a,
     {
         Ok(Self::from(PacketParser::from_buffered_reader(reader)?))
-    }
-
-    /// Initializes a `CertParser` from a `Read`er.
-    fn from_reader<R: 'a + io::Read + Send + Sync>(reader: R) -> Result<Self> {
-        Ok(Self::from(PacketParser::from_reader(reader)?))
-    }
-
-    /// Initializes a `CertParser` from a `File`.
-    fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
-        Ok(Self::from(PacketParser::from_file(path)?))
-    }
-
-    /// Initializes a `CertParser` from a byte string.
-    fn from_bytes<D: AsRef<[u8]> + ?Sized + Send + Sync>(data: &'a D) -> Result<Self> {
-        Ok(Self::from(PacketParser::from_bytes(data)?))
     }
 }
 
