@@ -42,6 +42,7 @@
      error if that set ever gets empty
    - stream::Signer::hash_algo now returns an error if the given
      algorithm is not acceptable for the set of signers
+   - Error::UnsupportedCert2 renamed to Error::UnsupportedCert
 
 ** New functionality
    - Signature::hash_userid_attestation

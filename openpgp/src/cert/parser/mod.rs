@@ -868,7 +868,7 @@ impl<'a> CertParser<'a> {
         if failed {
             // There was at least one packet that doesn't belong in a
             // Cert.  Fail now.
-            let err = Error::UnsupportedCert2(
+            let err = Error::UnsupportedCert(
                 "Packet sequence includes non-Cert packets.".into(),
                 packets);
             t!("Invalid certificate: {}", err);
