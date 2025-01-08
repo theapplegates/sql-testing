@@ -48,6 +48,7 @@
    - Cert no longer implements conversion into Vec<Packet>
    - Cert no longer implements IntoIterator
    - Cert::into_packets2 renamed to Cert::into_packets
+   - ValidAmalgamation::cert renamed to ValidAmalgamation::valid_cert
 
 ** New functionality
    - Signature::hash_userid_attestation
