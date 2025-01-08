@@ -374,7 +374,7 @@ impl<'a> TSK<'a> {
     /// Decomposes the TSK.
     pub(crate) fn decompose(self)
                             -> (Cow<'a, Cert>,
-                                Box<dyn 'a + Fn(&key::UnspecifiedSecret) -> bool>,
+                                Box<dyn Fn(&key::UnspecifiedSecret) -> bool + Send + Sync + 'a>,
                                 bool)
     {
         (self.cert, self.filter, self.emit_stubs)

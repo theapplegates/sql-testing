@@ -3545,11 +3545,11 @@ impl<'a> TSK<'a> {
     /// assert_eq!(a, b);
     /// # Ok(()) }
     /// ```
-    pub fn into_packets(self) -> impl Iterator<Item=Packet> + 'a {
+    pub fn into_packets(self) -> impl Iterator<Item=Packet> + Send + Sync + 'a {
         /// Strips the secret key material if the filter rejects it,
         /// and optionally inserts secret key stubs.
         fn rewrite<'a>(
-            filter: &Box<dyn Fn(&key::UnspecifiedSecret) -> bool + 'a>,
+            filter: &Box<dyn Fn(&key::UnspecifiedSecret) -> bool + Send + Sync + 'a>,
             emit_secret_key_stubs: bool,
             mut p: impl Iterator<Item=Packet> + Send + Sync)
             -> impl Iterator<Item=Packet> + Send + Sync
