@@ -2850,8 +2850,8 @@ mod test {
             .generate()?;
 
         // Remove the direct key signatures.
-        let cert = Cert::from_packets(Vec::from(cert)
-            .into_iter()
+        let cert = Cert::from_packets(
+            cert.as_tsk().into_packets()
             .filter(|p| ! matches!(
                         p,
                         Packet::Signature(s) if s.typ() == SignatureType::DirectKey

@@ -3696,26 +3696,6 @@ impl TryFrom<PacketPile> for Cert {
     }
 }
 
-impl From<Cert> for Vec<Packet> {
-    /// Converts the `Cert` into a `Vec<Packet>`.
-    ///
-    /// If any packets include secret key material, that secret key
-    /// material is included in the resulting `Vec<Packet>`.  In
-    /// contrast, when serializing a `Cert`, or converting a cert to
-    /// packets with [`Cert::into_packets2`], the secret key material
-    /// not included.
-    ///
-    /// Note: This will change in sequoia-openpgp version 2, which
-    /// will harmonize the behavior and not include secret key
-    /// material.
-    // XXXv2: Drop the note in the doc comment and mentioned it in the
-    // release notes.
-    fn from(cert: Cert) -> Self {
-        #[allow(deprecated)]
-        cert.into_packets().collect::<Vec<_>>()
-    }
-}
-
 /// An iterator that moves out of a `Cert`.
 ///
 /// This structure is created by the `into_iter` method on [`Cert`]

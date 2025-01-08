@@ -1044,8 +1044,8 @@ mod test {
             return;
         }
 
-        let a: Vec<Packet> = a.into();
-        let b: Vec<Packet> = b.into();
+        let a = a.into_tsk().into_packets().collect::<Vec<_>>();
+        let b = b.into_tsk().into_packets().collect::<Vec<_>>();
 
         for (i, (a, b)) in a.iter().zip(b.iter()).enumerate() {
             if a != b {
@@ -1241,7 +1241,7 @@ mod test {
         let (cert, _) =
             CertBuilder::general_purpose(None, Some("alice@example.org"))
             .generate()?;
-        let cert : Vec<Packet> = cert.into();
+        let cert = cert.into_packets2().collect::<Vec<_>>();
 
         // A userid packet.
         let userid : Packet = cert.clone()

@@ -45,6 +45,7 @@
    - Error::UnsupportedCert2 renamed to Error::UnsupportedCert
    - TSK::set_filter now requires the filter to be Send + Sync
    - TSK::into_packets now returns an iterator that is Send + Sync
+   - Cert no longer implements conversion into Vec<Packet>
 
 ** New functionality
    - Signature::hash_userid_attestation

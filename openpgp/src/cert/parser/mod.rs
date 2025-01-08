@@ -1326,7 +1326,8 @@ mod test {
 
         fn cert_cmp(a: &Result<Cert>, b: &Vec<Packet>)
         {
-            let a : Vec<Packet> = a.as_ref().unwrap().clone().into();
+            let a =
+                a.as_ref().unwrap().clone().into_packets2().collect::<Vec<_>>();
 
             for (i, (a, b)) in a.iter().zip(b).enumerate() {
                 if a != b {
@@ -1343,7 +1344,7 @@ mod test {
         let (cert, _) =
             CertBuilder::general_purpose(None, Some("alice@example.org"))
             .generate()?;
-        let cert : Vec<Packet> = cert.into();
+        let cert = cert.into_packets2().collect::<Vec<_>>();
 
         // A userid packet.
         let userid : Packet = cert.clone()
