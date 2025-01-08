@@ -441,6 +441,11 @@ impl Message {
         // No literal data packet found.
         None
     }
+
+    /// Returns a reference to the message's packets.
+    pub fn packets(&self) -> &PacketPile {
+        &self.pile
+    }
 }
 
 impl TryFrom<PacketPile> for Message {
@@ -515,14 +520,6 @@ impl TryFrom<Vec<Packet>> for Message {
 impl From<Message> for PacketPile {
     fn from(m: Message) -> Self {
         m.pile
-    }
-}
-
-impl ::std::ops::Deref for Message {
-    type Target = PacketPile;
-
-    fn deref(&self) -> &Self::Target {
-        &self.pile
     }
 }
 
