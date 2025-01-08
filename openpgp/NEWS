@@ -50,6 +50,10 @@
    - Cert::into_packets2 renamed to Cert::into_packets
    - ValidAmalgamation::cert renamed to ValidAmalgamation::valid_cert
    - Message no longer derefs to PacketPile, use Message::packets
+   - CertRevocationBuilder no longer derefs to SignatureBuilder
+   - SubkeyRevocationBuilder no longer derefs to SignatureBuilder
+   - UserIDRevocationBuilder no longer derefs to SignatureBuilder
+   - UserAttributeRevocationBuilder no longer derefs to SignatureBuilder
 
 ** New functionality
    - Signature::hash_userid_attestation
