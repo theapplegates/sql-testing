@@ -1128,13 +1128,13 @@ mod test {
                 assert_eq!(c.fingerprint(), r.fingerprint());
 
                 eprintln!("CertParser says:");
-                for (i, p) in c.clone().into_iter().enumerate() {
+                for (i, p) in c.clone().into_tsk().into_packets().enumerate() {
                     eprintln!("  - {}. {}", i, p.tag());
                 }
 
                 let rp = Cert::from_bytes(r.as_bytes()).unwrap();
                 eprintln!("RawCertParser says:");
-                for (i, p) in rp.clone().into_iter().enumerate() {
+                for (i, p) in rp.clone().into_tsk().into_packets().enumerate() {
                     eprintln!("  - {}. {}", i, p.tag());
                 }
 

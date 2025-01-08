@@ -3696,49 +3696,6 @@ impl TryFrom<PacketPile> for Cert {
     }
 }
 
-/// An iterator that moves out of a `Cert`.
-///
-/// This structure is created by the `into_iter` method on [`Cert`]
-/// (provided by the [`IntoIterator`] trait).
-///
-/// [`IntoIterator`]: std::iter::IntoIterator
-// We can't use a generic type, and due to the use of closures, we
-// can't write down the concrete type.  So, just use a Box.
-pub struct IntoIter(Box<dyn Iterator<Item=Packet> + Send + Sync>);
-assert_send_and_sync!(IntoIter);
-
-impl Iterator for IntoIter {
-    type Item = Packet;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
-    }
-}
-
-impl IntoIterator for Cert
-{
-    type Item = Packet;
-    type IntoIter = IntoIter;
-
-    /// Converts the `Cert` into an iterator over `Packet`s.
-    ///
-    /// If any packets include secret key material, that secret key
-    /// material is included in the resulting iterator.  In contrast,
-    /// when serializing a `Cert`, or converting a cert to packets
-    /// with [`Cert::into_packets2`], the secret key material not
-    /// included.
-    ///
-    /// Note: This will change in sequoia-openpgp version 2, which
-    /// will harmonize the behavior and not include secret key
-    /// material.
-    // XXXv2: Drop the note in the doc comment and mentioned it in the
-    // release notes.
-    fn into_iter(self) -> Self::IntoIter {
-        #[allow(deprecated)]
-        IntoIter(Box::new(self.into_packets()))
-    }
-}
-
 /// A `Cert` plus a `Policy` and a reference time.
 ///
 /// A `ValidCert` combines a [`Cert`] with a [`Policy`] and a

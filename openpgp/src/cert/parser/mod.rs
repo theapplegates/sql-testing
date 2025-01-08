@@ -482,10 +482,10 @@ impl CertValidator {
 ///       .generate()?;
 ///
 /// let mut packets : Vec<Packet> = Vec::new();
-/// packets.extend(alice.clone());
+/// packets.extend(alice.clone().into_packets2());
 /// packets.push(lit.clone().into());
 /// packets.push(lit.clone().into());
-/// packets.extend(bob.clone());
+/// packets.extend(bob.clone().into_packets2());
 ///
 /// let r : Vec<Result<Cert>> = CertParser::from(packets).collect();
 /// assert_eq!(r.len(), 4);
