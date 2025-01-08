@@ -47,6 +47,7 @@
    - TSK::into_packets now returns an iterator that is Send + Sync
    - Cert no longer implements conversion into Vec<Packet>
    - Cert no longer implements IntoIterator
+   - Cert::into_packets2 renamed to Cert::into_packets
 
 ** New functionality
    - Signature::hash_userid_attestation

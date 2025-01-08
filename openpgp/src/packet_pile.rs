@@ -529,7 +529,7 @@ impl From<Cert> for PacketPile {
     /// If any packets include secret key material, that secret key
     /// material is included in the resulting `PacketPile`.  In
     /// contrast, when serializing a `Cert`, or converting a cert to
-    /// packets with [`Cert::into_packets2`], the secret key material
+    /// packets with [`Cert::into_packets`], the secret key material
     /// not included.
     ///
     /// Note: This will change in sequoia-openpgp version 2, which

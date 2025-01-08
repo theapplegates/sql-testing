@@ -1241,7 +1241,7 @@ mod test {
         let (cert, _) =
             CertBuilder::general_purpose(None, Some("alice@example.org"))
             .generate()?;
-        let cert = cert.into_packets2().collect::<Vec<_>>();
+        let cert = cert.into_packets().collect::<Vec<_>>();
 
         // A userid packet.
         let userid : Packet = cert.clone()
@@ -1530,7 +1530,7 @@ mod test {
                 None, Some("a@example.org"))
             .generate()?;
         let cert_1_packets: Vec<Packet>
-            = cert_1.into_packets2().collect();
+            = cert_1.into_packets().collect();
 
         let (cert_2, _) =
             CertBuilder::general_purpose(

@@ -482,10 +482,10 @@ impl CertValidator {
 ///       .generate()?;
 ///
 /// let mut packets : Vec<Packet> = Vec::new();
-/// packets.extend(alice.clone().into_packets2());
+/// packets.extend(alice.clone().into_packets());
 /// packets.push(lit.clone().into());
 /// packets.push(lit.clone().into());
-/// packets.extend(bob.clone().into_packets2());
+/// packets.extend(bob.clone().into_packets());
 ///
 /// let r : Vec<Result<Cert>> = CertParser::from(packets).collect();
 /// assert_eq!(r.len(), 4);
@@ -1327,7 +1327,7 @@ mod test {
         fn cert_cmp(a: &Result<Cert>, b: &Vec<Packet>)
         {
             let a =
-                a.as_ref().unwrap().clone().into_packets2().collect::<Vec<_>>();
+                a.as_ref().unwrap().clone().into_packets().collect::<Vec<_>>();
 
             for (i, (a, b)) in a.iter().zip(b).enumerate() {
                 if a != b {
@@ -1344,7 +1344,7 @@ mod test {
         let (cert, _) =
             CertBuilder::general_purpose(None, Some("alice@example.org"))
             .generate()?;
-        let cert = cert.into_packets2().collect::<Vec<_>>();
+        let cert = cert.into_packets().collect::<Vec<_>>();
 
         // A userid packet.
         let userid : Packet = cert.clone()
@@ -1829,7 +1829,7 @@ mod test {
                 None, Some("a@example.org"))
             .generate()?;
         let cert_1_packets: Vec<Packet>
-            = cert_1.into_packets2().collect();
+            = cert_1.into_packets().collect();
 
         let (cert_2, _) =
             CertBuilder::general_purpose(
