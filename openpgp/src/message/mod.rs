@@ -360,7 +360,7 @@ impl<'a> Parse<'a, Message> for Message {
     where
         R: BufferedReader<Cookie> + 'a,
     {
-        Self::try_from(PacketPile::from_buffered_reader(reader)?)
+        Self::try_from(PacketPile::from_buffered_reader(reader.into_boxed())?)
     }
 }
 

@@ -454,18 +454,22 @@ impl<'a> Parse<'a, RawCert<'a>> for RawCert<'a> {
     where
         R: BufferedReader<Cookie> + 'a
     {
-        let mut parser = RawCertParser::from_buffered_reader(reader)?;
-        if let Some(cert_result) = parser.next() {
-            if parser.next().is_some() {
-                Err(crate::Error::MalformedCert(
-                    "Additional packets found, is this a keyring?".into()
-                ).into())
+        fn parse<'a>(reader: Box<dyn BufferedReader<Cookie> + 'a>) -> Result<RawCert<'a>> {
+            let mut parser = RawCertParser::from_buffered_reader(reader)?;
+            if let Some(cert_result) = parser.next() {
+                if parser.next().is_some() {
+                    Err(crate::Error::MalformedCert(
+                        "Additional packets found, is this a keyring?".into()
+                    ).into())
+                } else {
+                    cert_result
+                }
             } else {
-                cert_result
+                Err(crate::Error::MalformedCert("No data".into()).into())
             }
-        } else {
-            Err(crate::Error::MalformedCert("No data".into()).into())
         }
+
+        parse(reader.into_boxed())
     }
 }
 
@@ -577,8 +581,7 @@ pub struct RawCertParser<'a>
 assert_send_and_sync!(RawCertParser<'_>);
 
 impl<'a> RawCertParser<'a> {
-    fn new<R>(reader: R) -> Result<Self>
-    where R: 'a + BufferedReader<Cookie>
+    fn new(reader: Box<dyn BufferedReader<Cookie> + 'a>) -> Result<Self>
     {
         // Check that we can read the first header and that it is
         // reasonable.  Note: an empty keyring is not an error; we're
@@ -654,13 +657,14 @@ impl<'a> Parse<'a, RawCertParser<'a>> for RawCertParser<'a>
     where
         R: BufferedReader<Cookie> + 'a
     {
-        RawCertParser::new(reader)
+        RawCertParser::new(reader.into_boxed())
     }
 
     /// Initializes a `RawCertParser` from a byte string.
     fn from_bytes<D: AsRef<[u8]> + ?Sized + Send + Sync>(data: &'a D) -> Result<Self> {
         let data = data.as_ref();
-        let mut p = RawCertParser::new(Memory::with_cookie(data, Default::default()))?;
+        let mut p = RawCertParser::new(
+            Memory::with_cookie(data, Default::default()).into_boxed())?;
 
         // If we are dearmoring the input, then the slice doesn't
         // reflect the raw packets.

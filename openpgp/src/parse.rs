@@ -300,7 +300,8 @@ pub trait Parse<'a, T> {
         Self::from_buffered_reader(
             buffered_reader::Generic::with_cookie(reader,
                                                   None,
-                                                  Default::default()))
+                                                  Default::default())
+                .into_boxed())
     }
 
     /// Reads from the given file.
@@ -312,7 +313,8 @@ pub trait Parse<'a, T> {
     {
         Self::from_buffered_reader(
             buffered_reader::File::with_cookie(path.as_ref(),
-                                               Default::default())?)
+                                               Default::default())?
+                .into_boxed())
     }
 
     /// Reads from the given slice.
@@ -322,7 +324,8 @@ pub trait Parse<'a, T> {
     /// provide their own specialized version.
     fn from_bytes<D: AsRef<[u8]> + ?Sized + Send + Sync>(data: &'a D) -> Result<T> {
         Self::from_buffered_reader(
-            buffered_reader::Memory::with_cookie(data.as_ref(), Default::default()))
+            buffered_reader::Memory::with_cookie(data.as_ref(), Default::default())
+                .into_boxed())
     }
 }
 
@@ -4716,7 +4719,7 @@ impl<'a> Parse<'a, PacketParserResult<'a>> for PacketParser<'a> {
     where
         R: BufferedReader<Cookie> + 'a,
     {
-        PacketParserBuilder::from_buffered_reader(reader)?.build()
+        PacketParserBuilder::from_buffered_reader(reader.into_boxed())?.build()
     }
 }
 

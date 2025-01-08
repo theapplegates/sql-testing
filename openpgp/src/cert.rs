@@ -667,7 +667,7 @@ impl<'a> Parse<'a, Cert> for Cert {
     where
         R: BufferedReader<Cookie> + 'a,
     {
-        Cert::try_from(PacketParser::from_buffered_reader(reader)?)
+        Cert::try_from(PacketParser::from_buffered_reader(reader.into_boxed())?)
     }
 }
 

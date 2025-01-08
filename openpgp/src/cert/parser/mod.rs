@@ -600,7 +600,7 @@ impl<'a> Parse<'a, CertParser<'a>> for CertParser<'a>
     where
         R: BufferedReader<Cookie> + 'a,
     {
-        Ok(Self::from(PacketParser::from_buffered_reader(reader)?))
+        Ok(Self::from(PacketParser::from_buffered_reader(reader.into_boxed())?))
     }
 }
 
