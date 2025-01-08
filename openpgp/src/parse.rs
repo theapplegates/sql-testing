@@ -2393,7 +2393,7 @@ fn one_pass_sig3_parser_test () {
 impl_parse_with_buffered_reader!(
     OnePassSig3,
     |reader| -> Result<Self> {
-        OnePassSig::from_reader(reader).and_then(|p| match p {
+        OnePassSig::from_buffered_reader(reader).and_then(|p| match p {
             OnePassSig::V3(p) => Ok(p),
             p => Err(Error::InvalidOperation(
                 format!("Not a OnePassSig::V3 packet: {:?}", p)).into()),
@@ -2555,7 +2555,7 @@ impl OnePassSig6 {
 impl_parse_with_buffered_reader!(
     OnePassSig6,
     |reader| -> Result<Self> {
-        OnePassSig::from_reader(reader).and_then(|p| match p {
+        OnePassSig::from_buffered_reader(reader).and_then(|p| match p {
             OnePassSig::V6(p) => Ok(p),
             p => Err(Error::InvalidOperation(
                 format!("Not a OnePassSig::V6 packet: {:?}", p)).into()),
@@ -3909,7 +3909,7 @@ impl PKESK3 {
 impl_parse_with_buffered_reader!(
     PKESK3,
     |reader| -> Result<Self> {
-        PKESK::from_reader(reader).and_then(|p| match p {
+        PKESK::from_buffered_reader(reader).and_then(|p| match p {
             PKESK::V3(p) => Ok(p),
             p => Err(Error::InvalidOperation(
                  format!("Not a PKESKv3 packet: {:?}", p)).into()),
@@ -3956,7 +3956,7 @@ impl PKESK6 {
 impl_parse_with_buffered_reader!(
     PKESK6,
     |reader| -> Result<Self> {
-        PKESK::from_reader(reader).and_then(|p| match p {
+        PKESK::from_buffered_reader(reader).and_then(|p| match p {
             PKESK::V6(p) => Ok(p),
             p => Err(Error::InvalidOperation(
                  format!("Not a PKESKv6 packet: {:?}", p)).into()),
