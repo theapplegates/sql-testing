@@ -73,7 +73,7 @@ impl Asymmetric for super::Backend {
                 => true,
             Ed25519 | Cv25519
                 => true,
-            BrainpoolP256 | BrainpoolP512 | Unknown(_)
+            BrainpoolP256 | BrainpoolP384 | BrainpoolP512 | Unknown(_)
                 => false,
         }
     }

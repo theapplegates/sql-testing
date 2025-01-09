@@ -216,14 +216,11 @@ impl MPI {
                 Ok((&value[1..], &[]))
             },
 
-            Unknown(_) if ! curve.is_brainpoolp384() =>
-                Err(Error::UnsupportedEllipticCurve(curve.clone()).into()),
-
             NistP256
                 | NistP384
                 | NistP521
                 | BrainpoolP256
-                | Unknown(_)
+                | BrainpoolP384
                 | BrainpoolP512
                 =>
             {
@@ -251,6 +248,9 @@ impl MPI {
                 Ok((&value[1..1 + coordinate_length],
                     &value[1 + coordinate_length..]))
             },
+
+            Unknown(_) =>
+                Err(Error::UnsupportedEllipticCurve(curve.clone()).into()),
         }
     }
 

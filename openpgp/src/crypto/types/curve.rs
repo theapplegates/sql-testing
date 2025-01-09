@@ -27,6 +27,8 @@ pub enum Curve {
     NistP521,
     /// brainpoolP256r1.
     BrainpoolP256,
+    /// brainpoolP384r1.
+    BrainpoolP384,
     /// brainpoolP512r1.
     BrainpoolP512,
     /// D.J. Bernstein's "Twisted" Edwards curve Ed25519.
@@ -36,21 +38,15 @@ pub enum Curve {
     /// Unknown curve.
     Unknown(Box<[u8]>),
 }
-impl Curve {
-    /// Hack!  Curve is not non-exhaustive, so we cannot easily add
-    /// a variant.
-    pub(crate) fn is_brainpoolp384(&self) -> bool {
-        self.oid() == BRAINPOOL_P384_OID
-    }
-}
+
 assert_send_and_sync!(Curve);
 
-const CURVE_VARIANTS: [Curve; 7] = [
+const CURVE_VARIANTS: [Curve; 8] = [
     Curve::NistP256,
     Curve::NistP384,
     Curve::NistP521,
     Curve::BrainpoolP256,
-    // XXXv2: Curve::BrainpoolP384,
+    Curve::BrainpoolP384,
     Curve::BrainpoolP512,
     Curve::Ed25519,
     Curve::Cv25519,
@@ -89,7 +85,7 @@ impl Curve {
             NistP384 => Ok(384),
             NistP521 => Ok(521),
             BrainpoolP256 => Ok(256),
-            Unknown(_) if self.is_brainpoolp384() => Ok(384),
+            BrainpoolP384 => Ok(384),
             BrainpoolP512 => Ok(512),
             Ed25519 => Ok(256),
             Cv25519 => Ok(256),
@@ -181,8 +177,7 @@ impl fmt::Display for Curve {
                 NistP384 => f.write_str("NIST curve P-384"),
                 NistP521 => f.write_str("NIST curve P-521"),
                 BrainpoolP256 => f.write_str("brainpoolP256r1"),
-                Unknown(_) if self.is_brainpoolp384() =>
-                    f.write_str("brainpoolP384r1"),
+                BrainpoolP384 => f.write_str("brainpoolP384r1"),
                 BrainpoolP512 => f.write_str("brainpoolP512r1"),
                 Ed25519
                     => f.write_str("D.J. Bernstein's \"Twisted\" Edwards curve Ed25519"),
@@ -197,8 +192,7 @@ impl fmt::Display for Curve {
                 NistP384 => f.write_str("NIST P-384"),
                 NistP521 => f.write_str("NIST P-521"),
                 BrainpoolP256 => f.write_str("brainpoolP256r1"),
-                Unknown(_) if self.is_brainpoolp384() =>
-                    f.write_str("brainpoolP384r1"),
+                BrainpoolP384 => f.write_str("brainpoolP384r1"),
                 BrainpoolP512 => f.write_str("brainpoolP512r1"),
                 Ed25519
                     => f.write_str("Ed25519"),
@@ -244,7 +238,7 @@ impl Curve {
             NIST_P384_OID => Curve::NistP384,
             NIST_P521_OID => Curve::NistP521,
             BRAINPOOL_P256_OID => Curve::BrainpoolP256,
-            BRAINPOOL_P384_OID => Curve::Unknown(BRAINPOOL_P384_OID.into()),
+            BRAINPOOL_P384_OID => Curve::BrainpoolP384,
             BRAINPOOL_P512_OID => Curve::BrainpoolP512,
             ED25519_OID => Curve::Ed25519,
             CV25519_OID => Curve::Cv25519,
@@ -269,6 +263,7 @@ impl Curve {
             Curve::NistP384 => NIST_P384_OID,
             Curve::NistP521 => NIST_P521_OID,
             Curve::BrainpoolP256 => BRAINPOOL_P256_OID,
+            Curve::BrainpoolP384 => BRAINPOOL_P384_OID,
             Curve::BrainpoolP512 => BRAINPOOL_P512_OID,
             Curve::Ed25519 => ED25519_OID,
             Curve::Cv25519 => CV25519_OID,
@@ -316,14 +311,8 @@ impl Curve {
     }
 
     /// Returns an iterator over all valid variants.
-    ///
-    /// Returns an iterator over all known variants.  This does not
-    /// include the [`Curve::Unknown`] variant, except to include
-    /// BrainpoolP384 which is missing from [`Curve`].
     pub fn variants() -> impl Iterator<Item=Self> {
         CURVE_VARIANTS.iter().cloned()
-            // XXXv2: Remove that hack, fix documentation.
-            .chain(std::iter::once(Curve::Unknown(BRAINPOOL_P384_OID.into())))
     }
 }
 
@@ -335,7 +324,7 @@ impl Arbitrary for Curve {
             1 => Curve::NistP384,
             2 => Curve::NistP521,
             3 => Curve::BrainpoolP256,
-            4 => Curve::Unknown(BRAINPOOL_P384_OID.into()),
+            4 => Curve::BrainpoolP384,
             5 => Curve::BrainpoolP512,
             6 => Curve::Ed25519,
             7 => Curve::Cv25519,
