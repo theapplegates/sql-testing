@@ -62,6 +62,8 @@
    - Signature::hash_userid_attestation
    - Signature::hash_user_attribute_attestation
    - Message::packets
+   - PacketPileParser::packet
+   - PacketPileParser::packet_mut
 
 * Changes in 2.0.0.alpha.0
   The major new feature is the support for RFC9580, which modernizes
