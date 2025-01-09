@@ -42,6 +42,7 @@ pub use s2k::S2K;
 pub(crate) mod symmetric;
 mod types;
 pub use types::{
+    Curve,
     PublicKeyAlgorithm,
 };
 #[cfg(test)]
