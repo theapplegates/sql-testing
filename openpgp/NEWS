@@ -99,6 +99,7 @@
    - PacketPileParser::packet_mut
    - crypto::PublicKeyAlgorithm
    - crypto::Curve
+   - crypto::SymmetricAlgorithm
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead

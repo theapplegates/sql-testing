@@ -44,6 +44,7 @@ mod types;
 pub use types::{
     Curve,
     PublicKeyAlgorithm,
+    SymmetricAlgorithm,
 };
 #[cfg(test)]
 mod tests;
