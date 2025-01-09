@@ -100,6 +100,7 @@
    - crypto::PublicKeyAlgorithm
    - crypto::Curve
    - crypto::SymmetricAlgorithm
+   - crypto::AEADAlgorithm
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead

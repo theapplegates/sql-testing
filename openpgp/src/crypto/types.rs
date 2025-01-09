@@ -1,5 +1,7 @@
 //! Types for the crypto module.
 
+pub mod aead_algorithm;
+pub use aead_algorithm::AEADAlgorithm;
 pub mod curve;
 pub use curve::Curve;
 pub mod public_key_algorithm;
