@@ -130,7 +130,7 @@ impl LazySignatures {
         }
     }
 
-    /// Like [`Vec::is_empty`].
+    /// Like [`slice::is_empty`].
     pub fn is_empty(&self) -> bool {
         self.assert_invariant();
         self.sigs.is_empty()
@@ -166,7 +166,7 @@ impl LazySignatures {
         self.assert_invariant();
     }
 
-    /// Like [`Vec::sort_by`].
+    /// Like [`slice::sort_by`].
     pub fn sort_by<F>(&mut self, compare: F)
     where
         F: FnMut(&Signature, &Signature) -> Ordering,
@@ -194,7 +194,7 @@ impl LazySignatures {
         self.assert_invariant();
     }
 
-    /// Like [`Vec::iter_mut`], but gives out **potentially
+    /// Like [`slice::iter_mut`], but gives out **potentially
     /// unverified** signatures.
     pub fn iter_mut_unverified(&mut self) -> impl Iterator<Item = &mut Signature> {
         self.assert_invariant();
@@ -214,7 +214,7 @@ impl LazySignatures {
         self.sigs.as_slice()
     }
 
-    /// Like [`Vec::iter`], but only gives out verified signatures.
+    /// Like [`slice::iter`], but only gives out verified signatures.
     ///
     /// If this is a subkey binding, `subkey` must be the bundle's
     /// subkey.
@@ -230,7 +230,7 @@ impl LazySignatures {
             })
     }
 
-    /// Like [`Vec::iter`], but only gives out bad signatures.
+    /// Like [`slice::iter`], but only gives out bad signatures.
     ///
     /// If this is a subkey binding, `subkey` must be the bundle's
     /// subkey.
@@ -246,7 +246,7 @@ impl LazySignatures {
             })
     }
 
-    /// Like [`Vec::iter`], but lazily verifies the signatures.
+    /// Like [`slice::iter`], but lazily verifies the signatures.
     ///
     /// If this is a subkey binding, `subkey` must be the bundle's
     /// subkey.
