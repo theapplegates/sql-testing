@@ -1,5 +1,4 @@
 use std::convert::TryFrom;
-use std::ops::{Deref, DerefMut};
 
 use crate::{
     Result,
@@ -191,20 +190,6 @@ pub struct PacketPileParser<'a> {
     pile: PacketPile,
 }
 assert_send_and_sync!(PacketPileParser<'_>);
-
-impl<'a> Deref for PacketPileParser<'a> {
-    type Target = PacketParserResult<'a>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.ppr
-    }
-}
-
-impl<'a> DerefMut for PacketPileParser<'a> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.ppr
-    }
-}
 
 impl<'a> TryFrom<PacketParserBuilder<'a>> for PacketPileParser<'a> {
     type Error = anyhow::Error;
