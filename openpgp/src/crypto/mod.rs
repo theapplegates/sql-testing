@@ -44,6 +44,7 @@ mod types;
 pub use types::{
     AEADAlgorithm,
     Curve,
+    HashAlgorithm,
     PublicKeyAlgorithm,
     SymmetricAlgorithm,
 };

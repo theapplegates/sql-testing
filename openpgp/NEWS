@@ -101,6 +101,7 @@
    - crypto::Curve
    - crypto::SymmetricAlgorithm
    - crypto::AEADAlgorithm
+   - crypto::HashAlgorithm
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead
