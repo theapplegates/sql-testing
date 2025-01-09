@@ -369,6 +369,7 @@ impl KeyPair {
                -> Result<SessionKey>
     {
         use crate::PublicKeyAlgorithm::*;
+        #[allow(deprecated)]
         match (self.public().mpis(), secret, ciphertext) {
             (mpi::PublicKey::RSA { e, n },
              mpi::SecretKeyMaterial::RSA { p, q, d, .. },
