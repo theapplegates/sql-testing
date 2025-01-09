@@ -15,7 +15,7 @@
 use std::{
     cmp::Ordering,
     mem,
-    sync::{Arc, Mutex, OnceLock},
+    sync::{Arc, Mutex},
 };
 
 use crate::{
@@ -41,9 +41,6 @@ use crate::{
 /// # Invariant
 ///
 /// - There are as many signatures as signature states.
-///
-/// - If the field `verified_sigs` is used, then there must have been
-///   a bad signature (i.e. len(verified_sigs) < len(sigs)).
 #[derive(Debug)]
 pub struct LazySignatures {
     /// The primary key to verify the signatures with.
@@ -54,16 +51,6 @@ pub struct LazySignatures {
 
     /// The signature states.
     states: Mutex<Vec<SigState>>,
-
-    /// Verified signatures.
-    ///
-    /// Because of https://gitlab.com/sequoia-pgp/sequoia/-/issues/638
-    /// we have to hand out contiguous slices of verified signatures.
-    /// If all signatures are good, we can serve that request from
-    /// `sigs`.  Otherwise, we have to clone the verified signatures.
-    ///
-    /// XXXv2: Remove this field.
-    verified_sigs: OnceLock<Vec<Signature>>,
 }
 
 impl PartialEq for LazySignatures {
@@ -88,7 +75,6 @@ impl Clone for LazySignatures {
             } else {
                 vec![SigState::Unverified; self.sigs.len()]
             }.into(),
-            verified_sigs: Default::default(),
         }
     }
 }
@@ -110,9 +96,6 @@ impl LazySignatures {
     /// Asserts the invariant.
     fn assert_invariant(&self) {
         debug_assert_eq!(self.sigs.len(), self.states.lock().unwrap().len());
-        debug_assert!(
-            self.verified_sigs.get().map(|v| v.len() < self.sigs.len())
-                .unwrap_or(true));
     }
 
     /// Creates a vector of lazily verified signatures.
@@ -126,7 +109,6 @@ impl LazySignatures {
             primary_key,
             sigs: Default::default(),
             states: Default::default(),
-            verified_sigs: Default::default(),
         }
     }
 
@@ -141,7 +123,6 @@ impl LazySignatures {
         self.assert_invariant();
         self.states.lock().unwrap().clear();
         let r = mem::replace(&mut self.sigs, Vec::new());
-        self.verified_sigs.take();
         self.assert_invariant();
         r
     }
@@ -151,7 +132,6 @@ impl LazySignatures {
         self.assert_invariant();
         self.sigs.push(s);
         self.states.lock().unwrap().push(SigState::Unverified);
-        self.verified_sigs.take();
         self.assert_invariant();
     }
 
@@ -162,7 +142,6 @@ impl LazySignatures {
         other.assert_invariant();
         self.sigs.append(&mut other.sigs);
         self.states.lock().unwrap().append(&mut other.states.lock().unwrap());
-        self.verified_sigs.take();
         self.assert_invariant();
     }
 
@@ -174,7 +153,6 @@ impl LazySignatures {
         self.assert_invariant();
         self.sigs.sort_by(compare);
         self.states.lock().unwrap().iter_mut().for_each(|p| *p = SigState::Unverified);
-        self.verified_sigs.take();
         self.assert_invariant();
     }
 
@@ -190,7 +168,6 @@ impl LazySignatures {
             states.truncate(self.sigs.len());
             states.iter_mut().for_each(|p| *p = SigState::Unverified);
         }
-        self.verified_sigs.take();
         self.assert_invariant();
     }
 
