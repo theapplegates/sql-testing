@@ -97,6 +97,7 @@
    - Message::packets
    - PacketPileParser::packet
    - PacketPileParser::packet_mut
+   - crypto::PublicKeyAlgorithm
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead

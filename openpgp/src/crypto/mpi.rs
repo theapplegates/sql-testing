@@ -1073,7 +1073,8 @@ impl SecretKeyMaterial {
 #[cfg(test)]
 impl Arbitrary for SecretKeyMaterial {
     fn arbitrary(g: &mut Gen) -> Self {
-        let pk = *g.choose(&crate::types::PUBLIC_KEY_ALGORITHM_VARIANTS)
+        let pk = *g.choose(
+            &crate::crypto::types::public_key_algorithm::PUBLIC_KEY_ALGORITHM_VARIANTS)
             .expect("not empty");
         Self::arbitrary_for(g, pk).expect("only known variants")
     }
