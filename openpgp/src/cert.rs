@@ -1606,7 +1606,7 @@ impl Cert {
             check!(format!("userid \"{}\"",
                            String::from_utf8_lossy(ua.userid().value())),
                    ua, attestations, hash_userid_binding,
-                   AttestationKey,
+                   CertificationApproval,
                    ua.userid());
             check_3rd_party!(
                 format!("userid \"{}\"",
@@ -1637,7 +1637,7 @@ impl Cert {
                    binding.user_attribute());
             check!("user attribute",
                    binding, attestations, hash_user_attribute_binding,
-                   AttestationKey,
+                   CertificationApproval,
                    binding.user_attribute());
             check_3rd_party!(
                 "user attribute",
@@ -1942,7 +1942,7 @@ impl Cert {
                     }
                 },
 
-                crate::types::SignatureType::AttestationKey => {
+                crate::types::SignatureType::CertificationApproval => {
                     for binding in self.userids.iter_mut() {
                         check_one!(format!("userid \"{}\"",
                                            String::from_utf8_lossy(
@@ -7023,9 +7023,10 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         Ok(())
     }
 
-    /// Makes sure that attested key signatures are correctly handled.
+    /// Makes sure that certification approval key signatures are
+    /// correctly handled.
     #[test]
-    fn attested_key_signatures() -> Result<()> {
+    fn certificaton_approval_signatures() -> Result<()> {
         use crate::{
             packet::signature::SignatureBuilder,
             types::*,

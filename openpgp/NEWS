@@ -61,6 +61,8 @@
    - ValidCert no longer derefs to Cert
    - ValidateAmalgamation::with_policy now takes a &self
    - ComponentBundle no longer derefs to the component
+   - SignatureType::AttestationKey renamed to
+     SignatureType::CertificationApproval
 
 ** New functionality
    - Signature::hash_userid_attestation

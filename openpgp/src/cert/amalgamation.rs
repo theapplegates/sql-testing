@@ -1653,7 +1653,7 @@ where C: IntoIterator<Item = S>,
             creation_time = key_creation_time.min(now);
         }
 
-        let template = SignatureBuilder::new(SignatureType::AttestationKey)
+        let template = SignatureBuilder::new(SignatureType::CertificationApproval)
             .set_signature_creation_time(creation_time)?;
         template
 
