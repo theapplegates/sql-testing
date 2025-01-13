@@ -3647,17 +3647,9 @@ pub struct ValidCert<'a> {
 }
 assert_send_and_sync!(ValidCert<'_>);
 
-impl<'a> std::ops::Deref for ValidCert<'a> {
-    type Target = Cert;
-
-    fn deref(&self) -> &Self::Target {
-        self.cert
-    }
-}
-
 impl<'a> fmt::Display for ValidCert<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.fingerprint())
+        write!(f, "{}", self.cert().fingerprint())
     }
 }
 
@@ -3938,7 +3930,7 @@ impl<'a> ValidCert<'a> {
     /// #
     /// let primary = vc.primary_key();
     /// // The certificate's fingerprint *is* the primary key's fingerprint.
-    /// assert_eq!(vc.fingerprint(), primary.fingerprint());
+    /// assert_eq!(vc.cert().fingerprint(), primary.fingerprint());
     /// # Ok(()) }
     pub fn primary_key(&self)
         -> ValidPrimaryKeyAmalgamation<'a, key::PublicParts>
