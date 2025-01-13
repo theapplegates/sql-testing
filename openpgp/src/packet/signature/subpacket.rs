@@ -319,7 +319,7 @@ pub enum SubpacketTag {
     ///  [Section 5.2.3.36 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#name-intended-recipient-fingerpr
     IntendedRecipient,
 
-    /// The Attested Certifications subpacket (proposed).
+    /// The Approved Certifications subpacket (experimental).
     ///
     /// Allows the certificate holder to attest to third party
     /// certifications, allowing them to be distributed with the
@@ -329,7 +329,7 @@ pub enum SubpacketTag {
     /// See [Section 2.2 of draft-dkg-openpgp-1pa3pc-02] for details.
     ///
     ///   [Section 2.2 of draft-dkg-openpgp-1pa3pc-02]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
-    AttestedCertifications,
+    ApprovedCertifications,
 
     /// The AEAD Ciphersuites that the certificate holder prefers.
     ///
@@ -399,7 +399,7 @@ impl From<u8> for SubpacketTag {
             33 => SubpacketTag::IssuerFingerprint,
             34 => SubpacketTag::PreferredAEADAlgorithms,
             35 => SubpacketTag::IntendedRecipient,
-            37 => SubpacketTag::AttestedCertifications,
+            37 => SubpacketTag::ApprovedCertifications,
             39 => SubpacketTag::PreferredAEADCiphersuites,
             0| 1| 8| 13| 14| 15| 17| 18| 19 | 38 => SubpacketTag::Reserved(u),
             100..=110 => SubpacketTag::Private(u),
@@ -439,7 +439,7 @@ impl From<SubpacketTag> for u8 {
             SubpacketTag::IssuerFingerprint => 33,
             SubpacketTag::PreferredAEADAlgorithms => 34,
             SubpacketTag::IntendedRecipient => 35,
-            SubpacketTag::AttestedCertifications => 37,
+            SubpacketTag::ApprovedCertifications => 37,
             SubpacketTag::PreferredAEADCiphersuites => 39,
             SubpacketTag::Reserved(u) => u,
             SubpacketTag::Private(u) => u,
@@ -477,7 +477,7 @@ const SUBPACKET_TAG_VARIANTS: [SubpacketTag; 29] = [
     SubpacketTag::IssuerFingerprint,
     SubpacketTag::PreferredAEADAlgorithms,
     SubpacketTag::IntendedRecipient,
-    SubpacketTag::AttestedCertifications,
+    SubpacketTag::ApprovedCertifications,
     SubpacketTag::PreferredAEADCiphersuites,
 ];
 
@@ -1717,7 +1717,7 @@ pub enum SubpacketValue {
     ///  [Section 5.2.3.36 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#name-intended-recipient-fingerpr
     IntendedRecipient(Fingerprint),
 
-    /// The Attested Certifications subpacket (proposed).
+    /// The Approved Certifications subpacket (experimental).
     ///
     /// Allows the certificate holder to attest to third party
     /// certifications, allowing them to be distributed with the
@@ -1727,7 +1727,7 @@ pub enum SubpacketValue {
     /// See [Section 2.2 of draft-dkg-openpgp-1pa3pc-02] for details.
     ///
     ///   [Section 2.2 of draft-dkg-openpgp-1pa3pc-02]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
-    AttestedCertifications(Vec<Box<[u8]>>),
+    ApprovedCertifications(Vec<Box<[u8]>>),
 
     /// The AEAD Ciphersuites that the certificate holder prefers.
     ///
@@ -1846,7 +1846,7 @@ impl SubpacketValue {
             PreferredAEADAlgorithms(_) =>
                 SubpacketTag::PreferredAEADAlgorithms,
             IntendedRecipient(_) => SubpacketTag::IntendedRecipient,
-            AttestedCertifications(_) => SubpacketTag::AttestedCertifications,
+            ApprovedCertifications(_) => SubpacketTag::ApprovedCertifications,
             PreferredAEADCiphersuites(_) =>
                 SubpacketTag::PreferredAEADCiphersuites,
             Unknown { tag, .. } => *tag,
@@ -3886,19 +3886,19 @@ impl SubpacketAreas {
         -> Result<impl Iterator<Item=&[u8]> + Send + Sync>
     {
         if self.hashed_area()
-            .subpackets(SubpacketTag::AttestedCertifications).count() > 1
+            .subpackets(SubpacketTag::ApprovedCertifications).count() > 1
             || self.unhashed_area()
-            .subpackets(SubpacketTag::AttestedCertifications).count() != 0
+            .subpackets(SubpacketTag::ApprovedCertifications).count() != 0
         {
             return Err(Error::BadSignature(
-                "Wrong number of attested certification subpackets".into())
+                "Wrong number of approved certifications subpackets".into())
                        .into());
         }
 
-        Ok(self.subpackets(SubpacketTag::AttestedCertifications)
+        Ok(self.subpackets(SubpacketTag::ApprovedCertifications)
            .flat_map(|sb| {
                match sb.value() {
-                   SubpacketValue::AttestedCertifications(digests) =>
+                   SubpacketValue::ApprovedCertifications(digests) =>
                        digests.iter().map(|d| d.as_ref()),
                    _ => unreachable!(),
                }
@@ -7281,7 +7281,7 @@ impl signature::SignatureBuilder {
 
         self.hashed_area_mut().replace(
             Subpacket::new(
-                SubpacketValue::AttestedCertifications(digests),
+                SubpacketValue::ApprovedCertifications(digests),
                 true)?)?;
 
         Ok(self)

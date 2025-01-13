@@ -63,6 +63,10 @@
    - ComponentBundle no longer derefs to the component
    - SignatureType::AttestationKey renamed to
      SignatureType::CertificationApproval
+   - SubpacketTag::AttestedCertifications renamed to
+     SubpacketTag::ApprovedCertifications
+   - SubpacketValue::AttestedCertifications renamed to
+     SubpacketValue::ApprovedCertifications
 
 ** New functionality
    - Signature::hash_userid_attestation

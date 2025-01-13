@@ -2670,7 +2670,7 @@ impl crate::packet::Signature {
                     | SignatureTarget
                     | PreferredAEADAlgorithms
                     | IntendedRecipient
-                    | AttestedCertifications
+                    | ApprovedCertifications
                     | PreferredAEADCiphersuites
                     | Reserved(_)
                     => false,
