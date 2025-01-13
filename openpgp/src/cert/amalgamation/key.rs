@@ -155,7 +155,7 @@
 //! #         .generate()?;
 //! #     let timestamp = None;
 //! #     let issuer = cert.with_policy(p, None)?.keys()
-//! #         .for_signing().nth(0).unwrap().fingerprint();
+//! #         .for_signing().nth(0).unwrap().key().fingerprint();
 //! #     let mut i = 0;
 //! let cert = cert.with_policy(p, timestamp)?;
 //! if let RevocationStatus::Revoked(_) = cert.revocation_status() {
@@ -1564,7 +1564,7 @@ impl<'a, P, R, R2> ValidAmalgamation<'a, Key<P, R>>
         let mut keys = std::collections::HashSet::new();
 
         let policy = self.policy();
-        let pk_sec = self.cert().primary_key().hash_algo_security();
+        let pk_sec = self.cert().primary_key().key().hash_algo_security();
 
         // All valid self-signatures.
         let sec = self.hash_algo_security;
@@ -2093,7 +2093,7 @@ impl<'a, P> ValidErasedKeyAmalgamation<'a, P>
 
                 sigs.push(builder.sign_userid_binding(primary_signer,
                                                       self.cert().primary_key().component(),
-                                                      &userid)?);
+                                                      userid.userid())?);
             }
         } else {
             // To extend the validity of the subkey, create a new
@@ -2108,7 +2108,7 @@ impl<'a, P> ValidErasedKeyAmalgamation<'a, P>
                          .set_hash_algo(self.binding_signature.hash_algo())
                          .sign_primary_key_binding(
                              subkey_signer,
-                             &self.cert().primary_key(),
+                             self.cert().primary_key().key(),
                              self.key().role_as_subordinate())?)
                 } else {
                     return Err(Error::InvalidArgument(
@@ -2253,7 +2253,7 @@ impl<'a, P> ValidErasedKeyAmalgamation<'a, P>
         let expiration =
             if let Some(e) = expiration.map(crate::types::normalize_systemtime)
         {
-            let ct = self.creation_time();
+            let ct = self.key().creation_time();
             match e.duration_since(ct) {
                 Ok(v) => Some(v),
                 Err(_) => return Err(Error::InvalidArgument(

@@ -997,7 +997,7 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
             .filter(|(_certification, ct, hard)| {
                 // Make sure the certification was created after the
                 // certificate, unless they are hard revocations.
-                self.cert.primary_key().creation_time() <= *ct || *hard
+                self.cert.primary_key().key().creation_time() <= *ct || *hard
             })
             .filter(|(certification, _ct, _hard)| {
                 // Make sure the certification conforms to the policy.
@@ -1476,7 +1476,7 @@ impl<'a> UserIDAmalgamation<'a> {
         // Hash the components like in a binding signature.
         let mut hash = HashAlgorithm::default().context()?
             .for_signature(primary_signer.public().version());
-        self.cert().primary_key().hash(&mut hash)?;
+        self.cert().primary_key().key().hash(&mut hash)?;
         self.userid().hash(&mut hash)?;
 
         // Check if there is a previous attestation.  If so, we need
@@ -1560,7 +1560,7 @@ impl<'a> UserAttributeAmalgamation<'a> {
         // Hash the components like in a binding signature.
         let mut hash = HashAlgorithm::default().context()?
             .for_signature(primary_signer.public().version());
-        self.cert().primary_key().hash(&mut hash)?;
+        self.cert().primary_key().key().hash(&mut hash)?;
         self.user_attribute().hash(&mut hash)?;
 
         // Check if there is a previous attestation.  If so, we need
@@ -1769,7 +1769,7 @@ where C: IntoIterator<Item = S>,
 ///     } else {
 ///         // Print information about the User ID.
 ///         eprintln!("{}: preferred symmetric algorithms: {:?}",
-///                   String::from_utf8_lossy(u.value()),
+///                   String::from_utf8_lossy(u.userid().value()),
 ///                   u.preferred_symmetric_algorithms());
 ///     }
 /// }
@@ -2336,7 +2336,7 @@ impl<'a, C> ValidAmalgamation<'a, C> for ValidComponentAmalgamation<'a, C> {
         let mut keys = std::collections::HashSet::new();
 
         let policy = self.policy();
-        let pk_sec = self.cert().primary_key().hash_algo_security();
+        let pk_sec = self.cert().primary_key().key().hash_algo_security();
 
         // All valid self-signatures.
         let sec = self.hash_algo_security;

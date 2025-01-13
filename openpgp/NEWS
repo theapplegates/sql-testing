@@ -60,6 +60,7 @@
    - PacketPileParser no longer derefs to PacketParserResult
    - ValidCert no longer derefs to Cert
    - ValidateAmalgamation::with_policy now takes a &self
+   - ComponentBundle no longer derefs to the component
 
 ** New functionality
    - Signature::hash_userid_attestation
