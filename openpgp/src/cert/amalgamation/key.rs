@@ -533,11 +533,11 @@ impl<'a, P> ValidateAmalgamation<'a, Key<P, key::PrimaryRole>>
 {
     type V = ValidPrimaryKeyAmalgamation<'a, P>;
 
-    fn with_policy<T>(self, policy: &'a dyn Policy, time: T)
+    fn with_policy<T>(&self, policy: &'a dyn Policy, time: T)
         -> Result<Self::V>
         where T: Into<Option<time::SystemTime>>
     {
-        let ka : ErasedKeyAmalgamation<P> = self.into();
+        let ka : ErasedKeyAmalgamation<P> = self.clone().into();
         Ok(ka.with_policy(policy, time)?
                .try_into().expect("conversion is symmetric"))
     }
@@ -553,11 +553,11 @@ impl<'a, P> ValidateAmalgamation<'a, Key<P, key::SubordinateRole>>
 {
     type V = ValidSubordinateKeyAmalgamation<'a, P>;
 
-    fn with_policy<T>(self, policy: &'a dyn Policy, time: T)
+    fn with_policy<T>(&self, policy: &'a dyn Policy, time: T)
         -> Result<Self::V>
         where T: Into<Option<time::SystemTime>>
     {
-        let ka : ErasedKeyAmalgamation<P> = self.into();
+        let ka : ErasedKeyAmalgamation<P> = self.clone().into();
         Ok(ka.with_policy(policy, time)?
                .try_into().expect("conversion is symmetric"))
     }
@@ -573,7 +573,7 @@ impl<'a, P> ValidateAmalgamation<'a, Key<P, key::UnspecifiedRole>>
 {
     type V = ValidErasedKeyAmalgamation<'a, P>;
 
-    fn with_policy<T>(self, policy: &'a dyn Policy, time: T)
+    fn with_policy<T>(&self, policy: &'a dyn Policy, time: T)
         -> Result<Self::V>
         where T: Into<Option<time::SystemTime>>
     {
@@ -591,7 +591,7 @@ impl<'a, P> ValidateAmalgamation<'a, Key<P, key::UnspecifiedRole>>
         let cert = self.ca.cert();
         let vka = ValidErasedKeyAmalgamation {
             ka: KeyAmalgamation {
-                ca: self.ca.parts_into_public(),
+                ca: self.ca.clone().parts_into_public(),
                 primary: self.primary,
             },
             // We need some black magic to avoid infinite
@@ -1465,7 +1465,7 @@ impl<'a, P> ValidateAmalgamation<'a, Key<P, key::PrimaryRole>>
 {
     type V = Self;
 
-    fn with_policy<T>(self, policy: &'a dyn Policy, time: T) -> Result<Self::V>
+    fn with_policy<T>(&self, policy: &'a dyn Policy, time: T) -> Result<Self::V>
         where T: Into<Option<time::SystemTime>>,
               Self: Sized
     {
@@ -1484,7 +1484,7 @@ impl<'a, P> ValidateAmalgamation<'a, Key<P, key::SubordinateRole>>
 {
     type V = Self;
 
-    fn with_policy<T>(self, policy: &'a dyn Policy, time: T) -> Result<Self::V>
+    fn with_policy<T>(&self, policy: &'a dyn Policy, time: T) -> Result<Self::V>
         where T: Into<Option<time::SystemTime>>,
               Self: Sized
     {
@@ -1504,7 +1504,7 @@ impl<'a, P> ValidateAmalgamation<'a, Key<P, key::UnspecifiedRole>>
 {
     type V = Self;
 
-    fn with_policy<T>(self, policy: &'a dyn Policy, time: T) -> Result<Self::V>
+    fn with_policy<T>(&self, policy: &'a dyn Policy, time: T) -> Result<Self::V>
         where T: Into<Option<time::SystemTime>>,
               Self: Sized
     {

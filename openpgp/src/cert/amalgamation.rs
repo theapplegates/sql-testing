@@ -332,7 +332,7 @@ pub trait ValidateAmalgamation<'a, C: 'a>: seal::Sealed {
     /// Uses the specified `Policy` and reference time with the amalgamation.
     ///
     /// If `time` is `None`, the current time is used.
-    fn with_policy<T>(self, policy: &'a dyn Policy, time: T) -> Result<Self::V>
+    fn with_policy<T>(&self, policy: &'a dyn Policy, time: T) -> Result<Self::V>
         where T: Into<Option<time::SystemTime>>,
               Self: Sized;
 }
@@ -370,7 +370,7 @@ trait ValidateAmalgamationRelaxed<'a, C: 'a> {
     ///
     ///   - To check if the user id is valid, we need to check that
     ///     the corresponding certificate is valid.
-    fn with_policy_relaxed<T>(self, policy: &'a dyn Policy, time: T,
+    fn with_policy_relaxed<T>(&self, policy: &'a dyn Policy, time: T,
                               valid_cert: bool) -> Result<Self::V>
         where T: Into<Option<time::SystemTime>>,
               Self: Sized;
@@ -1043,7 +1043,7 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
 
 macro_rules! impl_with_policy {
     ($func:ident, $value:ident $(, $arg:ident: $type:ty )*) => {
-        fn $func<T>(self, policy: &'a dyn Policy, time: T, $($arg: $type, )*)
+        fn $func<T>(&self, policy: &'a dyn Policy, time: T, $($arg: $type, )*)
             -> Result<Self::V>
             where T: Into<Option<time::SystemTime>>,
                   Self: Sized
@@ -1061,7 +1061,7 @@ macro_rules! impl_with_policy {
             // we know the certificate is valid (unless the caller
             // doesn't care).
             Ok(ValidComponentAmalgamation {
-                ca: self,
+                ca: self.clone(),
                 cert: ValidCert {
                     cert,
                     policy,
@@ -2292,7 +2292,7 @@ impl<'a, C> seal::Sealed for ValidComponentAmalgamation<'a, C> {}
 impl<'a, C> ValidateAmalgamation<'a, C> for ValidComponentAmalgamation<'a, C> {
     type V = Self;
 
-    fn with_policy<T>(self, policy: &'a dyn Policy, time: T) -> Result<Self::V>
+    fn with_policy<T>(&self, policy: &'a dyn Policy, time: T) -> Result<Self::V>
         where T: Into<Option<time::SystemTime>>,
               Self: Sized,
     {
