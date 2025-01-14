@@ -1813,7 +1813,7 @@ impl<'a> ValidUserIDAmalgamation<'a> {
         let digests: std::collections::HashSet<_> =
             self.attestation_key_signatures()
             .filter_map(|sig| {
-                sig.attested_certifications().ok()
+                sig.approved_certifications().ok()
                     .map(|digest_iter| (sig, digest_iter))
             })
             .flat_map(|(sig, digest_iter)| {
@@ -1986,7 +1986,7 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
         let digests: std::collections::HashSet<_> =
             self.attestation_key_signatures()
             .filter_map(|sig| {
-                sig.attested_certifications().ok()
+                sig.approved_certifications().ok()
                     .map(|digest_iter| (sig, digest_iter))
             })
             .flat_map(|(sig, digest_iter)| {

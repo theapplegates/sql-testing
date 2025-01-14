@@ -7153,14 +7153,14 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
             test.userids().next().unwrap().bundle().approvals().next().unwrap();
 
         if DUMP {
-            for (i, d) in attestation.attested_certifications()?.enumerate() {
+            for (i, d) in attestation.approved_certifications()?.enumerate() {
                 crate::fmt::hex::Dumper::new(std::io::stderr(), "")
                     .write(d, format!("expected digest {}", i))?;
             }
         }
 
         let digests: std::collections::HashSet<_> =
-            attestation.attested_certifications()?.collect();
+            attestation.approved_certifications()?.collect();
 
         for (i, certification) in
             test.userids().next().unwrap().certifications().enumerate()

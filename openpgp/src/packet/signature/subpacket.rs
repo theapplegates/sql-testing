@@ -3852,7 +3852,7 @@ impl SubpacketAreas {
             })
     }
 
-    /// Returns the digests of attested certifications.
+    /// Returns the digests of approved certifications.
     ///
     /// This feature is [experimental](crate#experimental-features).
     ///
@@ -3863,16 +3863,16 @@ impl SubpacketAreas {
     ///
     /// Note: The maximum size of the hashed signature subpacket area
     /// constrains the number of attestations that can be stored in a
-    /// signature.  If the certificate holder attested to more
-    /// certifications, the digests are split across multiple attested
-    /// key signatures with the same creation time.
+    /// signature.  If the certificate holder approved of more
+    /// certifications, the digests are split across multiple approved
+    /// certification key signatures with the same creation time.
     ///
     /// The standard strongly suggests that the digests should be
     /// sorted.  However, this function returns the digests in the
     /// order they are stored in the subpacket, which may not be
     /// sorted.
     ///
-    /// To address both issues, collect all digests from all attested
+    /// To address both issues, collect all digests from all approved
     /// key signatures with the most recent creation time into a data
     /// structure that allows efficient lookups, such as [`HashSet`]
     /// or [`BTreeSet`].
@@ -3882,7 +3882,7 @@ impl SubpacketAreas {
     ///   [`HashSet`]: std::collections::HashSet
     ///   [`BTreeSet`]: std::collections::BTreeSet
     ///   [Section 2.2 of draft-dkg-openpgp-1pa3pc-02]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
-    pub fn attested_certifications(&self)
+    pub fn approved_certifications(&self)
         -> Result<impl Iterator<Item=&[u8]> + Send + Sync>
     {
         if self.hashed_area()

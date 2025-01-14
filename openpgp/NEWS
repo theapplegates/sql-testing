@@ -69,6 +69,8 @@
      SubpacketValue::ApprovedCertifications
    - ComponentBundle::attestations renamed to
      ComponentBundle::approvals
+   - SubpacketAreas::attested_certifications renamed to
+     SubpacketAreas::approved_certifications
 
 ** New functionality
    - Signature::hash_userid_attestation
