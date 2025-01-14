@@ -1967,20 +1967,20 @@ pub type ValidUserAttributeAmalgamation<'a>
     = ValidComponentAmalgamation<'a, UserAttribute>;
 
 impl<'a> ValidUserAttributeAmalgamation<'a> {
-    /// Returns the user attributes's attested third-party certifications.
+    /// Returns the user attributes's approved third-party certifications.
     ///
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Attested Certification subpacket] for
+    /// certifications. See [Approved Certifications subpacket] for
     /// details.  This can be used to address certificate flooding
     /// concerns.
     ///
     /// This method only returns signatures that are valid under the
-    /// current policy and are attested by the certificate holder.
+    /// current policy and are approved by the certificate holder.
     ///
-    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
-    pub fn attested_certifications(&self)
+    ///   [Approved Certifications subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
+    pub fn approved_certifications(&self)
         -> impl Iterator<Item=&Signature> + Send + Sync
     {
         let mut hash_algo = None;

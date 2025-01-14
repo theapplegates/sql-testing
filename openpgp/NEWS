@@ -77,6 +77,8 @@
      ValidUserIDAmalgamation::approved_certifications
    - ValidUserIDAmalgamation::attestation_key_signatures renamed to
      ValidUserIDAmalgamation::certification_approval_key_signatures
+   - ValidUserAttributeAmalgamation::attested_certifications renamed
+     to ValidUserAttributeAmalgamation::approved_certifications
 
 ** New functionality
    - Signature::hash_userid_attestation
