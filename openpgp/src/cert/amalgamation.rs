@@ -1484,7 +1484,8 @@ impl<'a> UserIDAmalgamation<'a> {
         let old = self.clone()
             .with_policy(policy, time)
             .ok()
-            .and_then(|v| v.attestation_key_signatures().next().cloned());
+            .and_then(
+                |v| v.certification_approval_key_signatures().next().cloned());
 
         attest_certifications_common(hash, old, time, primary_signer,
                                      certifications)
@@ -1811,7 +1812,7 @@ impl<'a> ValidUserIDAmalgamation<'a> {
     {
         let mut hash_algo = None;
         let digests: std::collections::HashSet<_> =
-            self.attestation_key_signatures()
+            self.certification_approval_key_signatures()
             .filter_map(|sig| {
                 sig.approved_certifications().ok()
                     .map(|digest_iter| (sig, digest_iter))
@@ -1836,17 +1837,17 @@ impl<'a> ValidUserIDAmalgamation<'a> {
             })
     }
 
-    /// Returns set of active attestation key signatures.
+    /// Returns set of active certification approval key signatures.
     ///
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Returns the set of signatures with the newest valid signature
     /// creation time.  Older signatures are not returned.  The sum of
-    /// all digests in these signatures are the set of attested
+    /// all digests in these signatures are the set of approved
     /// third-party certifications.
     ///
-    /// This interface is useful for pruning old attestation key
-    /// signatures when filtering a certificate.
+    /// This interface is useful for pruning old certification
+    /// approval key signatures when filtering a certificate.
     ///
     /// Note: This is a low-level interface.  Consider using
     /// [`ValidUserIDAmalgamation::approved_certifications`] to
@@ -1854,7 +1855,7 @@ impl<'a> ValidUserIDAmalgamation<'a> {
     ///
     ///   [`ValidUserIDAmalgamation::approved_certifications`]: ValidUserIDAmalgamation#method.approved_certifications
     // The explicit link works around a bug in rustdoc.
-    pub fn attestation_key_signatures(&'a self)
+    pub fn certification_approval_key_signatures(&'a self)
         -> impl Iterator<Item=&'a Signature> + Send + Sync
     {
         let mut first = None;

@@ -75,6 +75,8 @@
      SignatureBuilder::set_approved_certifications
    - ValidUserIDAmalgamation::attested_certifications renamed to
      ValidUserIDAmalgamation::approved_certifications
+   - ValidUserIDAmalgamation::attestation_key_signatures renamed to
+     ValidUserIDAmalgamation::certification_approval_key_signatures
 
 ** New functionality
    - Signature::hash_userid_attestation
