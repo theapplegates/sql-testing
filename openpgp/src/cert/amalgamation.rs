@@ -1860,7 +1860,7 @@ impl<'a> ValidUserIDAmalgamation<'a> {
         let mut first = None;
 
         // The newest valid signature will be returned first.
-        self.attestations()
+        self.approvals()
         // First, filter out any invalid (e.g. too new) signatures.
             .filter(move |sig| self.cert.policy().signature(
                 sig,
@@ -2033,7 +2033,7 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
         let mut first = None;
 
         // The newest valid signature will be returned first.
-        self.attestations()
+        self.approvals()
         // First, filter out any invalid (e.g. too new) signatures.
             .filter(move |sig| self.cert.policy().signature(
                 sig,
