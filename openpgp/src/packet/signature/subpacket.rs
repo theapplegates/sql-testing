@@ -7235,7 +7235,7 @@ impl signature::SignatureBuilder {
         Ok(self)
     }
 
-    /// Adds an attested certifications subpacket.
+    /// Adds an approved certifications subpacket.
     ///
     /// This feature is [experimental](crate#experimental-features).
     ///
@@ -7244,7 +7244,7 @@ impl signature::SignatureBuilder {
     /// certificate.  This can be used to address certificate flooding
     /// concerns.
     ///
-    /// Sorts the digests and adds an [Attested Certification
+    /// Sorts the digests and adds an [Approved Certification
     /// subpacket] to the hashed subpacket area.  The digests must be
     /// calculated using the same hash algorithm that is used in the
     /// resulting signature.  To attest a signature, hash it with
@@ -7253,13 +7253,13 @@ impl signature::SignatureBuilder {
     /// Note: The maximum size of the hashed signature subpacket area
     /// constrains the number of attestations that can be stored in a
     /// signature.  If you need to attest to more certifications,
-    /// split the digests into chunks and create multiple attested key
+    /// split the digests into chunks and create multiple approved key
     /// signatures with the same creation time.
     ///
-    /// See [Attested Certification subpacket] for details.
+    /// See [Approved Certification subpacket] for details.
     ///
-    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
-    pub fn set_attested_certifications<A, C>(mut self, certifications: C)
+    ///   [Approved Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
+    pub fn set_approved_certifications<A, C>(mut self, certifications: C)
                                              -> Result<Self>
     where C: IntoIterator<Item = A>,
           A: AsRef<[u8]>,

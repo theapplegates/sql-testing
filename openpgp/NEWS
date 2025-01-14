@@ -71,6 +71,8 @@
      ComponentBundle::approvals
    - SubpacketAreas::attested_certifications renamed to
      SubpacketAreas::approved_certifications
+   - SignatureBuilder::set_attested_certifications renamed to
+     SignatureBuilder::set_approved_certifications
 
 ** New functionality
    - Signature::hash_userid_attestation

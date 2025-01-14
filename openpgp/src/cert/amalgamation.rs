@@ -1681,7 +1681,7 @@ where C: IntoIterator<Item = S>,
     for digests in attestations.chunks(digests_per_sig) {
         sigs.push(
             template.clone()
-                .set_attested_certifications(digests)?
+                .set_approved_certifications(digests)?
                 .sign_hash(primary_signer, hash.clone())?);
     }
 
@@ -1691,7 +1691,7 @@ where C: IntoIterator<Item = S>,
         assert!(sigs.is_empty());
         sigs.push(
             template
-                .set_attested_certifications(Option::<&[u8]>::None)?
+                .set_approved_certifications(Option::<&[u8]>::None)?
                 .sign_hash(primary_signer, hash.clone())?);
     }
 
