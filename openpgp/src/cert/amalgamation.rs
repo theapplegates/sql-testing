@@ -1793,20 +1793,20 @@ assert_send_and_sync!(ValidComponentAmalgamation<'_, C> where C);
 pub type ValidUserIDAmalgamation<'a> = ValidComponentAmalgamation<'a, UserID>;
 
 impl<'a> ValidUserIDAmalgamation<'a> {
-    /// Returns the userid's attested third-party certifications.
+    /// Returns the user ID's approved third-party certifications.
     ///
     /// This feature is [experimental](crate#experimental-features).
     ///
     /// Allows the certificate owner to attest to third party
-    /// certifications. See [Attested Certification subpacket] for
+    /// certifications. See [Approved Certification subpacket] for
     /// details.  This can be used to address certificate flooding
     /// concerns.
     ///
     /// This method only returns signatures that are valid under the
-    /// current policy and are attested by the certificate holder.
+    /// current policy and are approved by the certificate holder.
     ///
-    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
-    pub fn attested_certifications(&self)
+    ///   [Approved Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
+    pub fn approved_certifications(&self)
         -> impl Iterator<Item=&Signature> + Send + Sync
     {
         let mut hash_algo = None;
@@ -1849,10 +1849,10 @@ impl<'a> ValidUserIDAmalgamation<'a> {
     /// signatures when filtering a certificate.
     ///
     /// Note: This is a low-level interface.  Consider using
-    /// [`ValidUserIDAmalgamation::attested_certifications`] to
+    /// [`ValidUserIDAmalgamation::approved_certifications`] to
     /// iterate over all attested certifications.
     ///
-    ///   [`ValidUserIDAmalgamation::attested_certifications`]: ValidUserIDAmalgamation#method.attested_certifications
+    ///   [`ValidUserIDAmalgamation::approved_certifications`]: ValidUserIDAmalgamation#method.approved_certifications
     // The explicit link works around a bug in rustdoc.
     pub fn attestation_key_signatures(&'a self)
         -> impl Iterator<Item=&'a Signature> + Send + Sync

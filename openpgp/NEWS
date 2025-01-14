@@ -73,6 +73,8 @@
      SubpacketAreas::approved_certifications
    - SignatureBuilder::set_attested_certifications renamed to
      SignatureBuilder::set_approved_certifications
+   - ValidUserIDAmalgamation::attested_certifications renamed to
+     ValidUserIDAmalgamation::approved_certifications
 
 ** New functionality
    - Signature::hash_userid_attestation

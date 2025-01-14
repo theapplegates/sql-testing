@@ -7061,7 +7061,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(bob.with_policy(p, None)?.userids().next().unwrap()
                    .certifications().count(), 1);
         assert_eq!(bob.with_policy(p, None)?.userids().next().unwrap()
-                   .attested_certifications().count(), 0);
+                   .approved_certifications().count(), 0);
 
         // Have Bob attest that certification.
         #[allow(deprecated)]
@@ -7085,7 +7085,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(bob.with_policy(p, None)?.userids().next().unwrap()
                    .certifications().count(), 1);
         assert_eq!(bob.with_policy(p, None)?.userids().next().unwrap()
-                   .attested_certifications().count(), 1);
+                   .approved_certifications().count(), 1);
 
         // Check that attested key signatures are kept over merges.
         let bob_ = bob.clone().merge_public(bob_pristine.clone())?;
@@ -7095,7 +7095,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(bob_.userids().next().unwrap().bundle().approvals().next().unwrap(),
                    &attestation);
         assert_eq!(bob_.with_policy(p, None)?.userids().next().unwrap()
-                   .attested_certifications().count(), 1);
+                   .approved_certifications().count(), 1);
 
         // And the other way around.
         let bob_ = bob_pristine.clone().merge_public(bob.clone())?;
@@ -7105,7 +7105,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(bob_.userids().next().unwrap().bundle().approvals().next().unwrap(),
                    &attestation);
         assert_eq!(bob_.with_policy(p, None)?.userids().next().unwrap()
-                   .attested_certifications().count(), 1);
+                   .approved_certifications().count(), 1);
 
         // Have Bob withdraw any prior attestations.
 
@@ -7130,7 +7130,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(bob.with_policy(p, None)?.userids().next().unwrap()
                    .certifications().count(), 1);
         assert_eq!(bob.with_policy(p, None)?.userids().next().unwrap()
-                   .attested_certifications().count(), 0);
+                   .approved_certifications().count(), 0);
 
 
         Ok(())
@@ -7182,7 +7182,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         assert_eq!(test.with_policy(p, None)?.userids().next().unwrap()
                    .certifications().count(), 1);
         assert_eq!(test.with_policy(p, None)?.userids().next().unwrap()
-                   .attested_certifications().count(), 1);
+                   .approved_certifications().count(), 1);
 
         Ok(())
     }
