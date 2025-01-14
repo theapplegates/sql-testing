@@ -1569,7 +1569,8 @@ impl<'a> UserAttributeAmalgamation<'a> {
         let old = self.clone()
             .with_policy(policy, time)
             .ok()
-            .and_then(|v| v.attestation_key_signatures().next().cloned());
+            .and_then(
+                |v| v.certification_approval_key_signatures().next().cloned());
 
         attest_certifications_common(hash, old, time, primary_signer,
                                      certifications)
@@ -1985,7 +1986,7 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
     {
         let mut hash_algo = None;
         let digests: std::collections::HashSet<_> =
-            self.attestation_key_signatures()
+            self.certification_approval_key_signatures()
             .filter_map(|sig| {
                 sig.approved_certifications().ok()
                     .map(|digest_iter| (sig, digest_iter))
@@ -2016,19 +2017,19 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
     ///
     /// Returns the set of signatures with the newest valid signature
     /// creation time.  Older signatures are not returned.  The sum of
-    /// all digests in these signatures are the set of attested
+    /// all digests in these signatures are the set of approved
     /// third-party certifications.
     ///
     /// This interface is useful for pruning old attestation key
     /// signatures when filtering a certificate.
     ///
     /// Note: This is a low-level interface.  Consider using
-    /// [`ValidUserAttributeAmalgamation::attested_certifications`] to
-    /// iterate over all attested certifications.
+    /// [`ValidUserAttributeAmalgamation::approved_certifications`] to
+    /// iterate over all approved certifications.
     ///
-    ///   [`ValidUserAttributeAmalgamation::attested_certifications`]: ValidUserAttributeAmalgamation#method.attested_certifications
+    ///   [`ValidUserAttributeAmalgamation::approved_certifications`]: ValidUserAttributeAmalgamation#method.approved_certifications
     // The explicit link works around a bug in rustdoc.
-    pub fn attestation_key_signatures(&'a self)
+    pub fn certification_approval_key_signatures(&'a self)
         -> impl Iterator<Item=&'a Signature> + Send + Sync
     {
         let mut first = None;
