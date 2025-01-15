@@ -37,7 +37,7 @@ use openpgp::parse::{
 };
 use openpgp::serialize::Serialize;
 use openpgp::serialize::stream::{
-    Message, LiteralWriter, Encryptor2,
+    Message, LiteralWriter, Encryptor,
 };
 use openpgp::crypto::Password;
 use openpgp::policy::Policy;
@@ -527,7 +527,7 @@ impl AutocryptSetupMessage {
         {
             // Passphrase-Format header with value numeric9x4
             let m = Message::new(&mut armor_writer);
-            let m = Encryptor2::with_passwords(
+            let m = Encryptor::with_passwords(
                 m, vec![self.passcode.clone().unwrap()]).build()?;
 
             let m = LiteralWriter::new(m).build()?;

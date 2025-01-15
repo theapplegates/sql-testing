@@ -84,6 +84,7 @@
      ValidUserAttributeAmalgamation::certification_approval_key_signatures
    - Packet::AED removed
    - packet::aed::AED1 removed
+   - serialize::stream::Encryptor2 renamed to Encryptor
 
 ** New functionality
    - Signature::hash_userid_attestation
