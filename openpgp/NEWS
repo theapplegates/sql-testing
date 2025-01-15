@@ -88,6 +88,7 @@
    - crypto::ecdh::decrypt_unwrap2 renamed to decrypt_unwrap2
    - UserID::name2 renamed to UserID::name
    - UserID::comment2 renamed to UserID::comment
+   - UserID::email2 renamed to UserID::email
 
 ** New functionality
    - Signature::hash_userid_attestation
