@@ -85,6 +85,7 @@
    - Packet::AED removed
    - packet::aed::AED1 removed
    - serialize::stream::Encryptor2 renamed to Encryptor
+   - crypto::ecdh::decrypt_unwrap2 renamed to decrypt_unwrap2
 
 ** New functionality
    - Signature::hash_userid_attestation
