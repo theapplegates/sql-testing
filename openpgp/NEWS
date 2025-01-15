@@ -87,6 +87,7 @@
    - serialize::stream::Encryptor2 renamed to Encryptor
    - crypto::ecdh::decrypt_unwrap2 renamed to decrypt_unwrap2
    - UserID::name2 renamed to UserID::name
+   - UserID::comment2 renamed to UserID::comment
 
 ** New functionality
    - Signature::hash_userid_attestation

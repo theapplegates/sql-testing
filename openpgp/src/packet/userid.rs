@@ -905,17 +905,8 @@ impl UserID {
     /// See [conventional User ID] for more information.
     ///
     ///   [conventional User ID]: #conventional-user-ids
-    pub fn comment2(&self) -> Result<Option<&str>> {
+    pub fn comment(&self) -> Result<Option<&str>> {
         Ok(self.do_parse()?.comment())
-    }
-
-    /// Parses the User ID according to de facto conventions, and
-    /// returns the comment field, if any.
-    ///
-    /// Like [`UserID::comment2`], but heap-allocates.
-    #[deprecated(note = "Use UserID::comment2")]
-    pub fn comment(&self) -> Result<Option<String>> {
-        Ok(self.do_parse()?.comment().map(|s| s.to_string()))
     }
 
     /// Parses the User ID according to de facto conventions, and
