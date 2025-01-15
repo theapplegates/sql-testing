@@ -2386,7 +2386,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                     let mut sym_algo = None;
                     {
                         let decryption_proxy = |algo, secret: &SessionKey| {
-                            // Take the algo from the AED packet over
+                            // Take the algo from the SEIPDv2 packet over
                             // the dummy one from the SKESK6 packet.
                             let algo = sym_algo_hint.or(algo);
                             let result = pp.decrypt(algo, secret);

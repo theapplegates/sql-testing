@@ -3102,7 +3102,7 @@ impl SEIP2 {
 
 impl seal::Sealed for SEIP2 {}
 impl Marshal for SEIP2 {
-    /// Writes a serialized version of the specified `AED`
+    /// Writes a serialized version of the specified `SEIPv2`
     /// packet to `o`.
     ///
     /// # Errors
