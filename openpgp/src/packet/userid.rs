@@ -895,17 +895,8 @@ impl UserID {
     /// See [conventional User ID] for more information.
     ///
     ///   [conventional User ID]: #conventional-user-ids
-    pub fn name2(&self) -> Result<Option<&str>> {
+    pub fn name(&self) -> Result<Option<&str>> {
         Ok(self.do_parse()?.name())
-    }
-
-    /// Parses the User ID according to de facto conventions, and
-    /// returns the name component, if any.
-    ///
-    /// Like [`UserID::name2`], but heap-allocates.
-    #[deprecated(note = "Use UserID::name2")]
-    pub fn name(&self) -> Result<Option<String>> {
-        Ok(self.do_parse()?.name().map(|s| s.to_string()))
     }
 
     /// Parses the User ID according to de facto conventions, and
