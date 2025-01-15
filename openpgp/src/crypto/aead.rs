@@ -889,6 +889,7 @@ mod tests {
             for aead in [
                 AEADAlgorithm::EAX,
                 AEADAlgorithm::OCB,
+                AEADAlgorithm::GCM,
             ].iter().filter(|algo| algo.is_supported() && algo.supports_symmetric_algo(sym_algo)) {
                 let chunk_size = 64;
                 let mut key = vec![0; sym_algo.key_size().unwrap()];
@@ -899,7 +900,8 @@ mod tests {
 
                 let mut ciphertext = Vec::new();
                 {
-                    let schedule = AEDv1Schedule::new(
+                    let (message_key, schedule) = SEIPv2Schedule::new(
+                        &key,
                         *sym_algo,
                         *aead,
                         chunk_size,
@@ -908,7 +910,7 @@ mod tests {
                                                        *aead,
                                                        chunk_size,
                                                        schedule,
-                                                       key.clone(),
+                                                       message_key,
                                                        &mut ciphertext)
                         .unwrap();
 
@@ -917,7 +919,8 @@ mod tests {
 
                 let mut plaintext = Vec::new();
                 {
-                    let schedule = AEDv1Schedule::new(
+                    let (message_key, schedule) = SEIPv2Schedule::new(
+                        &key,
                         *sym_algo,
                         *aead,
                         chunk_size,
@@ -926,7 +929,7 @@ mod tests {
                                                        *aead,
                                                        chunk_size,
                                                        schedule,
-                                                       key,
+                                                       message_key,
                                                        Cursor::new(&ciphertext))
                         .unwrap();
 
