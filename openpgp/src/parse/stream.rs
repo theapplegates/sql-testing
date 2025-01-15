@@ -2419,7 +2419,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                     };
 
                     v.policy.symmetric_algorithm(sym_algo)?;
-                    if let Packet::AED(AED::V1(p)) = &pp.packet {
+                    if let Packet::SEIP(SEIP::V2(p)) = &pp.packet {
                         v.policy.aead_algorithm(p.aead())?;
                     }
 
