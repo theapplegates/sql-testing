@@ -2428,7 +2428,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                         pp.packet.tag() == packet::Tag::SEIP
                             && pp.packet.version() == Some(1),
                         sym_algo,
-                        if let Packet::AED(AED::V1(p)) = &pp.packet {
+                        if let Packet::SEIP(SEIP::V2(p)) = &pp.packet {
                             Some(p.aead())
                         } else {
                             None
