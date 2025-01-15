@@ -89,6 +89,7 @@
    - UserID::name2 renamed to UserID::name
    - UserID::comment2 renamed to UserID::comment
    - UserID::email2 renamed to UserID::email
+   - UserID::uri2 renamed to UserID::uri
 
 ** New functionality
    - Signature::hash_userid_attestation

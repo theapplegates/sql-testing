@@ -925,17 +925,8 @@ impl UserID {
     /// See [conventional User ID] for more information.
     ///
     ///   [conventional User ID]: #conventional-user-ids
-    pub fn uri2(&self) -> Result<Option<&str>> {
+    pub fn uri(&self) -> Result<Option<&str>> {
         Ok(self.do_parse()?.uri())
-    }
-
-    /// Parses the User ID according to de facto conventions, and
-    /// returns the URI, if any.
-    ///
-    /// Like [`UserID::uri2`], but heap-allocates.
-    #[deprecated(note = "Use UserID::uri2")]
-    pub fn uri(&self) -> Result<Option<String>> {
-        Ok(self.do_parse()?.uri().map(|s| s.to_string()))
     }
 
     /// Returns a normalized version of the UserID's email address.
