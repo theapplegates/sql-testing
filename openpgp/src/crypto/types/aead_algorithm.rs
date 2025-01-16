@@ -31,7 +31,7 @@ use quickcheck::{Arbitrary, Gen};
 /// use openpgp::types::{Features, HashAlgorithm, AEADAlgorithm, SignatureType};
 ///
 /// # fn main() -> openpgp::Result<()> {
-/// let features = Features::empty().set_aead();
+/// let features = Features::empty().set_seipdv2();
 /// let mut builder = SignatureBuilder::new(SignatureType::DirectKey)
 ///     .set_features(features)?
 ///     .set_preferred_aead_algorithms(vec![
