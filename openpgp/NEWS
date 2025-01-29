@@ -111,6 +111,8 @@
    - crypto::Curve::BrainpoolP384
    - public re-export of anyhow
    - cert::amalgamation::ValidBindingSignature
+   - impl Borrow<[u8]> for Fingerprint
+   - impl Borrow<[u8]> for KeyID
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead
