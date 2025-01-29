@@ -93,6 +93,9 @@
    - Features::supports_aead removed
    - Features::set_aead removed
    - Features::clear_aead removed
+   - cert::amalgamation::ValidAmalgamation::map has been moved to
+     cert::amalgamation::ValidBindingSignature::map
+   - cert::amalgamation::ValidAmalgamation is now dyn-compatible
 
 ** New functionality
    - Signature::hash_userid_attestation
@@ -107,6 +110,7 @@
    - crypto::HashAlgorithm
    - crypto::Curve::BrainpoolP384
    - public re-export of anyhow
+   - cert::amalgamation::ValidBindingSignature
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead
