@@ -106,6 +106,7 @@
    - crypto::AEADAlgorithm
    - crypto::HashAlgorithm
    - crypto::Curve::BrainpoolP384
+   - public re-export of anyhow
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead
