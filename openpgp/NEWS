@@ -96,6 +96,7 @@
    - cert::amalgamation::ValidAmalgamation::map has been moved to
      cert::amalgamation::ValidBindingSignature::map
    - cert::amalgamation::ValidAmalgamation is now dyn-compatible
+   - crypto::AEADAlgorithm::iv_size removed
 
 ** New functionality
    - Signature::hash_userid_attestation
