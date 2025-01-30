@@ -1467,7 +1467,7 @@ impl<'a> UserIDAmalgamation<'a> {
     /// // Have Bob attest that certification.
     /// let bobs_uid = bob.userids().next().unwrap();
     /// let attestations =
-    ///     bobs_uid.attest_certifications2(
+    ///     bobs_uid.attest_certifications(
     ///         policy,
     ///         None,
     ///         &mut bob_signer,
@@ -1479,11 +1479,11 @@ impl<'a> UserIDAmalgamation<'a> {
     ///            Some(&alice_certifies_bob));
     /// # Ok(()) }
     /// ```
-    pub fn attest_certifications2<T, C, S>(&self,
-                                           policy: &dyn Policy,
-                                           time: T,
-                                           primary_signer: &mut dyn Signer,
-                                           certifications: C)
+    pub fn attest_certifications<T, C, S>(&self,
+                                          policy: &dyn Policy,
+                                          time: T,
+                                          primary_signer: &mut dyn Signer,
+                                          certifications: C)
         -> Result<Vec<Signature>>
     where T: Into<Option<time::SystemTime>>,
           C: IntoIterator<Item = S>,
@@ -1507,26 +1507,6 @@ impl<'a> UserIDAmalgamation<'a> {
 
         attest_certifications_common(hash, old, time, primary_signer,
                                      certifications)
-    }
-
-    /// Attests to third-party certifications.
-    ///
-    /// This feature is [experimental](crate#experimental-features).
-    ///
-    /// This function is deprecated in favor of
-    /// [`UserIDAmalgamation::attest_certifications2`], which includes
-    /// a reference time parameter.
-    #[deprecated(note = "Use attest_certifications2 instead.")]
-    pub fn attest_certifications<C, S>(&self,
-                                       policy: &dyn Policy,
-                                       primary_signer: &mut dyn Signer,
-                                       certifications: C)
-        -> Result<Vec<Signature>>
-    where C: IntoIterator<Item = S>,
-          S: Borrow<Signature>,
-    {
-        self.attest_certifications2(
-            policy, None, primary_signer, certifications)
     }
 }
 
@@ -1564,11 +1544,11 @@ impl<'a> UserAttributeAmalgamation<'a> {
     ///
     ///   [`UserIDAmalgamation::attest_certifications#examples`]: UserIDAmalgamation#examples
     // The explicit link works around a bug in rustdoc.
-    pub fn attest_certifications2<T, C, S>(&self,
-                                           policy: &dyn Policy,
-                                           time: T,
-                                           primary_signer: &mut dyn Signer,
-                                           certifications: C)
+    pub fn attest_certifications<T, C, S>(&self,
+                                          policy: &dyn Policy,
+                                          time: T,
+                                          primary_signer: &mut dyn Signer,
+                                          certifications: C)
         -> Result<Vec<Signature>>
     where T: Into<Option<time::SystemTime>>,
           C: IntoIterator<Item = S>,
@@ -1592,26 +1572,6 @@ impl<'a> UserAttributeAmalgamation<'a> {
 
         attest_certifications_common(hash, old, time, primary_signer,
                                      certifications)
-    }
-
-    /// Attests to third-party certifications.
-    ///
-    /// This feature is [experimental](crate#experimental-features).
-    ///
-    /// This function is deprecated in favor of
-    /// [`UserAttributeAmalgamation::attest_certifications2`], which
-    /// includes a reference time parameter.
-    #[deprecated(note = "Use attest_certifications2 instead.")]
-    pub fn attest_certifications<C, S>(&self,
-                                       policy: &dyn Policy,
-                                       primary_signer: &mut dyn Signer,
-                                       certifications: C)
-        -> Result<Vec<Signature>>
-    where C: IntoIterator<Item = S>,
-          S: Borrow<Signature>,
-    {
-        self.attest_certifications2(
-            policy, None, primary_signer, certifications)
     }
 }
 
@@ -1954,6 +1914,7 @@ impl<'a> ValidUserIDAmalgamation<'a> {
     /// let attestations =
     ///     bobs_uid.attest_certifications(
     ///         policy,
+    ///         None,
     ///         &mut bob_signer,
     ///         bobs_uid.certifications())?;
     /// let bob = bob.insert_packets2(attestations)?.0;
@@ -1971,10 +1932,10 @@ impl<'a> ValidUserIDAmalgamation<'a> {
           S: Borrow<Signature>,
     {
         std::ops::Deref::deref(self)
-            .attest_certifications2(self.policy(),
-                                    self.time(),
-                                    primary_signer,
-                                    certifications)
+            .attest_certifications(self.policy(),
+                                   self.time(),
+                                   primary_signer,
+                                   certifications)
     }
 }
 
@@ -2104,10 +2065,10 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
           S: Borrow<Signature>,
     {
         std::ops::Deref::deref(self)
-            .attest_certifications2(self.policy(),
-                                    self.time(),
-                                    primary_signer,
-                                    certifications)
+            .attest_certifications(self.policy(),
+                                   self.time(),
+                                   primary_signer,
+                                   certifications)
     }
 }
 
