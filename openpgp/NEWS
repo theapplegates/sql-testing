@@ -104,6 +104,8 @@
      attest_certifications
    - UserAttributeAmalgamation::attest_certifications2 renamed to
      attest_certifications
+   - ValidUserAttributeAmalgamation::attest_certifications renamed to
+     approve_of_certifications
 
 ** New functionality
    - Signature::hash_userid_attestation

@@ -2040,16 +2040,16 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
             })
     }
 
-    /// Attests to third-party certifications.
+    /// Approves of third-party certifications.
     ///
     /// This feature is [experimental](crate#experimental-features).
     ///
-    /// Allows the certificate owner to attest to third party
-    /// certifications. See [Attested Certification subpacket] for
+    /// Allows the certificate owner to approve of third party
+    /// certifications. See [Approved Certifications subpacket] for
     /// details.  This can be used to address certificate flooding
     /// concerns.
     ///
-    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
+    ///   [Approved Certifications subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
     ///
     /// # Examples
     ///
@@ -2057,10 +2057,10 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
     ///
     ///   [`ValidUserIDAmalgamation::attest_certifications#examples`]: ValidUserIDAmalgamation#examples
     // The explicit link works around a bug in rustdoc.
-    pub fn attest_certifications<C, S>(&self,
-                                       primary_signer: &mut dyn Signer,
-                                       certifications: C)
-                                       -> Result<Vec<Signature>>
+    pub fn approve_of_certifications<C, S>(&self,
+                                           primary_signer: &mut dyn Signer,
+                                           certifications: C)
+                                           -> Result<Vec<Signature>>
     where C: IntoIterator<Item = S>,
           S: Borrow<Signature>,
     {
