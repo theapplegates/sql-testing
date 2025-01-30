@@ -1524,19 +1524,16 @@ impl<'a> UserAttributeAmalgamation<'a> {
         self.component()
     }
 
-    /// Attests to third-party certifications.
+    /// Approves of third-party certifications.
     ///
     /// This feature is [experimental](crate#experimental-features).
     ///
-    /// Allows the certificate owner to attest to third party
-    /// certifications. See [Attested Certification subpacket] for
+    /// Allows the certificate owner to approve of third party
+    /// certifications. See [Approved Certifications subpacket] for
     /// details.  This can be used to address certificate flooding
     /// concerns.
     ///
-    /// A policy is needed, because the expiration is updated by
-    /// updating the current binding signatures.
-    ///
-    ///   [Attested Certification subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
+    ///   [Approved Certifications subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
     ///
     /// # Examples
     ///
@@ -1544,11 +1541,11 @@ impl<'a> UserAttributeAmalgamation<'a> {
     ///
     ///   [`UserIDAmalgamation::attest_certifications#examples`]: UserIDAmalgamation#examples
     // The explicit link works around a bug in rustdoc.
-    pub fn attest_certifications<T, C, S>(&self,
-                                          policy: &dyn Policy,
-                                          time: T,
-                                          primary_signer: &mut dyn Signer,
-                                          certifications: C)
+    pub fn approve_of_certifications<T, C, S>(&self,
+                                              policy: &dyn Policy,
+                                              time: T,
+                                              primary_signer: &mut dyn Signer,
+                                              certifications: C)
         -> Result<Vec<Signature>>
     where T: Into<Option<time::SystemTime>>,
           C: IntoIterator<Item = S>,
@@ -2063,10 +2060,10 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
           S: Borrow<Signature>,
     {
         std::ops::Deref::deref(self)
-            .attest_certifications(self.policy(),
-                                   self.time(),
-                                   primary_signer,
-                                   certifications)
+            .approve_of_certifications(self.policy(),
+                                       self.time(),
+                                       primary_signer,
+                                       certifications)
     }
 }
 

@@ -108,6 +108,8 @@
      approve_of_certifications
    - ValidUserIDAmalgamation::attest_certifications renamed to
      approve_of_certifications
+   - UserAttributeAmalgamation::attest_certifications renamed to
+     approve_of_certifications
 
 ** New functionality
    - Signature::hash_userid_attestation
