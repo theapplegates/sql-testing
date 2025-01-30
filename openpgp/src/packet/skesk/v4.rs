@@ -300,7 +300,6 @@ mod test {
         use std::io::Read;
         use crate::{
             Cert,
-            Fingerprint,
             packet::{SKESK, PKESK},
             parse::stream::*,
         };
@@ -322,7 +321,7 @@ mod test {
             fn decrypt(&mut self, _: &[PKESK], skesks: &[SKESK],
                        _: Option<SymmetricAlgorithm>,
                        decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
-                       -> Result<Option<Fingerprint>>
+                       -> Result<Option<Cert>>
             {
                 assert_eq!(skesks.len(), 1);
                 let (cipher, sk) = skesks[0].decrypt(&"password".into())?;

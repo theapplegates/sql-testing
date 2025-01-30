@@ -40,6 +40,7 @@
 //! 9:62F3EADC98E1D3D34495E79264B5959391B4FABB2B2A2B7E03861F92D0B03161
 //! ```
 
+use std::sync::Arc;
 use std::collections::HashMap;
 use std::env;
 use std::io;
@@ -48,7 +49,7 @@ use anyhow::Context;
 
 use sequoia_openpgp as openpgp;
 
-use openpgp::{KeyID, Fingerprint};
+use openpgp::{Cert, KeyID};
 use openpgp::packet::prelude::*;
 use openpgp::crypto::{KeyPair, SessionKey};
 use openpgp::types::SymmetricAlgorithm;
@@ -126,22 +127,24 @@ pub fn main() -> openpgp::Result<()> {
 /// keys for the signature verification and implements the
 /// verification policy.
 struct Helper {
-    keys: HashMap<KeyID, (Fingerprint, KeyPair)>,
+    keys: HashMap<KeyID, (Arc<Cert>, KeyPair)>,
     recycling_bin: Option<(Option<SymmetricAlgorithm>, SessionKey, Vec<PKESK>)>,
 }
 
 impl Helper {
     /// Creates a Helper for the given Certs with appropriate secrets.
     fn new(p: &dyn Policy, certs: Vec<openpgp::Cert>) -> Self {
-        // Map (sub)KeyIDs to primary fingerprints and secrets.
+        // Map (sub)KeyIDs to certs and secrets.
         let mut keys = HashMap::new();
         for cert in certs {
+            let cert = Arc::new(cert);
+
             for ka in cert.keys().unencrypted_secret().with_policy(p, None)
                 .supported()
                 .for_storage_encryption().for_transport_encryption()
             {
                 keys.insert(ka.key().keyid(),
-                            (cert.fingerprint(),
+                            (cert.clone(),
                              ka.key().clone().into_keypair().unwrap()));
             }
         }
@@ -159,13 +162,13 @@ impl DecryptionHelper for Helper {
                _skesks: &[openpgp::packet::SKESK],
                sym_algo: Option<SymmetricAlgorithm>,
                decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
-                  -> openpgp::Result<Option<openpgp::Fingerprint>>
+                  -> openpgp::Result<Option<Cert>>
     {
         // Try each PKESK until we succeed.
         let mut recipient = None;
         let mut encryption_context = None;
         for pkesk in pkesks {
-            if let Some((fp, pair)) = self.keys.get_mut(&KeyID::from(pkesk.recipient())) {
+            if let Some((cert, pair)) = self.keys.get_mut(&KeyID::from(pkesk.recipient())) {
                 if pkesk.decrypt(pair, sym_algo)
                     .map(|(algo, session_key)| {
                         let success = decrypt(algo, &session_key);
@@ -183,7 +186,7 @@ impl DecryptionHelper for Helper {
                     })
                     .unwrap_or(false)
                 {
-                    recipient = Some(fp.clone());
+                    recipient = Some(cert.as_ref().clone());
                     break;
                 }
             }

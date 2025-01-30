@@ -1888,7 +1888,6 @@ mod test {
 
     use super::*;
     use crate::Error;
-    use crate::Fingerprint;
     use crate::crypto::SessionKey;
     use crate::packet::key::Key4;
     use crate::packet::signature;
@@ -2219,7 +2218,7 @@ mod test {
             fn decrypt(&mut self, _: &[PKESK], _: &[SKESK],
                        _: Option<SymmetricAlgorithm>,
                        _: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
-                       -> Result<Option<Fingerprint>>
+                       -> Result<Option<Cert>>
             {
                 unreachable!();
             }
@@ -2725,7 +2724,7 @@ mod test {
             fn decrypt(&mut self, _: &[PKESK], _: &[SKESK],
                        _: Option<SymmetricAlgorithm>,
                        _: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
-                       -> Result<Option<Fingerprint>>
+                       -> Result<Option<Cert>>
             {
                 unreachable!();
             }
@@ -2845,7 +2844,7 @@ mod test {
             fn decrypt(&mut self, _: &[PKESK], _: &[SKESK],
                        _: Option<SymmetricAlgorithm>,
                        _: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
-                       -> Result<Option<Fingerprint>>
+                       -> Result<Option<Cert>>
             {
                 Ok(None)
             }
@@ -2893,7 +2892,7 @@ mod test {
             fn decrypt(&mut self, pkesks: &[PKESK], _: &[SKESK],
                        algo: Option<SymmetricAlgorithm>,
                        decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
-                       -> Result<Option<Fingerprint>>
+                       -> Result<Option<Cert>>
             {
                 let p = &P::new();
                 let mut pair = Cert::from_bytes(

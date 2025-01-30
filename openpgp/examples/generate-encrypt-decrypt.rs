@@ -120,7 +120,7 @@ impl<'a> DecryptionHelper for Helper<'a> {
                _skesks: &[openpgp::packet::SKESK],
                sym_algo: Option<SymmetricAlgorithm>,
                decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
-               -> openpgp::Result<Option<openpgp::Fingerprint>>
+               -> openpgp::Result<Option<Cert>>
     {
         let key = self.secret.keys().unencrypted_secret()
             .with_policy(self.policy, None)
