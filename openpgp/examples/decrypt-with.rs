@@ -84,13 +84,12 @@ impl Helper {
 }
 
 impl DecryptionHelper for Helper {
-    fn decrypt<D>(&mut self,
-                  pkesks: &[openpgp::packet::PKESK],
-                  _skesks: &[openpgp::packet::SKESK],
-                  sym_algo: Option<SymmetricAlgorithm>,
-                  mut decrypt: D)
-                  -> openpgp::Result<Option<openpgp::Fingerprint>>
-        where D: FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool
+    fn decrypt(&mut self,
+               pkesks: &[openpgp::packet::PKESK],
+               _skesks: &[openpgp::packet::SKESK],
+               sym_algo: Option<SymmetricAlgorithm>,
+               decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
+               -> openpgp::Result<Option<openpgp::Fingerprint>>
     {
         // Try each PKESK until we succeed.
         let mut recipient = None;

@@ -97,6 +97,8 @@
      cert::amalgamation::ValidBindingSignature::map
    - cert::amalgamation::ValidAmalgamation is now dyn-compatible
    - crypto::AEADAlgorithm::iv_size removed
+   - DecryptionHelper::decrypt now uses dynamic dispatch for the
+     `decryption` parameter
 
 ** New functionality
    - Signature::hash_userid_attestation

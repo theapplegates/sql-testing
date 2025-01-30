@@ -201,10 +201,10 @@ fn aes_256_decryption(ciphertext: &[u8]) -> Result<()> {
         }
     }
     impl DecryptionHelper for Helper {
-        fn decrypt<D>(&mut self, _: &[PKESK], skesks: &[SKESK],
-                      _sym_algo: Option<SymmetricAlgorithm>,
-                      mut decrypt: D) -> Result<Option<Fingerprint>>
-        where D: FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool
+        fn decrypt(&mut self, _: &[PKESK], skesks: &[SKESK],
+                   _sym_algo: Option<SymmetricAlgorithm>,
+                   decrypt: &mut dyn FnMut(Option<SymmetricAlgorithm>, &SessionKey) -> bool)
+                   -> Result<Option<Fingerprint>>
         {
             skesks[0].decrypt(&Password::from(NEEDLE))
                 .map(|(algo, session_key)| decrypt(algo, &session_key))?;
