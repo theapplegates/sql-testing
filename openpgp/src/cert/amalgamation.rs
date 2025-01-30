@@ -1910,11 +1910,9 @@ impl<'a> ValidUserIDAmalgamation<'a> {
     /// let bob = bob.insert_packets2(vec![alice_certifies_bob.clone()])?.0;
     ///
     /// // Have Bob attest that certification.
-    /// let bobs_uid = bob.userids().next().unwrap();
+    /// let bobs_uid = bob.with_policy(policy, None)?.userids().next().unwrap();
     /// let attestations =
     ///     bobs_uid.attest_certifications(
-    ///         policy,
-    ///         None,
     ///         &mut bob_signer,
     ///         bobs_uid.certifications())?;
     /// let bob = bob.insert_packets2(attestations)?.0;
