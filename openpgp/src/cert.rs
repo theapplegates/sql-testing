@@ -7065,7 +7065,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
 
         // Have Bob attest that certification.
         let attestations =
-            bob.userids().next().unwrap().attest_certifications(
+            bob.userids().next().unwrap().approve_of_certifications(
                 p,
                 None,
                 &mut bob_signer,
@@ -7110,7 +7110,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         // Have Bob withdraw any prior attestations.
 
         let attestations =
-            bob.userids().next().unwrap().attest_certifications(
+            bob.userids().next().unwrap().approve_of_certifications(
                 p,
                 None,
                 &mut bob_signer,
@@ -7202,7 +7202,7 @@ Pu1xwz57O4zo1VYf6TqHJzVC3OMvMUM2hhdecMUe5x6GorNaj6g=
         // Now, create new attestation signatures.
         let mut attestation_signatures = Vec::new();
         for uid in alice.userids() {
-            attestation_signatures.append(&mut uid.attest_certifications(
+            attestation_signatures.append(&mut uid.approve_of_certifications(
                 p,
                 None,
                 &mut alice_signer,
