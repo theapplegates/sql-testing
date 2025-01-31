@@ -142,73 +142,6 @@
 //! for all operations.  This approach elegantly solves all of the
 //! aforementioned problems.
 //!
-//! # Lifetimes
-//!
-//! `ComponentAmalgamation` autoderefs to `ComponentBundle`.
-//! Unfortunately, due to the definition of the [`Deref` trait],
-//! `ComponentBundle` is assigned the same lifetime as
-//! `ComponentAmalgamation`.  However, it's lifetime is actually `'a`.
-//! Particularly when using combinators like [`std::iter::map`], the
-//! `ComponentBundle`'s lifetime is longer.  Consider the following
-//! code, which doesn't compile:
-//!
-//! ```compile_fail
-//! # fn main() -> sequoia_openpgp::Result<()> {
-//! # use sequoia_openpgp as openpgp;
-//! use openpgp::cert::prelude::*;
-//! use openpgp::packet::prelude::*;
-//!
-//! # let (cert, _) = CertBuilder::new()
-//! #     .add_userid("Alice")
-//! #     .add_signing_subkey()
-//! #     .add_transport_encryption_subkey()
-//! #     .generate()?;
-//! cert.userids()
-//!     .map(|ua| {
-//!         // Use auto deref to get the containing `&ComponentBundle`.
-//!         let b: &ComponentBundle<_> = &ua;
-//!         b
-//!     })
-//!     .collect::<Vec<&UserID>>();
-//! # Ok(()) }
-//! ```
-//!
-//! Compiling it results in the following error:
-//!
-//! > `b` returns a value referencing data owned by the current
-//! > function
-//!
-//! This error occurs because the `Deref` trait says that the lifetime
-//! of the target, i.e., `&ComponentBundle`, is bounded by `ua`'s
-//! lifetime, whose lifetime is indeed limited to the closure.  But,
-//! `&ComponentBundle` is independent of `ua`; it is a copy of the
-//! `ComponentAmalgamation`'s reference to the `ComponentBundle` whose
-//! lifetime is `'a`!  Unfortunately, this can't be expressed using
-//! `Deref`.  But, it can be done using separate methods as shown
-//! below for the [`ComponentAmalgamation::component`] method:
-//!
-//! ```
-//! # fn main() -> sequoia_openpgp::Result<()> {
-//! # use sequoia_openpgp as openpgp;
-//! use openpgp::cert::prelude::*;
-//! use openpgp::packet::prelude::*;
-//!
-//! # let (cert, _) = CertBuilder::new()
-//! #     .add_userid("Alice")
-//! #     .add_signing_subkey()
-//! #     .add_transport_encryption_subkey()
-//! #     .generate()?;
-//! cert.userids()
-//!     .map(|ua| {
-//!         // ua's lifetime is this closure.  But `component()`
-//!         // returns a reference whose lifetime is that of
-//!         // `cert`.
-//!         ua.component()
-//!     })
-//!     .collect::<Vec<&UserID>>();
-//! # Ok(()) }
-//! ```
-//!
 //! [`ComponentBundle`]: super::bundle
 //! [`Signature`]: crate::packet::signature
 //! [`Cert`]: super
@@ -219,8 +152,6 @@
 //! [streaming verifier]: crate::parse::stream
 //! [Intended Recipients]: https://www.rfc-editor.org/rfc/rfc9580.html#intended-recipient-fingerprint
 //! [signature expirations]: https://tools.ietf.org/html/rfc4880#section-5.2.3.10
-//! [`Deref` trait]: std::ops::Deref
-//! [`ComponentAmalgamation::component`]: ComponentAmalgamation::component()
 use std::time;
 use std::time::{
     Duration,
@@ -751,14 +682,6 @@ impl<'a, C> Clone for ComponentAmalgamation<'a, C> {
             cert: self.cert,
             bundle: self.bundle,
         }
-    }
-}
-
-impl<'a, C> std::ops::Deref for ComponentAmalgamation<'a, C> {
-    type Target = ComponentBundle<C>;
-
-    fn deref(&self) -> &Self::Target {
-        self.bundle
     }
 }
 
@@ -2558,7 +2481,7 @@ impl<'a, C> ValidComponentAmalgamation<'a, C>
     pub fn self_signatures(&self) -> impl Iterator<Item=&Signature> + Send + Sync  {
         std::ops::Deref::deref(self).self_signatures()
           .filter(move |sig| self.cert.policy().signature(sig,
-            self.hash_algo_security).is_ok())
+            self.bundle().hash_algo_security).is_ok())
     }
 
     /// The component's third-party certifications.
@@ -2577,7 +2500,7 @@ impl<'a, C> ValidComponentAmalgamation<'a, C>
     pub fn self_revocations(&self) -> impl Iterator<Item=&Signature> + Send + Sync  {
         std::ops::Deref::deref(self).self_revocations()
           .filter(move |sig|self.cert.policy().signature(sig,
-            self.hash_algo_security).is_ok())
+            self.bundle().hash_algo_security).is_ok())
     }
 
     /// The component's revocations that were issued by other
@@ -2654,7 +2577,7 @@ impl<'a, C> ValidAmalgamation<'a, C> for ValidComponentAmalgamation<'a, C> {
         let pk_sec = self.cert().primary_key().key().hash_algo_security();
 
         // All valid self-signatures.
-        let sec = self.hash_algo_security;
+        let sec = self.bundle().hash_algo_security;
         self.self_signatures()
             .filter(move |sig| {
                 policy.signature(sig, sec).is_ok()

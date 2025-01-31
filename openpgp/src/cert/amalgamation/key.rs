@@ -577,6 +577,11 @@ where
         let t = t.into();
         self.bundle().revocation_status(policy, t)
     }
+
+    /// Forwarder for the conversion macros.
+    pub(crate) fn has_secret(&self) -> bool {
+        self.key().has_secret()
+    }
 }
 
 /// An amalgamation whose role is not known at compile time.
@@ -1651,7 +1656,7 @@ impl<'a, P, R, R2> ValidAmalgamation<'a, Key<P, R>>
         let pk_sec = self.cert().primary_key().key().hash_algo_security();
 
         // All valid self-signatures.
-        let sec = self.hash_algo_security;
+        let sec = self.bundle().hash_algo_security;
         self.self_signatures()
             .filter(move |sig| {
                 policy.signature(sig, sec).is_ok()

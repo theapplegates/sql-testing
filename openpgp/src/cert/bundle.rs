@@ -213,7 +213,7 @@ impl<C> ComponentBundle<C> {
     /// #     .generate()?;
     /// // Display some information about any unknown components.
     /// for u in cert.unknowns() {
-    ///     eprintln!(" - {:?}", u.component());
+    ///     eprintln!(" - {:?}", u.bundle().component());
     /// }
     /// # Ok(()) }
     /// ```
@@ -250,7 +250,7 @@ impl<C> ComponentBundle<C> {
     /// // Display information about each User ID's current active
     /// // binding signature (the `time` parameter is `None`), if any.
     /// for ua in cert.userids() {
-    ///     eprintln!("{:?}", ua.binding_signature(p, None));
+    ///     eprintln!("{:?}", ua.bundle().binding_signature(p, None));
     /// }
     /// # Ok(()) }
     /// ```
@@ -591,7 +591,7 @@ impl<C> ComponentBundle<C> {
     /// for (i, uid) in cert.userids().enumerate() {
     ///     eprintln!("UserID #{} ({:?}) has {:?} attestation key signatures",
     ///               i, uid.userid().email(),
-    ///               uid.approvals().count());
+    ///               uid.bundle().approvals().count());
     /// }
     /// # Ok(()) }
     /// ```
@@ -627,7 +627,7 @@ impl<C> ComponentBundle<C> {
     /// for (i, ka) in cert.keys().enumerate() {
     ///     eprintln!("Key #{} ({}) has {:?} signatures",
     ///               i, ka.key().fingerprint(),
-    ///               ka.signatures().count());
+    ///               ka.bundle().signatures().count());
     /// }
     /// # Ok(()) }
     /// ```
@@ -881,7 +881,7 @@ impl<P: key::KeyParts, R: key::KeyRole> ComponentBundle<Key<P, R>> {
     /// #     .generate()?;
     /// // Display some information about the keys.
     /// for ka in cert.keys() {
-    ///     eprintln!(" - {:?}", ka.key());
+    ///     eprintln!(" - {:?}", ka.bundle().key());
     /// }
     /// # Ok(()) }
     /// ```
@@ -962,7 +962,8 @@ impl<P: key::KeyParts> ComponentBundle<Key<P, key::SubordinateRole>> {
     /// // Display the subkeys' revocation status.
     /// for ka in cert.keys().subkeys() {
     ///     eprintln!(" Revocation status of {}: {:?}",
-    ///               ka.key().fingerprint(), ka.revocation_status(p, None));
+    ///               ka.key().fingerprint(),
+    ///               ka.bundle().revocation_status(p, None));
     /// }
     /// # Ok(()) }
     /// ```
@@ -996,7 +997,7 @@ impl ComponentBundle<UserID> {
     /// #     .generate()?;
     /// // Display some information about the User IDs.
     /// for ua in cert.userids() {
-    ///     eprintln!(" - {:?}", ua.userid());
+    ///     eprintln!(" - {:?}", ua.bundle().userid());
     /// }
     /// # Ok(()) }
     /// ```
@@ -1038,7 +1039,7 @@ impl ComponentBundle<UserID> {
     /// for ua in cert.userids() {
     ///     eprintln!(" Revocation status of {}: {:?}",
     ///               String::from_utf8_lossy(ua.userid().value()),
-    ///               ua.revocation_status(p, None));
+    ///               ua.bundle().revocation_status(p, None));
     /// }
     /// # Ok(()) }
     /// ```
@@ -1071,7 +1072,7 @@ impl ComponentBundle<UserAttribute> {
     /// #     .generate()?;
     /// // Display some information about the User Attributes
     /// for ua in cert.user_attributes() {
-    ///     eprintln!(" - {:?}", ua.user_attribute());
+    ///     eprintln!(" - {:?}", ua.bundle().user_attribute());
     /// }
     /// # Ok(()) }
     /// ```
@@ -1108,7 +1109,7 @@ impl ComponentBundle<UserAttribute> {
     /// // Display the User Attributes' revocation status.
     /// for (i, ua) in cert.user_attributes().enumerate() {
     ///     eprintln!(" Revocation status of User Attribute #{}: {:?}",
-    ///               i, ua.revocation_status(p, None));
+    ///               i, ua.bundle().revocation_status(p, None));
     /// }
     /// # Ok(()) }
     /// ```

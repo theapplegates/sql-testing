@@ -1209,7 +1209,7 @@ impl Cert {
         self.userids()
             .flat_map(|ua| {
                 // All valid self-signatures.
-                let sec = ua.hash_algo_security;
+                let sec = ua.userid().hash_algo_security();
                 ua.self_signatures()
                     .filter(move |sig| {
                         policy.signature(sig, sec).is_ok()
