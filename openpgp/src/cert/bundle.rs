@@ -641,6 +641,14 @@ impl<C> ComponentBundle<C> {
             .chain(self.other_revocations())
     }
 
+    /// Returns all of the bundles's bad signatures.
+    pub(crate) fn bad_signatures(&self)
+        -> impl Iterator<Item = &Signature> + Send + Sync
+    {
+        self.self_signatures.iter_bad(self.backsig_signer.as_ref())
+            .chain(self.self_revocations.iter_bad(self.backsig_signer.as_ref()))
+    }
+
     /// Returns the component's revocation status at time `t`.
     ///
     /// A component is considered to be revoked at time `t` if:
@@ -896,16 +904,6 @@ impl<P: key::KeyParts, R: key::KeyRole> ComponentBundle<Key<P, R>> {
     }
 }
 
-impl<P: key::KeyParts> ComponentBundle<Key<P, key::PrimaryRole>> {
-    /// Returns all of the bundles's bad signatures.
-    pub(crate) fn bad_signatures(&self)
-        -> impl Iterator<Item = &Signature> + Send + Sync
-    {
-        self.self_signatures.iter_bad(self.backsig_signer.as_ref())
-            .chain(self.self_revocations.iter_bad(self.backsig_signer.as_ref()))
-    }
-}
-
 impl<P: key::KeyParts> ComponentBundle<Key<P, key::SubordinateRole>> {
     /// Creates a new subkey component.
     ///
@@ -975,14 +973,6 @@ impl<P: key::KeyParts> ComponentBundle<Key<P, key::SubordinateRole>> {
         let t = t.into();
         self._revocation_status(policy, t, true,
                                 self.binding_signature(policy, t).ok())
-    }
-
-    /// Returns all of the bundles's bad signatures.
-    pub(crate) fn bad_signatures(&self)
-        -> impl Iterator<Item = &Signature> + Send + Sync
-    {
-        self.self_signatures.iter_bad(self.backsig_signer.as_ref())
-            .chain(self.self_revocations.iter_bad(self.backsig_signer.as_ref()))
     }
 }
 
@@ -1059,14 +1049,6 @@ impl ComponentBundle<UserID> {
         let t = t.into();
         self._revocation_status(policy, t, false, self.binding_signature(policy, t).ok())
     }
-
-    /// Returns all of the bundles's bad signatures.
-    pub(crate) fn bad_signatures(&self)
-        -> impl Iterator<Item = &Signature> + Send + Sync
-    {
-        self.self_signatures.iter_bad(self.backsig_signer.as_ref())
-            .chain(self.self_revocations.iter_bad(self.backsig_signer.as_ref()))
-    }
 }
 
 impl ComponentBundle<UserAttribute> {
@@ -1138,14 +1120,6 @@ impl ComponentBundle<UserAttribute> {
         self._revocation_status(policy, t, false,
                                 self.binding_signature(policy, t).ok())
     }
-
-    /// Returns all of the bundles's bad signatures.
-    pub(crate) fn bad_signatures(&self)
-        -> impl Iterator<Item = &Signature> + Send + Sync
-    {
-        self.self_signatures.iter_bad(self.backsig_signer.as_ref())
-            .chain(self.self_revocations.iter_bad(self.backsig_signer.as_ref()))
-    }
 }
 
 impl ComponentBundle<Unknown> {
@@ -1174,14 +1148,6 @@ impl ComponentBundle<Unknown> {
     /// ```
     pub fn unknown(&self) -> &Unknown {
         self.component()
-    }
-
-    /// Returns all of the bundles's bad signatures.
-    pub(crate) fn bad_signatures(&self)
-        -> impl Iterator<Item = &Signature> + Send + Sync
-    {
-        self.self_signatures.iter_bad(self.backsig_signer.as_ref())
-            .chain(self.self_revocations.iter_bad(self.backsig_signer.as_ref()))
     }
 }
 
