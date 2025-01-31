@@ -792,19 +792,40 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
         self.cert
     }
 
-    /// Selects a binding signature.
+    /// Returns the active binding signature at time `t`.
     ///
-    /// Uses the provided policy and reference time to select an
-    /// appropriate binding signature.
+    /// The active binding signature is the most recent, non-revoked
+    /// self-signature that is valid according to the `policy` and
+    /// alive at time `t` (`creation time <= t`, `t < expiry`).  If
+    /// there are multiple such signatures then the signatures are
+    /// ordered by their MPIs interpreted as byte strings.
     ///
-    /// Note: this function is not exported.  Users of this interface
-    /// should do: ca.with_policy(policy, time)?.binding_signature().
-    fn binding_signature<T>(&self, policy: &dyn Policy, time: T)
-        -> Result<&'a Signature>
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display information about each User ID's current active
+    /// // binding signature (the `time` parameter is `None`), if any.
+    /// for ua in cert.userids() {
+    ///     eprintln!("{:?}", ua.binding_signature(p, None));
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn binding_signature<T>(&self, policy: &dyn Policy, time: T)
+                                -> Result<&'a Signature>
         where T: Into<Option<time::SystemTime>>
     {
         let time = time.into().unwrap_or_else(crate::now);
-        self.bundle.binding_signature(policy, time)
+        self.bundle().binding_signature(policy, time)
     }
 
     /// Returns this amalgamation's bundle.
@@ -910,6 +931,46 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
     /// certificates.
     pub fn other_revocations(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync {
         self.bundle().other_revocations()
+    }
+
+    /// Returns all of the component's Certification Approval Key
+    /// Signatures.
+    ///
+    /// This feature is [experimental](crate#experimental-features).
+    ///
+    /// The signatures are validated, and they are sorted by their
+    /// creation time, most recent first.
+    ///
+    /// A certificate owner can use Attestation Key Signatures to
+    /// attest to third party certifications.  Currently, only userid
+    /// and user attribute certifications can be attested.  See
+    /// [Approved Certifications subpacket] for details.
+    ///
+    ///   [Approved Certifications subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # fn main() -> openpgp::Result<()> {
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for (i, uid) in cert.userids().enumerate() {
+    ///     eprintln!("UserID #{} ({:?}) has {:?} attestation key signatures",
+    ///               i, uid.userid().email(),
+    ///               uid.approvals().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn approvals(&self)
+                     -> impl Iterator<Item = &Signature> + Send + Sync
+    {
+        self.bundle().approvals()
     }
 
     /// Returns all of the component's signatures.
@@ -1116,6 +1177,53 @@ impl<'a> UserIDAmalgamation<'a> {
     /// [See the module's documentation]: self
     pub fn userid(&self) -> &'a UserID {
         self.component()
+    }
+
+    /// Returns the User ID's revocation status at time `t`.<a
+    /// name="userid_revocation_status"></a>
+    ///
+    /// <!-- Why we have the above anchor:
+    ///      https://github.com/rust-lang/rust/issues/71912 -->
+    ///
+    /// A User ID is revoked at time `t` if:
+    ///
+    ///   - There is a live revocation at time `t` that is newer than
+    ///     all live self signatures at time `t`.
+    ///
+    /// Note: Certs and subkeys have different criteria from User IDs
+    /// and User Attributes.
+    ///
+    /// Note: this only returns whether this User ID is revoked; it
+    /// does not imply anything about the Cert or other components.
+    //
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display the User IDs' revocation status.
+    /// for ua in cert.userids() {
+    ///     eprintln!(" Revocation status of {}: {:?}",
+    ///               String::from_utf8_lossy(ua.userid().value()),
+    ///               ua.revocation_status(p, None));
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn revocation_status<T>(&self, policy: &dyn Policy, t: T)
+                                -> RevocationStatus
+    where
+        T: Into<Option<time::SystemTime>>,
+    {
+        let t = t.into();
+        self.bundle().revocation_status(policy, t)
     }
 
     /// Returns the third-party certifications issued by the specified
@@ -1525,6 +1633,27 @@ impl<'a> UserAttributeAmalgamation<'a> {
         self.component()
     }
 
+    /// Returns the User Attribute's revocation status at time `t`.
+    ///
+    /// A User Attribute is revoked at time `t` if:
+    ///
+    ///   - There is a live revocation at time `t` that is newer than
+    ///     all live self signatures at time `t`.
+    ///
+    /// Note: Certs and subkeys have different criteria from User IDs
+    /// and User Attributes.
+    ///
+    /// Note: this only returns whether this User Attribute is revoked;
+    /// it does not imply anything about the Cert or other components.
+    pub fn revocation_status<T>(&self, policy: &dyn Policy, t: T)
+                                -> RevocationStatus
+    where
+        T: Into<Option<time::SystemTime>>,
+    {
+        let t = t.into();
+        self.bundle().revocation_status(policy, t)
+    }
+
     /// Approves of third-party certifications.
     ///
     /// This feature is [experimental](crate#experimental-features).
@@ -1677,6 +1806,13 @@ where C: IntoIterator<Item = S>,
     }
 
     Ok(sigs)
+}
+
+impl<'a> UnknownComponentAmalgamation<'a> {
+    /// Returns a reference to the Unknown packet.
+    pub fn unknown(&self) -> &'a Unknown {
+        self.component()
+    }
 }
 
 /// A `ComponentAmalgamation` plus a `Policy` and a reference time.
