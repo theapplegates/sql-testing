@@ -871,23 +871,80 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
 
     /// Returns this amalgamation's component.
     ///
-    /// Note: although `ComponentAmalgamation` derefs to a
-    /// `&Component` (via `&ComponentBundle`), this method provides a
-    /// more accurate lifetime, which is helpful when returning the
-    /// reference from a function.  [See the module's documentation]
-    /// for more details.
+    /// # Examples
     ///
-    /// [See the module's documentation]: self
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display some information about any unknown components.
+    /// for u in cert.unknowns() {
+    ///     eprintln!(" - {:?}", u.component());
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn component(&self) -> &'a C {
         self.bundle().component()
     }
 
-    /// The component's self-signatures.
+    /// Returns the component's self-signatures.
+    ///
+    /// The signatures are validated, and they are sorted by their
+    /// creation time, most recent first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for (i, ka) in cert.keys().enumerate() {
+    ///     eprintln!("Key #{} ({}) has {:?} self signatures",
+    ///               i, ka.key().fingerprint(),
+    ///               ka.self_signatures().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn self_signatures(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync {
         self.bundle().self_signatures()
     }
 
-    /// The component's third-party certifications.
+    /// Returns the component's third-party certifications.
+    ///
+    /// The signatures are *not* validated.  They are sorted by their
+    /// creation time, most recent first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for ua in cert.userids() {
+    ///     eprintln!("User ID {} has {:?} unverified, third-party certifications",
+    ///               String::from_utf8_lossy(ua.userid().value()),
+    ///               ua.certifications().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn certifications(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync {
         self.bundle().certifications()
     }
@@ -921,14 +978,62 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
         })
     }
 
-    /// The component's revocations that were issued by the
+    /// Returns the component's revocations that were issued by the
     /// certificate holder.
+    ///
+    /// The revocations are validated, and they are sorted by their
+    /// creation time, most recent first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for u in cert.userids() {
+    ///     eprintln!("User ID {} has {:?} revocation certificates.",
+    ///               String::from_utf8_lossy(u.userid().value()),
+    ///               u.self_revocations().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn self_revocations(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync {
         self.bundle().self_revocations()
     }
 
-    /// The component's revocations that were issued by other
+    /// Returns the component's revocations that were issued by other
     /// certificates.
+    ///
+    /// The revocations are *not* validated.  They are sorted by their
+    /// creation time, most recent first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for u in cert.userids() {
+    ///     eprintln!("User ID {} has {:?} unverified, third-party revocation certificates.",
+    ///               String::from_utf8_lossy(u.userid().value()),
+    ///               u.other_revocations().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn other_revocations(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync {
         self.bundle().other_revocations()
     }
@@ -974,6 +1079,35 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
     }
 
     /// Returns all of the component's signatures.
+    ///
+    /// Only the self-signatures are validated.  The signatures are
+    /// sorted first by type, then by creation time.  The self
+    /// revocations come first, then the self signatures,
+    /// then any key attestation signatures,
+    /// certifications, and third-party revocations coming last.  This
+    /// function may return additional types of signatures that could
+    /// be associated to this component.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for (i, ka) in cert.keys().enumerate() {
+    ///     eprintln!("Key #{} ({}) has {:?} signatures",
+    ///               i, ka.key().fingerprint(),
+    ///               ka.signatures().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn signatures(&self)
                       -> impl Iterator<Item = &'a Signature> + Send + Sync {
         self.bundle().signatures()
@@ -1168,13 +1302,25 @@ impl<'a, C> ValidateAmalgamationRelaxed<'a, C> for ComponentAmalgamation<'a, C> 
 impl<'a> UserIDAmalgamation<'a> {
     /// Returns a reference to the User ID.
     ///
-    /// Note: although `ComponentAmalgamation<UserID>` derefs to a
-    /// `&UserID` (via `&ComponentBundle`), this method provides a
-    /// more accurate lifetime, which is helpful when returning the
-    /// reference from a function.  [See the module's documentation]
-    /// for more details.
+    /// This is just a type-specific alias for
+    /// [`ComponentAmalgamation::component`].
     ///
-    /// [See the module's documentation]: self
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display some information about the User IDs.
+    /// for ua in cert.userids() {
+    ///     eprintln!(" - {:?}", ua.userid());
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn userid(&self) -> &'a UserID {
         self.component()
     }
@@ -1622,13 +1768,25 @@ impl<'a> UserIDAmalgamation<'a> {
 impl<'a> UserAttributeAmalgamation<'a> {
     /// Returns a reference to the User Attribute.
     ///
-    /// Note: although `ComponentAmalgamation<UserAttribute>` derefs
-    /// to a `&UserAttribute` (via `&ComponentBundle`), this method
-    /// provides a more accurate lifetime, which is helpful when
-    /// returning the reference from a function.  [See the module's
-    /// documentation] for more details.
+    /// This is just a type-specific alias for
+    /// [`ComponentAmalgamation::component`].
     ///
-    /// [See the module's documentation]: self
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display some information about the User Attributes
+    /// for ua in cert.user_attributes() {
+    ///     eprintln!(" - {:?}", ua.user_attribute());
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn user_attribute(&self) -> &'a UserAttribute {
         self.component()
     }
@@ -1645,6 +1803,27 @@ impl<'a> UserAttributeAmalgamation<'a> {
     ///
     /// Note: this only returns whether this User Attribute is revoked;
     /// it does not imply anything about the Cert or other components.
+    //
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display the User Attributes' revocation status.
+    /// for (i, ua) in cert.user_attributes().enumerate() {
+    ///     eprintln!(" Revocation status of User Attribute #{}: {:?}",
+    ///               i, ua.revocation_status(p, None));
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn revocation_status<T>(&self, policy: &dyn Policy, t: T)
                                 -> RevocationStatus
     where
@@ -1810,6 +1989,26 @@ where C: IntoIterator<Item = S>,
 
 impl<'a> UnknownComponentAmalgamation<'a> {
     /// Returns a reference to the Unknown packet.
+    ///
+    /// This is just a type-specific alias for
+    /// [`ComponentAmalgamation::component`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display some information about the Unknown components.
+    /// for u in cert.unknowns() {
+    ///     eprintln!(" - {:?}", u.unknown());
+    /// }
+    /// # Ok(()) }
+    /// ```
     pub fn unknown(&self) -> &'a Unknown {
         self.component()
     }
