@@ -753,13 +753,6 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
 
     /// Returns this amalgamation's bundle.
     ///
-    /// Note: although `ComponentAmalgamation` derefs to a
-    /// `&ComponentBundle`, this method provides a more accurate
-    /// lifetime, which is helpful when returning the reference from a
-    /// function.  [See the module's documentation] for more details.
-    ///
-    /// [See the module's documentation]: self
-    ///
     /// # Examples
     ///
     /// ```
@@ -774,17 +767,7 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
     /// #     .add_transport_encryption_subkey()
     /// #     .generate()?;
     /// cert.userids()
-    ///     .map(|ua| {
-    ///         // The following doesn't work:
-    ///         //
-    ///         //   let b: &ComponentBundle<_> = &ua; b
-    ///         //
-    ///         // Because ua's lifetime is this closure and autoderef
-    ///         // assigns `b` the same lifetime as `ua`.  `bundle()`,
-    ///         // however, returns a reference whose lifetime is that
-    ///         // of `cert`.
-    ///         ua.bundle()
-    ///     })
+    ///     .map(|ua| ua.bundle())
     ///     .collect::<Vec<&ComponentBundle<_>>>();
     /// # Ok(()) }
     /// ```
