@@ -695,7 +695,7 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
         }
     }
 
-    /// Returns the component's associated certificate.
+    /// Returns the amalgamations's associated certificate.
     ///
     /// ```
     /// # use sequoia_openpgp as openpgp;
