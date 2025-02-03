@@ -979,7 +979,7 @@ impl<'a, C> ComponentAmalgamation<'a, C> {
     /// # Ok(()) }
     /// ```
     pub fn approvals(&self)
-                     -> impl Iterator<Item = &Signature> + Send + Sync
+                     -> impl Iterator<Item=&'a Signature> + Send + Sync + 'a
     {
         self.bundle().approvals()
     }
