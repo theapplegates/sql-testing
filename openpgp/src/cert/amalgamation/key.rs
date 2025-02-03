@@ -577,11 +577,6 @@ where
         let t = t.into();
         self.bundle().revocation_status(policy, t)
     }
-
-    /// Forwarder for the conversion macros.
-    pub(crate) fn has_secret(&self) -> bool {
-        self.key().has_secret()
-    }
 }
 
 /// An amalgamation whose role is not known at compile time.
@@ -598,19 +593,6 @@ where
 /// [module-level documentation]: self
 pub type ErasedKeyAmalgamation<'a, P>
     = KeyAmalgamation<'a, P, key::UnspecifiedRole, bool>;
-
-
-impl<'a, P, R, R2> Deref for KeyAmalgamation<'a, P, R, R2>
-    where P: 'a + key::KeyParts,
-          R: 'a + key::KeyRole,
-{
-    type Target = ComponentAmalgamation<'a, Key<P, R>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.ca
-    }
-}
-
 
 impl<'a, P> seal::Sealed
     for PrimaryKeyAmalgamation<'a, P>
@@ -1186,6 +1168,11 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
                       -> impl Iterator<Item = &'a Signature> + Send + Sync {
         self.ca.signatures()
     }
+
+    /// Forwarder for the conversion macros.
+    pub(crate) fn has_secret(&self) -> bool {
+        self.key().has_secret()
+    }
 }
 
 impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
@@ -1317,7 +1304,7 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
 
         let primary = self.primary();
 
-        self.valid_certifications_by_key_(
+        self.ca.valid_certifications_by_key_(
             policy, reference_time, issuer, false,
             self.certifications(),
             move |sig| {
@@ -1328,7 +1315,7 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
                 } else {
                     sig.clone().verify_subkey_binding(
                         issuer,
-                        self.cert.primary_key().key(),
+                        self.cert().primary_key().key(),
                         self.component().role_as_subordinate())
                 }
             })
@@ -1376,7 +1363,7 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
 
         let primary = self.primary();
 
-        self.valid_certifications_by_key_(
+        self.ca.valid_certifications_by_key_(
             policy, reference_time, issuer, true,
             self.certifications(),
             move |sig| {
@@ -1387,7 +1374,7 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
                 } else {
                     sig.clone().verify_subkey_binding(
                         issuer,
-                        self.cert.primary_key().key(),
+                        self.cert().primary_key().key(),
                         &self.component().role_as_subordinate())
                 }
             })
@@ -1490,7 +1477,7 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
 
         let primary = self.primary();
 
-        self.valid_certifications_by_key_(
+        self.ca.valid_certifications_by_key_(
             policy, reference_time, issuer, false,
             self.other_revocations(),
             move |sig| {
@@ -1501,7 +1488,7 @@ impl<'a, P, R, R2> KeyAmalgamation<'a, P, R, R2>
                 } else {
                     sig.clone().verify_subkey_revocation(
                         issuer,
-                        self.cert.primary_key().key(),
+                        self.cert().primary_key().key(),
                         &self.component().role_as_subordinate())
                 }
             })

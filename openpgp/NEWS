@@ -113,6 +113,7 @@
    - UserIDAmalgamation::attest_certifications renamed to
      approve_of_certifications
    - ComponentAmalgamation no longer derefs to the ComponentBundle
+   - KeyAmalgamation no longer derefs to ComponentAmalgamation<Key>
 
 ** New functionality
    - Signature::hash_userid_attestation
