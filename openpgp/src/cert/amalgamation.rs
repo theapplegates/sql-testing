@@ -2008,6 +2008,337 @@ pub struct ValidComponentAmalgamation<'a, C> {
 }
 assert_send_and_sync!(ValidComponentAmalgamation<'_, C> where C);
 
+impl<'a, C> ValidComponentAmalgamation<'a, C> {
+    /// Returns the valid amalgamation's associated certificate.
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for u in cert.userids() {
+    ///     // It's not only an identical `Cert`, it's the same one.
+    ///     assert!(std::ptr::eq(u.cert(), &cert));
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn cert(&self) -> &'a Cert {
+        self.ca.cert()
+    }
+
+    /// Returns the valid amalgamation's active binding signature.
+    ///
+    /// The active binding signature is the most recent, non-revoked
+    /// self-signature that is valid according to the `policy` and
+    /// alive at time `t` (`creation time <= t`, `t < expiry`).  If
+    /// there are multiple such signatures then the signatures are
+    /// ordered by their MPIs interpreted as byte strings.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display information about each User ID's current active
+    /// // binding signature (the `time` parameter is `None`), if any.
+    /// for ua in cert.with_policy(p, None)?.userids() {
+    ///     eprintln!("{:?}", ua.binding_signature());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn binding_signature(&self) -> &'a Signature {
+        self.binding_signature
+    }
+
+    /// Returns this valid amalgamation's bundle.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # fn main() -> sequoia_openpgp::Result<()> {
+    /// # use sequoia_openpgp as openpgp;
+    /// use openpgp::cert::prelude::*;
+    /// use openpgp::packet::prelude::*;
+    /// let p = &openpgp::policy::StandardPolicy::new();
+    ///
+    /// # let (cert, _) = CertBuilder::new()
+    /// #     .add_userid("Alice")
+    /// #     .add_signing_subkey()
+    /// #     .add_transport_encryption_subkey()
+    /// #     .generate()?;
+    /// cert.with_policy(p, None)?.userids()
+    ///     .map(|ua| ua.bundle())
+    ///     .collect::<Vec<&ComponentBundle<_>>>();
+    /// # Ok(()) }
+    /// ```
+    pub fn bundle(&self) -> &'a ComponentBundle<C> {
+        self.ca.bundle()
+    }
+
+    /// Returns this valid amalgamation's component.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// let p = &openpgp::policy::StandardPolicy::new();
+    ///
+    /// // Display some information about any userid components.
+    /// for u in cert.with_policy(p, None)?.userids() {
+    ///     eprintln!(" - {:?}", u.component());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn component(&self) -> &'a C {
+        self.bundle().component()
+    }
+}
+
+impl<'a, C> ValidComponentAmalgamation<'a, C>
+where
+    C: Send + Sync,
+{
+    /// Returns the valid amalgamation's self-signatures.
+    ///
+    /// The signatures are validated, and they are sorted by their
+    /// creation time, most recent first.  This method only returns
+    /// signatures that are valid under the current policy.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for (i, ka) in cert.with_policy(p, None)?.keys().enumerate() {
+    ///     eprintln!("Key #{} ({}) has {:?} self signatures",
+    ///               i, ka.key().fingerprint(),
+    ///               ka.self_signatures().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn self_signatures(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync + 'a {
+        let policy = self.cert.policy();
+        let has = self.ca.bundle().hash_algo_security;
+
+        self.ca.self_signatures()
+          .filter(move |sig| policy.signature(sig, has).is_ok())
+    }
+
+    /// Returns the component's third-party certifications.
+    ///
+    /// The signatures are *not* validated.  They are sorted by their
+    /// creation time, most recent first.  This method only returns
+    /// signatures that are valid under the current policy.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for ua in cert.with_policy(p, None)?.userids() {
+    ///     eprintln!("User ID {} has {:?} unverified, third-party certifications",
+    ///               String::from_utf8_lossy(ua.userid().value()),
+    ///               ua.certifications().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn certifications(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync + 'a {
+        let policy = self.cert.policy();
+
+        self.ca.certifications()
+          .filter(move |sig| policy.signature(sig,
+            HashAlgoSecurity::CollisionResistance).is_ok())
+    }
+
+    /// Returns the valid amalgamation's revocations that were issued
+    /// by the certificate holder.
+    ///
+    /// The revocations are validated, and they are sorted by their
+    /// creation time, most recent first.  This method only returns
+    /// signatures that are valid under the current policy.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for u in cert.with_policy(p, None)?.userids() {
+    ///     eprintln!("User ID {} has {:?} revocation certificates.",
+    ///               String::from_utf8_lossy(u.userid().value()),
+    ///               u.self_revocations().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn self_revocations(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync + 'a  {
+        let policy = self.cert.policy();
+        let has = self.ca.bundle().hash_algo_security;
+
+        self.ca.self_revocations()
+          .filter(move |sig| policy.signature(sig, has).is_ok())
+    }
+
+    /// Returns the valid amalgamation's revocations that were issued
+    /// by other certificates.
+    ///
+    /// The revocations are *not* validated.  They are sorted by their
+    /// creation time, most recent first.  This method only returns
+    /// signatures that are valid under the current policy.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for u in cert.with_policy(p, None)?.userids() {
+    ///     eprintln!("User ID {} has {:?} unverified, third-party revocation certificates.",
+    ///               String::from_utf8_lossy(u.userid().value()),
+    ///               u.other_revocations().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn other_revocations(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync + 'a {
+        let policy = self.cert.policy();
+
+        self.ca.other_revocations()
+          .filter(move |sig| policy.signature(sig,
+            HashAlgoSecurity::CollisionResistance).is_ok())
+    }
+
+    /// Returns all of the valid amalgamation's Certification Approval
+    /// Key Signatures.
+    ///
+    /// This feature is [experimental](crate#experimental-features).
+    ///
+    /// The signatures are validated, and they are sorted by their
+    /// creation time, most recent first.
+    ///
+    /// A certificate owner can use Attestation Key Signatures to
+    /// attest to third party certifications.  Currently, only userid
+    /// and user attribute certifications can be attested.  See
+    /// [Approved Certifications subpacket] for details.
+    ///
+    ///   [Approved Certifications subpacket]: https://www.ietf.org/archive/id/draft-dkg-openpgp-1pa3pc-02.html#approved-certifications-subpacket
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # fn main() -> openpgp::Result<()> {
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for (i, uid) in cert.with_policy(p, None)?.userids().enumerate() {
+    ///     eprintln!("UserID #{} ({:?}) has {:?} attestation key signatures",
+    ///               i, uid.userid().email(),
+    ///               uid.approvals().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn approvals(&self)
+                     -> impl Iterator<Item = &'a Signature> + Send + Sync + 'a
+    {
+        let policy = self.cert.policy();
+        let has = self.ca.bundle().hash_algo_security;
+
+        self.ca.approvals()
+          .filter(move |sig| policy.signature(sig, has).is_ok())
+    }
+
+    /// Returns all of the valid amalgamations's signatures.
+    ///
+    /// Only the self-signatures are validated.  The signatures are
+    /// sorted first by type, then by creation time.  The self
+    /// revocations come first, then the self signatures,
+    /// then any key attestation signatures,
+    /// certifications, and third-party revocations coming last.  This
+    /// function may return additional types of signatures that could
+    /// be associated to this component.
+    ///
+    /// This method only returns signatures that are valid under the
+    /// current policy.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for (i, ka) in cert.with_policy(p, None)?.keys().enumerate() {
+    ///     eprintln!("Key #{} ({}) has {:?} signatures",
+    ///               i, ka.key().fingerprint(),
+    ///               ka.signatures().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn signatures(&self)
+                      -> impl Iterator<Item = &'a Signature> + Send + Sync + 'a {
+        let policy = self.cert.policy();
+
+        self.ca.signatures()
+          .filter(move |sig| policy.signature(sig,
+            HashAlgoSecurity::CollisionResistance).is_ok())
+    }
+}
+
 /// A Valid User ID and its associated data.
 ///
 /// A specialized version of [`ValidComponentAmalgamation`].
@@ -2015,6 +2346,31 @@ assert_send_and_sync!(ValidComponentAmalgamation<'_, C> where C);
 pub type ValidUserIDAmalgamation<'a> = ValidComponentAmalgamation<'a, UserID>;
 
 impl<'a> ValidUserIDAmalgamation<'a> {
+    /// Returns a reference to the User ID.
+    ///
+    /// This is just a type-specific alias for
+    /// [`ValidComponentAmalgamation::component`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display some information about the User IDs.
+    /// for ua in cert.userids() {
+    ///     eprintln!(" - {:?}", ua.userid());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn userid(&self) -> &'a UserID {
+        self.component()
+    }
+
     /// Returns the user ID's approved third-party certifications.
     ///
     /// This feature is [experimental](crate#experimental-features).
@@ -2187,6 +2543,31 @@ pub type ValidUserAttributeAmalgamation<'a>
     = ValidComponentAmalgamation<'a, UserAttribute>;
 
 impl<'a> ValidUserAttributeAmalgamation<'a> {
+    /// Returns a reference to the User Attribute.
+    ///
+    /// This is just a type-specific alias for
+    /// [`ValidComponentAmalgamation::component`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display some information about the User IDs.
+    /// for ua in cert.user_attributes() {
+    ///     eprintln!(" - {:?}", ua.user_attribute());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn user_attribute(&self) -> &'a UserAttribute {
+        self.component()
+    }
+
     /// Returns the user attributes's approved third-party certifications.
     ///
     /// This feature is [experimental](crate#experimental-features).
@@ -2456,56 +2837,6 @@ impl<'a, C> ValidComponentAmalgamation<'a, C>
             })
             .and_then(|c| ComponentAmalgamation::new(cert, (c.0).0)
                       .with_policy_relaxed(policy, t, valid_cert))
-    }
-
-    /// The component's self-signatures.
-    ///
-    /// This method only returns signatures that are valid under the current policy.
-    pub fn self_signatures(&self) -> impl Iterator<Item=&Signature> + Send + Sync  {
-        std::ops::Deref::deref(self).self_signatures()
-          .filter(move |sig| self.cert.policy().signature(sig,
-            self.bundle().hash_algo_security).is_ok())
-    }
-
-    /// The component's third-party certifications.
-    ///
-    /// This method only returns signatures that are valid under the current policy.
-    pub fn certifications(&self) -> impl Iterator<Item=&Signature> + Send + Sync  {
-        std::ops::Deref::deref(self).certifications()
-          .filter(move |sig| self.cert.policy().signature(sig,
-            HashAlgoSecurity::CollisionResistance).is_ok())
-    }
-
-    /// The component's revocations that were issued by the
-    /// certificate holder.
-    ///
-    /// This method only returns signatures that are valid under the current policy.
-    pub fn self_revocations(&self) -> impl Iterator<Item=&Signature> + Send + Sync  {
-        std::ops::Deref::deref(self).self_revocations()
-          .filter(move |sig|self.cert.policy().signature(sig,
-            self.bundle().hash_algo_security).is_ok())
-    }
-
-    /// The component's revocations that were issued by other
-    /// certificates.
-    ///
-    /// This method only returns signatures that are valid under the current policy.
-    pub fn other_revocations(&self) -> impl Iterator<Item=&Signature> + Send + Sync {
-        std::ops::Deref::deref(self).other_revocations()
-          .filter(move |sig| self.cert.policy().signature(sig,
-            HashAlgoSecurity::CollisionResistance).is_ok())
-    }
-
-
-    /// Returns all of the component's signatures.
-    ///
-    /// This method only returns signatures that are valid under the
-    /// current policy.
-    pub fn signatures(&self)
-                      -> impl Iterator<Item = &Signature> + Send + Sync {
-        std::ops::Deref::deref(self).signatures()
-          .filter(move |sig| self.cert.policy().signature(sig,
-            HashAlgoSecurity::CollisionResistance).is_ok())
     }
 }
 
