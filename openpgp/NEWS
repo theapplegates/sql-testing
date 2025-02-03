@@ -156,6 +156,16 @@
    - ValidComponentAmalgamation::approvals
    - ValidUserIDAmalgamation::userid
    - ValidUserAttributeAmalgamation::user_attribute
+   - ValidKeyAmalgamation::cert
+   - ValidKeyAmalgamation::binding_signature
+   - ValidKeyAmalgamation::bundle
+   - ValidKeyAmalgamation::component
+   - ValidKeyAmalgamation::self_signatures
+   - ValidKeyAmalgamation::certifications
+   - ValidKeyAmalgamation::self_revocations
+   - ValidKeyAmalgamation::other_revocations
+   - ValidKeyAmalgamation::approvals
+   - ValidKeyAmalgamation::signatures
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead

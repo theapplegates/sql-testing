@@ -1609,6 +1609,262 @@ assert_send_and_sync!(ValidKeyAmalgamation<'_, P, R, R2>
           R2: Copy,
 );
 
+
+impl<'a, P, R, R2> ValidKeyAmalgamation<'a, P, R, R2>
+where
+    P: 'a + key::KeyParts,
+    R: 'a + key::KeyRole,
+    R2: Copy,
+{
+    /// Returns the component's associated certificate.
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for k in cert.with_policy(p, None)?.keys() {
+    ///     // It's not only an identical `Cert`, it's the same one.
+    ///     assert!(std::ptr::eq(k.cert(), &cert));
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn cert(&self) -> &'a Cert {
+        self.ka.cert()
+    }
+
+    /// Returns the valid amalgamation's active binding signature.
+    ///
+    /// The active binding signature is the most recent, non-revoked
+    /// self-signature that is valid according to the `policy` and
+    /// alive at time `t` (`creation time <= t`, `t < expiry`).  If
+    /// there are multiple such signatures then the signatures are
+    /// ordered by their MPIs interpreted as byte strings.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display information about each User ID's current active
+    /// // binding signature (the `time` parameter is `None`), if any.
+    /// for ua in cert.with_policy(p, None)?.userids() {
+    ///     eprintln!("{:?}", ua.binding_signature());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn binding_signature(&self) -> &'a Signature {
+        self.binding_signature
+    }
+
+    /// Returns this amalgamation's bundle.
+    pub fn bundle(&self) -> &'a crate::cert::ComponentBundle<Key<P, R>> {
+        self.ka.bundle()
+    }
+
+    /// Returns this amalgamation's component.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// // Display some information about any unknown components.
+    /// for k in cert.with_policy(p, None)?.keys() {
+    ///     eprintln!(" - {:?}", k.component());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn component(&self) -> &'a Key<P, R> {
+        self.bundle().component()
+    }
+
+    /// Returns the `KeyAmalgamation`'s key.
+    pub fn key(&self) -> &'a Key<P, R> {
+        self.component()
+    }
+
+    /// Returns the component's self-signatures.
+    ///
+    /// The signatures are validated, and they are sorted by their
+    /// creation time, most recent first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for (i, ka) in cert.with_policy(p, None)?.keys().enumerate() {
+    ///     eprintln!("Key #{} ({}) has {:?} self signatures",
+    ///               i, ka.key().fingerprint(),
+    ///               ka.self_signatures().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn self_signatures(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync {
+        self.ka.self_signatures()
+    }
+
+    /// Returns the component's third-party certifications.
+    ///
+    /// The signatures are *not* validated.  They are sorted by their
+    /// creation time, most recent first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for k in cert.with_policy(p, None)?.keys() {
+    ///     eprintln!("Key {} has {:?} unverified, third-party certifications",
+    ///               k.key().fingerprint(),
+    ///               k.certifications().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn certifications(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync {
+        self.ka.certifications()
+    }
+
+    /// Returns the component's revocations that were issued by the
+    /// certificate holder.
+    ///
+    /// The revocations are validated, and they are sorted by their
+    /// creation time, most recent first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for k in cert.with_policy(p, None)?.keys() {
+    ///     eprintln!("Key {} has {:?} revocation certificates.",
+    ///               k.key().fingerprint(),
+    ///               k.self_revocations().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn self_revocations(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync {
+        self.ka.self_revocations()
+    }
+
+    /// Returns the component's revocations that were issued by other
+    /// certificates.
+    ///
+    /// The revocations are *not* validated.  They are sorted by their
+    /// creation time, most recent first.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for k in cert.with_policy(p, None)?.keys() {
+    ///     eprintln!("Key {} has {:?} unverified, third-party revocation certificates.",
+    ///               k.key().fingerprint(),
+    ///               k.other_revocations().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn other_revocations(&self) -> impl Iterator<Item=&'a Signature> + Send + Sync {
+        self.ka.other_revocations()
+    }
+
+    /// Returns all of the component's signatures.
+    ///
+    /// Only the self-signatures are validated.  The signatures are
+    /// sorted first by type, then by creation time.  The self
+    /// revocations come first, then the self signatures,
+    /// then any key attestation signatures,
+    /// certifications, and third-party revocations coming last.  This
+    /// function may return additional types of signatures that could
+    /// be associated to this component.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(None, Some("alice@example.org"))
+    /// #     .generate()?;
+    /// for (i, ka) in cert.with_policy(p, None)?.keys().enumerate() {
+    ///     eprintln!("Key #{} ({}) has {:?} signatures",
+    ///               i, ka.key().fingerprint(),
+    ///               ka.signatures().count());
+    /// }
+    /// # Ok(()) }
+    /// ```
+    pub fn signatures(&self)
+                      -> impl Iterator<Item = &'a Signature> + Send + Sync {
+        self.ka.signatures()
+    }
+
+    /// Forwarder for the conversion macros.
+    pub(crate) fn has_secret(&self) -> bool {
+        self.key().has_secret()
+    }
+}
+
 /// A Valid primary Key, and its associated data.
 ///
 /// A specialized version of [`ValidKeyAmalgamation`].
