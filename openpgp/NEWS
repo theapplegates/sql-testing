@@ -137,6 +137,16 @@
    - UnknownComponentAmalgamation::unknown
    - KeyAmalgamation::key
    - KeyAmalgamation::revocation_status
+   - PrimaryKeyAmalgamation::binding_signature
+   - SubordinateKeyAmalgamation::binding_signature
+   - KeyAmalgamation::cert
+   - KeyAmalgamation::bundle
+   - KeyAmalgamation::component
+   - KeyAmalgamation::self_signatures
+   - KeyAmalgamation::certifications
+   - KeyAmalgamation::self_revocations
+   - KeyAmalgamation::other_revocations
+   - KeyAmalgamation::signatures
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead
