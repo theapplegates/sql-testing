@@ -114,6 +114,7 @@
      approve_of_certifications
    - ComponentAmalgamation no longer derefs to the ComponentBundle
    - KeyAmalgamation no longer derefs to ComponentAmalgamation<Key>
+   - ValidComponentAmalgamation no longer derefs to ComponentAmalgamation
 
 ** New functionality
    - Signature::hash_userid_attestation

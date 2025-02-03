@@ -2438,7 +2438,7 @@ impl<'a> ValidUserIDAmalgamation<'a> {
         let mut first = None;
 
         // The newest valid signature will be returned first.
-        self.approvals()
+        self.ca.approvals()
         // First, filter out any invalid (e.g. too new) signatures.
             .filter(move |sig| self.cert.policy().signature(
                 sig,
@@ -2527,7 +2527,7 @@ impl<'a> ValidUserIDAmalgamation<'a> {
     where C: IntoIterator<Item = S>,
           S: Borrow<Signature>,
     {
-        std::ops::Deref::deref(self)
+        self.ca
             .approve_of_certifications(self.policy(),
                                        self.time(),
                                        primary_signer,
@@ -2635,7 +2635,7 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
         let mut first = None;
 
         // The newest valid signature will be returned first.
-        self.approvals()
+        self.ca.approvals()
         // First, filter out any invalid (e.g. too new) signatures.
             .filter(move |sig| self.cert.policy().signature(
                 sig,
@@ -2685,7 +2685,7 @@ impl<'a> ValidUserAttributeAmalgamation<'a> {
     where C: IntoIterator<Item = S>,
           S: Borrow<Signature>,
     {
-        std::ops::Deref::deref(self)
+        self.ca
             .approve_of_certifications(self.policy(),
                                        self.time(),
                                        primary_signer,
@@ -2705,15 +2705,6 @@ impl<'a, C> Clone for ValidComponentAmalgamation<'a, C> {
             cert: self.cert.clone(),
             binding_signature: self.binding_signature,
         }
-    }
-}
-
-impl<'a, C> std::ops::Deref for ValidComponentAmalgamation<'a, C> {
-    type Target = ComponentAmalgamation<'a, C>;
-
-    fn deref(&self) -> &Self::Target {
-        assert!(std::ptr::eq(self.ca.cert(), self.cert.cert()));
-        &self.ca
     }
 }
 
@@ -2855,7 +2846,10 @@ impl<'a, C> ValidateAmalgamation<'a, C> for ValidComponentAmalgamation<'a, C> {
     }
 }
 
-impl<'a, C> ValidAmalgamation<'a, C> for ValidComponentAmalgamation<'a, C> {
+impl<'a, C> ValidAmalgamation<'a, C> for ValidComponentAmalgamation<'a, C>
+where
+    C: Send + Sync,
+{
     fn valid_cert(&self) -> &ValidCert<'a> {
         assert!(std::ptr::eq(self.ca.cert(), self.cert.cert()));
         &self.cert
@@ -2878,8 +2872,8 @@ impl<'a, C> ValidAmalgamation<'a, C> for ValidComponentAmalgamation<'a, C> {
     }
 
     fn revocation_status(&self) -> RevocationStatus<'a> {
-        self.bundle._revocation_status(self.policy(), self.cert.time,
-                                       false, Some(self.binding_signature))
+        self.bundle()._revocation_status(self.policy(), self.cert.time,
+                                         false, Some(self.binding_signature))
     }
 
     fn revocation_keys(&self)
@@ -2909,10 +2903,15 @@ impl<'a, C> ValidAmalgamation<'a, C> for ValidComponentAmalgamation<'a, C> {
     }
 }
 
-impl<'a, C> ValidBindingSignature<'a, C> for ValidComponentAmalgamation<'a, C> {}
+impl<'a, C> ValidBindingSignature<'a, C> for ValidComponentAmalgamation<'a, C>
+where
+    C: Send + Sync,
+{}
 
 impl<'a, C> crate::cert::Preferences<'a>
     for ValidComponentAmalgamation<'a, C>
+where
+    C: Send + Sync,
 {
     fn preferred_symmetric_algorithms(&self)
                                       -> Option<&'a [SymmetricAlgorithm]> {
