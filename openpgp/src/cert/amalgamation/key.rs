@@ -247,7 +247,6 @@
 //! [This discussion]: https://crypto.stackexchange.com/a/12138
 use std::time;
 use std::time::SystemTime;
-use std::ops::Deref;
 use std::borrow::Borrow;
 use std::convert::TryFrom;
 use std::convert::TryInto;
@@ -1885,19 +1884,6 @@ pub type ValidSubordinateKeyAmalgamation<'a, P>
 ///
 pub type ValidErasedKeyAmalgamation<'a, P>
     = ValidKeyAmalgamation<'a, P, key::UnspecifiedRole, bool>;
-
-
-impl<'a, P, R, R2> Deref for ValidKeyAmalgamation<'a, P, R, R2>
-    where P: 'a + key::KeyParts,
-          R: 'a + key::KeyRole,
-          R2: Copy,
-{
-    type Target = KeyAmalgamation<'a, P, R, R2>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.ka
-    }
-}
 
 
 impl<'a, P, R, R2> From<ValidKeyAmalgamation<'a, P, R, R2>>

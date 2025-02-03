@@ -115,6 +115,7 @@
    - ComponentAmalgamation no longer derefs to the ComponentBundle
    - KeyAmalgamation no longer derefs to ComponentAmalgamation<Key>
    - ValidComponentAmalgamation no longer derefs to ComponentAmalgamation
+   - ValidKeyAmalgamation no longer derefs to KeyAmalgamation
 
 ** New functionality
    - Signature::hash_userid_attestation
