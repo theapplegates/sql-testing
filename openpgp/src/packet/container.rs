@@ -133,13 +133,6 @@ pub struct Container {
 
 assert_send_and_sync!(Container);
 
-impl std::ops::Deref for Container {
-    type Target = Body;
-    fn deref(&self) -> &Self::Target {
-        &self.body
-    }
-}
-
 impl PartialEq for Container {
     fn eq(&self, other: &Container) -> bool {
         use Body::*;

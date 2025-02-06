@@ -135,6 +135,7 @@
    - packet::seip::SEIP2 no longer derefs to Container
    - PacketPile::pretty_print removed
    - parse::stream::MessageStructure no longer derefs to [MessageLayer]
+   - packet::Container no longer derefs to packet::Body
 
 ** New functionality
    - Signature::hash_userid_attestation
