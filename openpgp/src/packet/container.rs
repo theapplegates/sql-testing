@@ -434,7 +434,7 @@ impl Packet {
         use std::ops::Deref;
         match self {
             Packet::CompressedData(p) => Some(p.container_ref()),
-            Packet::SEIP(SEIP::V1(p)) => Some(p.deref()),
+            Packet::SEIP(SEIP::V1(p)) => Some(p.container_ref()),
             Packet::SEIP(SEIP::V2(p)) => Some(p.deref()),
             Packet::Literal(p) => Some(p.container_ref()),
             Packet::Unknown(p) => Some(p.container_ref()),
@@ -447,7 +447,7 @@ impl Packet {
         use std::ops::DerefMut;
         match self {
             Packet::CompressedData(p) => Some(p.container_mut()),
-            Packet::SEIP(SEIP::V1(p)) => Some(p.deref_mut()),
+            Packet::SEIP(SEIP::V1(p)) => Some(p.container_mut()),
             Packet::SEIP(SEIP::V2(p)) => Some(p.deref_mut()),
             Packet::Literal(p) => Some(p.container_mut()),
             Packet::Unknown(p) => Some(p.container_mut()),

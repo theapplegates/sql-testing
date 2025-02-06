@@ -881,7 +881,7 @@ mod test {
         }
 
         let mut seip = SEIP1::new();
-        seip.children_mut().unwrap().push(cd.into());
+        seip.container_mut().children_mut().unwrap().push(cd.into());
         packets.push(seip.into());
 
         eprintln!("{:#?}", packets);
