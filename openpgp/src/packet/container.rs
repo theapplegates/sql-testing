@@ -396,12 +396,44 @@ macro_rules! impl_unprocessed_body_forwards {
     };
 }
 
+macro_rules! impl_processed_body_forwards {
+    ($typ:ident) => {
+        /// This packet implements the processed container
+        /// interface.
+        ///
+        /// Container packets like this one can contain either
+        /// unprocessed or processed, structured data.
+        impl $typ {
+            /// Returns a reference to the container.
+            pub fn container_ref(&self) -> &packet::Container {
+                &self.container
+            }
+
+            /// Returns a mutable reference to the container.
+            pub fn container_mut(&mut self) -> &mut packet::Container {
+                &mut self.container
+            }
+
+            /// Gets a reference to the this packet's body.
+            pub fn body(&self) -> &crate::packet::Body {
+                self.container_ref().body()
+            }
+
+            /// Sets the this packet's body.
+            pub fn set_body(&mut self, body: crate::packet::Body)
+                            -> crate::packet::Body {
+                self.container_mut().set_body(body)
+            }
+        }
+    };
+}
+
 impl Packet {
     pub(crate) // for packet_pile.rs
     fn container_ref(&self) -> Option<&Container> {
         use std::ops::Deref;
         match self {
-            Packet::CompressedData(p) => Some(p.deref()),
+            Packet::CompressedData(p) => Some(p.container_ref()),
             Packet::SEIP(SEIP::V1(p)) => Some(p.deref()),
             Packet::SEIP(SEIP::V2(p)) => Some(p.deref()),
             Packet::Literal(p) => Some(p.container_ref()),
@@ -414,7 +446,7 @@ impl Packet {
     fn container_mut(&mut self) -> Option<&mut Container> {
         use std::ops::DerefMut;
         match self {
-            Packet::CompressedData(p) => Some(p.deref_mut()),
+            Packet::CompressedData(p) => Some(p.container_mut()),
             Packet::SEIP(SEIP::V1(p)) => Some(p.deref_mut()),
             Packet::SEIP(SEIP::V2(p)) => Some(p.deref_mut()),
             Packet::Literal(p) => Some(p.container_mut()),

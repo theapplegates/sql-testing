@@ -341,7 +341,7 @@ impl PacketPile {
     /// literal.set_body(b"old".to_vec());
     /// let mut compressed =
     ///     CompressedData::new(CompressionAlgorithm::Uncompressed);
-    /// compressed.children_mut().unwrap().push(literal.into());
+    /// compressed.container_mut().children_mut().unwrap().push(literal.into());
     /// let mut pile = PacketPile::from(Packet::from(compressed));
     ///
     /// // Replace the literal data packet.
