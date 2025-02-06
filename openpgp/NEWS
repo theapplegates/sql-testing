@@ -116,6 +116,10 @@
    - KeyAmalgamation no longer derefs to ComponentAmalgamation<Key>
    - ValidComponentAmalgamation no longer derefs to ComponentAmalgamation
    - ValidKeyAmalgamation no longer derefs to KeyAmalgamation
+   - Signature::hash_userid_attestation renamed to
+     hash_userid_approval
+   - Signature::hash_user_attribute_attestation renamed to
+     hash_user_attribute_approval
 
 ** New functionality
    - Signature::hash_userid_attestation

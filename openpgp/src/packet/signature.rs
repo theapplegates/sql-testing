@@ -3427,7 +3427,7 @@ impl Signature {
                        .into());
         }
 
-        self.hash_userid_attestation(&mut hash, pk, userid)?;
+        self.hash_userid_approval(&mut hash, pk, userid)?;
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
             Some(hash.into_digest()?.into()))
@@ -3563,7 +3563,7 @@ impl Signature {
                        .into());
         }
 
-        self.hash_user_attribute_attestation(&mut hash, pk, ua)?;
+        self.hash_user_attribute_approval(&mut hash, pk, ua)?;
         self.verify_digest_internal(
             signer.parts_as_public().role_as_unspecified(),
             Some(hash.into_digest()?.into()))
