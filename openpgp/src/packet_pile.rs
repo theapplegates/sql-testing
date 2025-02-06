@@ -185,6 +185,7 @@ impl PacketPile {
     /// Pretty prints the message to stderr.
     ///
     /// This function is primarily intended for debugging purposes.
+    #[cfg(test)]
     pub fn pretty_print(&self) {
         self.top_level.pretty_print(0);
     }

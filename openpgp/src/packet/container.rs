@@ -325,7 +325,8 @@ impl Container {
         format!("{:08X}", self.body_digest)
     }
 
-    // Converts an indentation level to whitespace.
+    /// Converts an indentation level to whitespace.
+    #[cfg(test)]
     fn indent(depth: usize) -> &'static str {
         use std::cmp;
 
@@ -333,11 +334,12 @@ impl Container {
         &s[0..cmp::min(depth, s.len())]
     }
 
-    // Pretty prints the container to stderr.
-    //
-    // This function is primarily intended for debugging purposes.
-    //
-    // `indent` is the number of spaces to indent the output.
+    /// Pretty prints the container to stderr.
+    ///
+    /// This function is primarily intended for debugging purposes.
+    ///
+    /// `indent` is the number of spaces to indent the output.
+    #[cfg(test)]
     pub(crate) fn pretty_print(&self, indent: usize) {
         for (i, p) in self.children_ref().iter().enumerate() {
             eprintln!("{}{}: {:?}",

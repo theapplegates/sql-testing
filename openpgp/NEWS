@@ -133,6 +133,7 @@
    - packet::seip::SEIP2::container_ref
    - packet::seip::SEIP2::container_mut
    - packet::seip::SEIP2 no longer derefs to Container
+   - PacketPile::pretty_print removed
 
 ** New functionality
    - Signature::hash_userid_attestation
