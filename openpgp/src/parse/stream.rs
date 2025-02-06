@@ -484,6 +484,11 @@ impl<'a> MessageStructure<'a> {
             panic!("cannot push to encryption or compression layer");
         }
     }
+
+    /// Returns an iterator over the message layers.
+    pub fn iter(&self) -> impl Iterator<Item=&MessageLayer<'a>> {
+        self.0.iter()
+    }
 }
 
 impl<'a> std::ops::Deref for MessageStructure<'a> {
@@ -3466,7 +3471,7 @@ pub(crate) mod test {
             }
 
             fn check(&mut self, structure: MessageStructure) -> Result<()> {
-                assert_eq!(structure.len(), 2);
+                assert_eq!(structure.iter().count(), 2);
                 for (i, layer) in structure.into_iter().enumerate() {
                     match layer {
                         MessageLayer::SignatureGroup { results } => {

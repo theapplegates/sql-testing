@@ -185,6 +185,7 @@
    - ValidKeyAmalgamation::other_revocations
    - ValidKeyAmalgamation::approvals
    - ValidKeyAmalgamation::signatures
+   - parse::stream::MessageStructure::iter
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead
