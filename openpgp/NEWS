@@ -136,6 +136,11 @@
    - PacketPile::pretty_print removed
    - parse::stream::MessageStructure no longer derefs to [MessageLayer]
    - packet::Container no longer derefs to packet::Body
+   - Key6::import_public_cv25519 renamed to import_public_x25519
+   - Key6::import_public_x25519 now produces a X25519 key, not an ECDH
+     key
+   - Key6::import_public_ed25519 now produces an Ed25519 key, not an
+     EdDSALegacy key
 
 ** New functionality
    - Signature::hash_userid_attestation

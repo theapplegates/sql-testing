@@ -19,7 +19,6 @@ use crate::packet::key::{
 };
 use crate::packet::prelude::*;
 use crate::PublicKeyAlgorithm;
-use crate::SymmetricAlgorithm;
 use crate::HashAlgorithm;
 use crate::types::Timestamp;
 use crate::Result;
@@ -36,7 +35,7 @@ use crate::policy::HashAlgoSecurity;
 /// new key.
 ///
 /// Existing key material can be turned into an OpenPGP key using
-/// [`Key6::new`], [`Key6::with_secret`], [`Key6::import_public_cv25519`],
+/// [`Key6::new`], [`Key6::with_secret`], [`Key6::import_public_x25519`],
 /// [`Key6::import_public_ed25519`], [`Key6::import_public_rsa`],
 /// [`Key6::import_secret_cv25519`], [`Key6::import_secret_ed25519`],
 /// and [`Key6::import_secret_rsa`].
@@ -229,33 +228,37 @@ where R: KeyRole,
     /// Creates an OpenPGP public key packet from existing X25519 key
     /// material.
     ///
-    /// The ECDH key will use hash algorithm `hash` and symmetric
-    /// algorithm `sym`.  If one or both are `None` secure defaults
-    /// will be used.  The key will have its creation date set to
-    /// `ctime` or the current time if `None` is given.
-    pub fn import_public_cv25519<H, S, T>(public_key: &[u8],
-                                          hash: H, sym: S, ctime: T)
-                                          -> Result<Self> where H: Into<Option<HashAlgorithm>>,
-                                                                S: Into<Option<SymmetricAlgorithm>>,
-                                                                T: Into<Option<time::SystemTime>>
+    /// The key will have its creation date set to `ctime` or the
+    /// current time if `None` is given.
+    pub fn import_public_x25519<T>(public_key: &[u8], ctime: T)
+                                   -> Result<Self>
+    where
+        T: Into<Option<time::SystemTime>>,
     {
         Ok(Key6 {
-            common: Key4::import_public_cv25519(public_key, hash, sym, ctime)?,
+            common: Key4::new(ctime.into().unwrap_or_else(crate::now),
+                              PublicKeyAlgorithm::X25519,
+                              mpi::PublicKey::X25519 {
+                                  u: public_key.try_into()?,
+                              })?,
         })
     }
 
     /// Creates an OpenPGP public key packet from existing Ed25519 key
     /// material.
     ///
-    /// The ECDH key will use hash algorithm `hash` and symmetric
-    /// algorithm `sym`.  If one or both are `None` secure defaults
-    /// will be used.  The key will have its creation date set to
-    /// `ctime` or the current time if `None` is given.
+    /// The key will have its creation date set to `ctime` or the
+    /// current time if `None` is given.
     pub fn import_public_ed25519<T>(public_key: &[u8], ctime: T) -> Result<Self>
-    where  T: Into<Option<time::SystemTime>>
+    where
+        T: Into<Option<time::SystemTime>>,
     {
         Ok(Key6 {
-            common: Key4::import_public_ed25519(public_key, ctime)?,
+            common: Key4::new(ctime.into().unwrap_or_else(crate::now),
+                              PublicKeyAlgorithm::Ed25519,
+                              mpi::PublicKey::Ed25519 {
+                                  a: public_key.try_into()?,
+                              })?,
         })
     }
 
