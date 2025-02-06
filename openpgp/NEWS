@@ -120,6 +120,10 @@
      hash_userid_approval
    - Signature::hash_user_attribute_attestation renamed to
      hash_user_attribute_approval
+   - Signature::verify_userid_attestation renamed to
+     verify_userid_approval
+   - Signature::verify_user_attribute_attestation renamed to
+     hash_user_attribute_approval
 
 ** New functionality
    - Signature::hash_userid_attestation
