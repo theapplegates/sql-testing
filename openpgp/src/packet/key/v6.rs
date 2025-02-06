@@ -244,6 +244,25 @@ where R: KeyRole,
         })
     }
 
+    /// Creates an OpenPGP public key packet from existing X448 key
+    /// material.
+    ///
+    /// The key will have its creation date set to `ctime` or the
+    /// current time if `None` is given.
+    pub fn import_public_x448<T>(public_key: &[u8], ctime: T)
+                                 -> Result<Self>
+    where
+        T: Into<Option<time::SystemTime>>,
+    {
+        Ok(Key6 {
+            common: Key4::new(ctime.into().unwrap_or_else(crate::now),
+                              PublicKeyAlgorithm::X448,
+                              mpi::PublicKey::X448 {
+                                  u: Box::new(public_key.try_into()?),
+                              })?,
+        })
+    }
+
     /// Creates an OpenPGP public key packet from existing Ed25519 key
     /// material.
     ///
@@ -258,6 +277,24 @@ where R: KeyRole,
                               PublicKeyAlgorithm::Ed25519,
                               mpi::PublicKey::Ed25519 {
                                   a: public_key.try_into()?,
+                              })?,
+        })
+    }
+
+    /// Creates an OpenPGP public key packet from existing Ed448 key
+    /// material.
+    ///
+    /// The key will have its creation date set to `ctime` or the
+    /// current time if `None` is given.
+    pub fn import_public_ed448<T>(public_key: &[u8], ctime: T) -> Result<Self>
+    where
+        T: Into<Option<time::SystemTime>>,
+    {
+        Ok(Key6 {
+            common: Key4::new(ctime.into().unwrap_or_else(crate::now),
+                              PublicKeyAlgorithm::Ed448,
+                              mpi::PublicKey::Ed448 {
+                                  a: Box::new(public_key.try_into()?),
                               })?,
         })
     }
@@ -323,6 +360,36 @@ where R: KeyRole,
             }.into())
     }
 
+    /// Creates a new OpenPGP secret key packet for an existing X448
+    /// key.
+    ///
+    /// The given `private_key` is expected to be in the native X448
+    /// representation, i.e. as opaque byte string of length 32.
+    ///
+    /// The key will have its creation date set to `ctime` or the
+    /// current time if `None` is given.
+    pub fn import_secret_x448<T>(private_key: &[u8],
+                                 ctime: T)
+                                 -> Result<Self>
+    where
+        T: Into<Option<std::time::SystemTime>>,
+    {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+
+        let private_key = Protected::from(private_key);
+        let public_key = Backend::x448_derive_public(&private_key)?;
+
+        Self::with_secret(
+            ctime.into().unwrap_or_else(crate::now),
+            PublicKeyAlgorithm::X448,
+            mpi::PublicKey::X448 {
+                u: Box::new(public_key),
+            },
+            mpi::SecretKeyMaterial::X448 {
+                x: private_key.into(),
+            }.into())
+    }
+
     /// Creates a new OpenPGP secret key packet for an existing
     /// Ed25519 key.
     ///
@@ -348,7 +415,34 @@ where R: KeyRole,
                 x: private_key.into(),
             }.into())
     }
+
+    /// Creates a new OpenPGP secret key packet for an existing
+    /// Ed448 key.
+    ///
+    /// The key will have its creation date set to `ctime` or the
+    /// current time if `None` is given.
+    pub fn import_secret_ed448<T>(private_key: &[u8], ctime: T)
+                                  -> Result<Self>
+    where
+        T: Into<Option<time::SystemTime>>,
+    {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+
+        let private_key = Protected::from(private_key);
+        let public_key = Backend::ed448_derive_public(&private_key)?;
+
+        Self::with_secret(
+            ctime.into().unwrap_or_else(crate::now),
+            PublicKeyAlgorithm::Ed448,
+            mpi::PublicKey::Ed448 {
+                a: Box::new(public_key),
+            },
+            mpi::SecretKeyMaterial::Ed448 {
+                x: private_key.into(),
+            }.into())
+    }
 }
+
 impl<P, R> Key6<P, R>
 where P: KeyParts,
       R: KeyRole,

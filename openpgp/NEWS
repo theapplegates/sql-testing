@@ -195,6 +195,10 @@
    - parse::stream::MessageStructure::iter
    - Key6::import_secret_x25519
    - Key6::import_secret_ed25519
+   - Key6::import_public_x448
+   - Key6::import_secret_x448
+   - Key6::import_public_ed448
+   - Key6::import_secret_ed448
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead
