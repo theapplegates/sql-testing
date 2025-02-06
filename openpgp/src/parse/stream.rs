@@ -491,14 +491,6 @@ impl<'a> MessageStructure<'a> {
     }
 }
 
-impl<'a> std::ops::Deref for MessageStructure<'a> {
-    type Target = [MessageLayer<'a>];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0[..]
-    }
-}
-
 impl<'a> IntoIterator for MessageStructure<'a> {
     type Item = MessageLayer<'a>;
     type IntoIter = std::vec::IntoIter<MessageLayer<'a>>;
