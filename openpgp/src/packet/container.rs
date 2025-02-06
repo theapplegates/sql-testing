@@ -351,7 +351,7 @@ impl Container {
     }
 }
 
-macro_rules! impl_body_forwards {
+macro_rules! impl_unprocessed_body_forwards {
     ($typ:ident) => {
         /// This packet implements the unprocessed container
         /// interface.
