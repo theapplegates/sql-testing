@@ -8,7 +8,7 @@ use std::time;
 #[cfg(test)]
 use quickcheck::{Arbitrary, Gen};
 
-use crate::crypto::{mpi, hash::Hash};
+use crate::crypto::{mpi, hash::Hash, mem::Protected};
 use crate::packet::key::{
     KeyParts,
     KeyRole,
@@ -37,7 +37,7 @@ use crate::policy::HashAlgoSecurity;
 /// Existing key material can be turned into an OpenPGP key using
 /// [`Key6::new`], [`Key6::with_secret`], [`Key6::import_public_x25519`],
 /// [`Key6::import_public_ed25519`], [`Key6::import_public_rsa`],
-/// [`Key6::import_secret_cv25519`], [`Key6::import_secret_ed25519`],
+/// [`Key6::import_secret_x25519`], [`Key6::import_secret_ed25519`],
 /// and [`Key6::import_secret_rsa`].
 ///
 /// Whether you create a new key or import existing key material, you
@@ -291,6 +291,62 @@ where R: KeyRole,
         Ok(Key6 {
             common: Key4::with_secret(creation_time, pk_algo, mpis, secret)?,
         })
+    }
+
+    /// Creates a new OpenPGP secret key packet for an existing X25519
+    /// key.
+    ///
+    /// The given `private_key` is expected to be in the native X25519
+    /// representation, i.e. as opaque byte string of length 32.
+    ///
+    /// The key will have its creation date set to `ctime` or the
+    /// current time if `None` is given.
+    pub fn import_secret_x25519<T>(private_key: &[u8],
+                                   ctime: T)
+                                   -> Result<Self>
+    where
+        T: Into<Option<std::time::SystemTime>>,
+    {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+
+        let private_key = Protected::from(private_key);
+        let public_key = Backend::x25519_derive_public(&private_key)?;
+
+        Self::with_secret(
+            ctime.into().unwrap_or_else(crate::now),
+            PublicKeyAlgorithm::X25519,
+            mpi::PublicKey::X25519 {
+                u: public_key,
+            },
+            mpi::SecretKeyMaterial::X25519 {
+                x: private_key.into(),
+            }.into())
+    }
+
+    /// Creates a new OpenPGP secret key packet for an existing
+    /// Ed25519 key.
+    ///
+    /// The key will have its creation date set to `ctime` or the
+    /// current time if `None` is given.
+    pub fn import_secret_ed25519<T>(private_key: &[u8], ctime: T)
+                                    -> Result<Self>
+    where
+        T: Into<Option<time::SystemTime>>,
+    {
+        use crate::crypto::backend::{Backend, interface::Asymmetric};
+
+        let private_key = Protected::from(private_key);
+        let public_key = Backend::ed25519_derive_public(&private_key)?;
+
+        Self::with_secret(
+            ctime.into().unwrap_or_else(crate::now),
+            PublicKeyAlgorithm::Ed25519,
+            mpi::PublicKey::Ed25519 {
+                a: public_key,
+            },
+            mpi::SecretKeyMaterial::Ed25519 {
+                x: private_key.into(),
+            }.into())
     }
 }
 impl<P, R> Key6<P, R>

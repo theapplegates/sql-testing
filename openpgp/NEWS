@@ -193,6 +193,8 @@
    - ValidKeyAmalgamation::approvals
    - ValidKeyAmalgamation::signatures
    - parse::stream::MessageStructure::iter
+   - Key6::import_secret_x25519
+   - Key6::import_secret_ed25519
 
 ** Deprecated functionality
    - Cert::insert_packets, use Cert::insert_packets2 instead
