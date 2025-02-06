@@ -431,11 +431,10 @@ macro_rules! impl_processed_body_forwards {
 impl Packet {
     pub(crate) // for packet_pile.rs
     fn container_ref(&self) -> Option<&Container> {
-        use std::ops::Deref;
         match self {
             Packet::CompressedData(p) => Some(p.container_ref()),
             Packet::SEIP(SEIP::V1(p)) => Some(p.container_ref()),
-            Packet::SEIP(SEIP::V2(p)) => Some(p.deref()),
+            Packet::SEIP(SEIP::V2(p)) => Some(p.container_ref()),
             Packet::Literal(p) => Some(p.container_ref()),
             Packet::Unknown(p) => Some(p.container_ref()),
             _ => None,
@@ -444,11 +443,10 @@ impl Packet {
 
     pub(crate) // for packet_pile.rs, packet_pile_parser.rs, parse.rs
     fn container_mut(&mut self) -> Option<&mut Container> {
-        use std::ops::DerefMut;
         match self {
             Packet::CompressedData(p) => Some(p.container_mut()),
             Packet::SEIP(SEIP::V1(p)) => Some(p.container_mut()),
-            Packet::SEIP(SEIP::V2(p)) => Some(p.deref_mut()),
+            Packet::SEIP(SEIP::V2(p)) => Some(p.container_mut()),
             Packet::Literal(p) => Some(p.container_mut()),
             Packet::Unknown(p) => Some(p.container_mut()),
             _ => None,

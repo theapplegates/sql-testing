@@ -130,6 +130,9 @@
    - packet::seip::SEIP1::container_ref
    - packet::seip::SEIP1::container_mut
    - packet::seip::SEIP1 no longer derefs to Container
+   - packet::seip::SEIP2::container_ref
+   - packet::seip::SEIP2::container_mut
+   - packet::seip::SEIP2 no longer derefs to Container
 
 ** New functionality
    - Signature::hash_userid_attestation
