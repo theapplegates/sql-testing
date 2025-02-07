@@ -675,6 +675,8 @@ impl<'a> Parse<'a, RawCertParser<'a>> for RawCertParser<'a>
     }
 }
 
+impl<'a> crate::seal::Sealed for RawCertParser<'a> {}
+
 impl<'a> Iterator for RawCertParser<'a>
 {
     type Item = Result<RawCert<'a>>;

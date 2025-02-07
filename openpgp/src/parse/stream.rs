@@ -1083,6 +1083,8 @@ impl<'a> Parse<'a, VerifierBuilder<'a>>
     }
 }
 
+impl<'a> crate::seal::Sealed for VerifierBuilder<'a> {}
+
 impl<'a> VerifierBuilder<'a> {
     fn new<B>(signatures: B) -> Result<Self>
         where B: buffered_reader::BufferedReader<Cookie> + 'a
@@ -1470,6 +1472,8 @@ impl<'a> Parse<'a, DetachedVerifierBuilder<'a>>
     }
 }
 
+impl<'a> crate::seal::Sealed for DetachedVerifierBuilder<'a> {}
+
 impl<'a> DetachedVerifierBuilder<'a> {
     fn new<B>(signatures: B) -> Result<Self>
         where B: buffered_reader::BufferedReader<Cookie> + 'a
@@ -1814,6 +1818,8 @@ impl<'a> Parse<'a, DecryptorBuilder<'a>>
         DecryptorBuilder::new(reader)
     }
 }
+
+impl<'a> crate::seal::Sealed for DecryptorBuilder<'a> {}
 
 impl<'a> DecryptorBuilder<'a> {
     fn new<B>(signatures: B) -> Result<Self>

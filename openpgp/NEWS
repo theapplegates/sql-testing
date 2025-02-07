@@ -150,6 +150,7 @@
      Into<Option<&str>>.
    - SignatureBuilder::set_revocation_key now takes a single key
    - parse::stream::VerificationError is now marked non-exhaustive
+   - Parse is now sealed
 
 ** New functionality
    - Signature::hash_userid_attestation

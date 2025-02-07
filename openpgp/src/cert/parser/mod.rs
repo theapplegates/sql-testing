@@ -604,6 +604,8 @@ impl<'a> Parse<'a, CertParser<'a>> for CertParser<'a>
     }
 }
 
+impl<'a> crate::seal::Sealed for CertParser<'a> {}
+
 impl<'a> CertParser<'a> {
     /// Creates a `CertParser` from a `Result<Packet>` iterator.
     ///
