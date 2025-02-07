@@ -1687,7 +1687,9 @@ impl CertBuilder<'_> {
         let mut sig = Self::add_primary_key_metadata(sig, &self.primary)?;
 
         if let Some(ref revocation_keys) = self.revocation_keys {
-            sig = sig.set_revocation_key(revocation_keys.clone())?;
+            for k in revocation_keys.into_iter().cloned() {
+                sig = sig.add_revocation_key(k)?;
+            }
         }
 
         let mut signer = key.clone().into_keypair()

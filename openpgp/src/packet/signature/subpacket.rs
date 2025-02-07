@@ -5451,10 +5451,11 @@ impl signature::SignatureBuilder {
     /// Sets the Revocation Key subpacket.
     ///
     /// Replaces any [Revocation Key subpacket] in the hashed
-    /// subpacket area with a new subpacket containing the specified
-    /// value.  That is, this function first removes any Revocation
-    /// Key subpacket from the hashed subpacket area, and then adds a
-    /// new one.
+    /// subpacket area with one new subpacket for each of the
+    /// specified values.  That is, unlike
+    /// [`super::SignatureBuilder::add_revocation_key`], this function
+    /// first removes any Revocation Key subpackets from the hashed
+    /// subpacket area, and then adds new ones.
     ///
     /// [Revocation Key subpacket]: https://tools.ietf.org/html/rfc4880#section-5.2.3.15
     ///
@@ -5491,9 +5492,10 @@ impl signature::SignatureBuilder {
     /// let template = alice.with_policy(p, None)?.direct_key_signature()
     ///     .expect("CertBuilder always includes a direct key signature");
     /// let sig = SignatureBuilder::from(template.clone())
-    ///     .set_revocation_key(vec![
+    ///     // Replace any revocation keys inherited from template.
+    ///     .set_revocation_key(
     ///         RevocationKey::new(bob.primary_key().key().pk_algo(), bob.fingerprint(), false),
-    ///     ])?
+    ///     )?
     ///     .sign_direct_key(&mut alices_signer, None)?;
     /// # assert_eq!(sig
     /// #    .hashed_area()
@@ -5508,13 +5510,75 @@ impl signature::SignatureBuilder {
     /// # assert_eq!(alice.primary_key().self_signatures().count(), 2);
     /// # Ok(()) }
     /// ```
-    pub fn set_revocation_key(mut self, rk: Vec<RevocationKey>) -> Result<Self> {
+    pub fn set_revocation_key(mut self, rk: RevocationKey) -> Result<Self> {
         self.hashed_area.remove_all(SubpacketTag::RevocationKey);
-        for rk in rk.into_iter() {
-            self.hashed_area.add(Subpacket::new(
-                SubpacketValue::RevocationKey(rk),
-                true)?)?;
-        }
+        self.add_revocation_key(rk)
+    }
+
+    /// Adds a Revocation Key subpacket.
+    ///
+    /// Adds a [Revocation Key subpacket] to the hashed subpacket
+    /// area. Unlike [`super::SignatureBuilder::set_revocation_key`],
+    /// this function does not first remove any Revocation Key
+    /// subpackets from the hashed subpacket area.
+    ///
+    /// [Revocation Key subpacket]: https://tools.ietf.org/html/rfc4880#section-5.2.3.15
+    ///
+    /// A Revocation Key subpacket indicates certificates (so-called
+    /// designated revokers) that are allowed to revoke the signer's
+    /// certificate.  For instance, if Alice trusts Bob, she can set
+    /// him as a designated revoker.  This is useful if Alice loses
+    /// access to her key, and therefore is unable to generate a
+    /// revocation certificate on her own.  In this case, she can
+    /// still Bob to generate one on her behalf.
+    ///
+    /// Due to the complexity of verifying such signatures, many
+    /// OpenPGP implementations do not support this feature.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::cert::prelude::*;
+    /// use openpgp::packet::prelude::*;
+    /// # use openpgp::packet::signature::subpacket::SubpacketTag;
+    /// use openpgp::policy::StandardPolicy;
+    /// use openpgp::types::RevocationKey;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// let (alice, _) = CertBuilder::new().add_userid("Alice").generate()?;
+    /// let mut alices_signer = alice.primary_key().key()
+    ///     .clone().parts_into_secret()?.into_keypair()?;
+    ///
+    /// let (bob, _) = CertBuilder::new().add_userid("Bob").generate()?;
+    ///
+    /// let template = alice.with_policy(p, None)?.direct_key_signature()
+    ///     .expect("CertBuilder always includes a direct key signature");
+    /// let sig = SignatureBuilder::from(template.clone())
+    ///     // Add to any revocation keys inherited from template.
+    ///     .add_revocation_key(
+    ///         RevocationKey::new(bob.primary_key().key().pk_algo(), bob.fingerprint(), false),
+    ///     )?
+    ///     .sign_direct_key(&mut alices_signer, None)?;
+    /// # assert_eq!(sig
+    /// #    .hashed_area()
+    /// #    .iter()
+    /// #    .filter(|sp| sp.tag() == SubpacketTag::RevocationKey)
+    /// #    .count(),
+    /// #    1);
+    ///
+    /// // Merge in the new signature.
+    /// let alice = alice.insert_packets2(sig)?.0;
+    /// # assert_eq!(alice.bad_signatures().count(), 0);
+    /// # assert_eq!(alice.primary_key().self_signatures().count(), 2);
+    /// # Ok(()) }
+    /// ```
+    pub fn add_revocation_key(mut self, rk: RevocationKey) -> Result<Self> {
+        self.hashed_area.add(Subpacket::new(
+            SubpacketValue::RevocationKey(rk),
+            true)?)?;
 
         Ok(self)
     }
@@ -7398,10 +7462,18 @@ fn accessors() {
 
     let fp = Fingerprint::from_bytes(4, b"bbbbbbbbbbbbbbbbbbbb").unwrap();
     let rk = RevocationKey::new(pk_algo, fp.clone(), true);
-    sig = sig.set_revocation_key(vec![ rk.clone() ]).unwrap();
+    sig = sig.set_revocation_key(rk.clone()).unwrap();
+    sig = sig.set_revocation_key(rk.clone()).unwrap();
     let sig_ =
         sig.clone().sign_hash(&mut keypair, hash.clone()).unwrap();
     assert_eq!(sig_.revocation_keys().next().unwrap(), &rk);
+    assert_eq!(sig_.revocation_keys().count(), 1);
+
+    sig = sig.add_revocation_key(rk.clone()).unwrap();
+    sig = sig.add_revocation_key(rk.clone()).unwrap();
+    let sig_ =
+        sig.clone().sign_hash(&mut keypair, hash.clone()).unwrap();
+    assert_eq!(sig_.revocation_keys().count(), 3);
 
     sig = sig.set_issuer(fp.clone().into()).unwrap();
     let sig_ =
