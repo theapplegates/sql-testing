@@ -141,6 +141,8 @@
      key
    - Key6::import_public_ed25519 now produces an Ed25519 key, not an
      EdDSALegacy key
+   - CertBuilder::general_purpose is more ergonomic now.  Its first
+     parameter is dropped, the second can take any number of user IDs.
 
 ** New functionality
    - Signature::hash_userid_attestation
