@@ -248,14 +248,6 @@ assert_send_and_sync!(GoodChecksum<'_>);
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum VerificationError<'a> {
-    /// Malformed signature (no signature creation subpacket, etc.)
-    MalformedSignature {
-        /// The signature.
-        sig: &'a Signature,
-
-        /// The reason why the signature is malformed.
-        error: anyhow::Error,
-    },
     /// Missing Key
     MissingKey {
         /// The signature.
@@ -295,6 +287,15 @@ pub enum VerificationError<'a> {
         ka: ValidErasedKeyAmalgamation<'a, key::PublicParts>,
 
         /// The reason why the signature is bad.
+        error: anyhow::Error,
+    },
+
+    /// Malformed signature (no signature creation subpacket, etc.).
+    MalformedSignature {
+        /// The signature.
+        sig: &'a Signature,
+
+        /// The reason why the signature is malformed.
         error: anyhow::Error,
     },
 }
