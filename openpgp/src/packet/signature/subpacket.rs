@@ -5583,7 +5583,7 @@ impl signature::SignatureBuilder {
         Ok(self)
     }
 
-    /// Adds the Issuer subpacket.
+    /// Sets the Issuer subpacket.
     ///
     /// Adds an [Issuer subpacket] to the hashed subpacket area.
     /// Unlike [`add_issuer`], this function first removes any
