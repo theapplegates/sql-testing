@@ -149,6 +149,7 @@
      arguments.  The name and comment argument now take an
      Into<Option<&str>>.
    - SignatureBuilder::set_revocation_key now takes a single key
+   - parse::stream::VerificationError is now marked non-exhaustive
 
 ** New functionality
    - Signature::hash_userid_attestation
