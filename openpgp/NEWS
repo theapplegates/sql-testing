@@ -143,6 +143,11 @@
      EdDSALegacy key
    - CertBuilder::general_purpose is more ergonomic now.  Its first
      parameter is dropped, the second can take any number of user IDs.
+   - UserID::from_address now uses distinct types for its arguments.
+     The name and comment argument now take an Into<Option<&str>>.
+   - UserID::from_unchecked address now uses distinct types for its
+     arguments.  The name and comment argument now take an
+     Into<Option<&str>>.
 
 ** New functionality
    - Signature::hash_userid_attestation
