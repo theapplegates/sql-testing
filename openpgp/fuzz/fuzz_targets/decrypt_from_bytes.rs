@@ -1,5 +1,7 @@
 #![no_main]
 
+use std::sync::LazyLock;
+
 use libfuzzer_sys::{Corpus, fuzz_target};
 
 use sequoia_openpgp as openpgp;
@@ -31,13 +33,8 @@ W2hrBY5x0sZ8H7JlAP47mCfCuRVBqyaePuzKbxLJeLe2BpDdc0n2izMVj8t9Cg==
 =bbbT
 -----END PGP PUBLIC KEY BLOCK-----
 ";
-
-lazy_static::lazy_static! {
-    /// This is an example for using doc comment attributes
-    static ref CERT: Cert = Cert::from_bytes(&CERT_BYTES[..]).unwrap();
-    static ref FP: Fingerprint = CERT.fingerprint();
-    static ref SK: SessionKey = vec![].into();
-}
+static CERT: LazyLock<Cert> = LazyLock::new(|| Cert::from_bytes(CERT_BYTES).unwrap());
+static SK: LazyLock<SessionKey> = LazyLock::new(|| Vec::new().into());
 
 
 fuzz_target!(|data: &[u8]| -> Corpus {
