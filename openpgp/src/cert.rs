@@ -1610,7 +1610,7 @@ impl Cert {
                    ua.userid());
             check!(format!("userid \"{}\"",
                            String::from_utf8_lossy(ua.userid().value())),
-                   ua, attestations, hash_userid_binding,
+                   ua, attestations, hash_userid_approval,
                    CertificationApproval,
                    ua.userid());
             check_3rd_party!(
@@ -1641,7 +1641,7 @@ impl Cert {
                    CertificationRevocation,
                    binding.user_attribute());
             check!("user attribute",
-                   binding, attestations, hash_user_attribute_binding,
+                   binding, attestations, hash_user_attribute_approval,
                    CertificationApproval,
                    binding.user_attribute());
             check_3rd_party!(
