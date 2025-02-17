@@ -1654,6 +1654,8 @@ impl<'a> UserIDAmalgamation<'a> {
           S: Borrow<Signature>,
     {
         let time = time.into();
+        let certifications = certifications.into_iter()
+            .collect::<Vec<_>>();
 
         // Check if there is a previous attestation.  If so, we need
         // that to robustly override it.
@@ -1666,7 +1668,7 @@ impl<'a> UserIDAmalgamation<'a> {
         approve_of_certifications_common(self.cert().primary_key().key(),
                                          self.userid(),
                                          old, time, primary_signer,
-                                         certifications)
+                                         &certifications)
     }
 }
 
@@ -1769,6 +1771,8 @@ impl<'a> UserAttributeAmalgamation<'a> {
           S: Borrow<Signature>,
     {
         let time = time.into();
+        let certifications = certifications.into_iter()
+            .collect::<Vec<_>>();
 
         // Check if there is a previous attestation.  If so, we need
         // that to robustly override it.
@@ -1781,20 +1785,20 @@ impl<'a> UserAttributeAmalgamation<'a> {
         approve_of_certifications_common(self.cert().primary_key().key(),
                                          self.user_attribute(),
                                          old, time, primary_signer,
-                                         certifications)
+                                         &certifications)
     }
 }
 
 /// Approves of third-party certifications.
-fn approve_of_certifications_common<C, S>(key: &Key<PublicParts, PrimaryRole>,
+fn approve_of_certifications_common<S>(key: &Key<PublicParts, PrimaryRole>,
                                           component: &dyn Hash,
                                           old_attestation: Option<Signature>,
                                           time: Option<SystemTime>,
                                           primary_signer: &mut dyn Signer,
-                                          certifications: C)
+                                          certifications: &[S])
                                           -> Result<Vec<Signature>>
-where C: IntoIterator<Item = S>,
-      S: Borrow<Signature>,
+where
+    S: Borrow<Signature>,
 {
     use crate::{
         packet::signature::{SignatureBuilder, subpacket::SubpacketArea},
@@ -1809,7 +1813,7 @@ where C: IntoIterator<Item = S>,
     let digest_size = hash_algo.digest_size()?;
 
     let mut attestations = Vec::new();
-    for certification in certifications.into_iter() {
+    for certification in certifications {
         let mut h = hash_algo.context()?
             .for_signature(primary_signer.public().version());
         certification.borrow().hash_for_confirmation(&mut h)?;
