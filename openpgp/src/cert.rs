@@ -1405,6 +1405,7 @@ impl Cert {
 
     fn canonicalize(mut self) -> Self {
         tracer!(TRACE, "canonicalize", 0);
+        t!("Canonicalizing {}", self.primary_key().key().fingerprint());
         use SignatureType::*;
 
         // Before we do anything, we'll order and deduplicate the
@@ -1442,7 +1443,7 @@ impl Cert {
             ) => ({
                 let sigs = $binding.$sigs.take();
                 t!("check!({}, {}, {} ({:?}), {}, ...)",
-                   $desc, stringify!($binding), sigs.len(), sigs,
+                   $desc, stringify!($binding), stringify!($sigs), sigs,
                    stringify!($hash_method));
                 for sig in sigs.into_iter() {
                     // Use hash prefix as heuristic.
@@ -1474,8 +1475,7 @@ impl Cert {
                         // Hashing failed, we likely don't support the
                         // hash algorithm, or the signature type was
                         // bad.
-                        t!("Sig {:02X}{:02X}, type = {}: \
-                            Hashing failed: {}",
+                        t!("Sig {:02X}{:02X}, type = {}: {}",
                            sig.digest_prefix()[0], sig.digest_prefix()[1],
                            sig.typ(), e);
 
@@ -1506,7 +1506,7 @@ impl Cert {
             ) => ({
                 let sigs = mem::take(&mut $binding.$sigs);
                 t!("check_3rd_party!({}, {}, {} ({:?}_, {}, {}, ...)",
-                   $desc, stringify!($binding), sigs.len(), sigs,
+                   $desc, stringify!($binding), stringify!($sigs), sigs,
                    stringify!($verify_method), stringify!($hash_method));
                 for sig in sigs {
                     // Use hash prefix as heuristic.
@@ -1557,8 +1557,7 @@ impl Cert {
                         // Hashing failed, we likely don't support the
                         // hash algorithm, or the signature type was
                         // bad.
-                        t!("Sig {:02X}{:02X}, type = {}: \
-                            Hashing failed: {}",
+                        t!("Sig {:02X}{:02X}, type = {}: {}",
                            sig.digest_prefix()[0], sig.digest_prefix()[1],
                            sig.typ(), e);
 
@@ -1743,7 +1742,7 @@ impl Cert {
                       stringify!($hash_method));
                      // Use hash prefix as heuristic.
                      let key = self.primary.key();
-                     if let Ok(hash) = $sig.hash_algo().context()
+                     match $sig.hash_algo().context()
                          .and_then(|ctx| {
                              let mut ctx =
                                  ctx.for_signature($sig.version());
@@ -1753,6 +1752,7 @@ impl Cert {
                              ctx.into_digest()
                          })
                      {
+                       Ok(hash) => {
                          if &$sig.digest_prefix()[..] == &hash[..2] {
                              t!("Sig {:02X}{:02X}, {:?} \
                                  was out of place.  Likely belongs to {}.",
@@ -1778,17 +1778,18 @@ impl Cert {
                          } else {
                              t!("Sig {:02X}{:02X}, {:?} \
                                  does not belong to {}: \
-                                 hash prefix mismatch",
+                                 hash prefix mismatch {}",
                                 $sig.digest_prefix()[0],
                                 $sig.digest_prefix()[1],
-                                $sig.typ(), $desc);
+                                $sig.typ(), $desc,
+                                crate::fmt::hex::encode(&hash));
                          }
-                     } else {
-                         t!("Sig {:02X}{:02X}, type = {} \
-                             doesn't use a supported hash algorithm: \
-                             {:?} unsupported",
-                            $sig.digest_prefix()[0], $sig.digest_prefix()[1],
-                            $sig.typ(), $sig.hash_algo());
+                       },
+                       Err(e) => {
+                           t!("Sig {:02X}{:02X}, type = {}: {}",
+                              $sig.digest_prefix()[0], $sig.digest_prefix()[1],
+                              $sig.typ(), e);
+                       },
                      }
                    }
                  });
@@ -1840,7 +1841,7 @@ impl Cert {
                     } else {
                         // Use hash prefix as heuristic.
                         let key = self.primary.key();
-                        if let Ok(hash) = $sig.hash_algo().context()
+                        match $sig.hash_algo().context()
                             .and_then(|ctx| {
                                 let mut ctx =
                                     ctx.for_signature($sig.version());
@@ -1849,6 +1850,7 @@ impl Cert {
                                 ctx.into_digest()
                             })
                         {
+                          Ok(hash) => {
                             if &$sig.digest_prefix()[..] == &hash[..2] {
                                 t!("Sig {:02X}{:02X}, {:?} \
                                     was out of place.  Likely belongs to {}.",
@@ -1874,17 +1876,18 @@ impl Cert {
                             } else {
                                 t!("Sig {:02X}{:02X}, {:?} \
                                     does not belong to {}: \
-                                    hash prefix mismatch",
+                                    hash prefix mismatch {}",
                                    $sig.digest_prefix()[0],
                                    $sig.digest_prefix()[1],
-                                   $sig.typ(), $desc);
+                                   $sig.typ(), $desc,
+                                   crate::fmt::hex::encode(&hash));
                             }
-                        } else {
-                            t!("Sig {:02X}{:02X}, type = {} \
-                                doesn't use a supported hash algorithm: \
-                                {:?} unsupported",
+                          },
+                          Err(e) => {
+                            t!("Sig {:02X}{:02X}, type = {}: {}",
                                $sig.digest_prefix()[0], $sig.digest_prefix()[1],
-                               $sig.typ(), $sig.hash_algo());
+                               $sig.typ(), e);
+                          },
                         }
                     }
                   }
