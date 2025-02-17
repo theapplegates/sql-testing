@@ -310,6 +310,14 @@ impl SBVersion {
             SBVersion::V6 { .. } => 6,
         }
     }
+
+    /// Returns the salt, if any.
+    pub(crate) fn salt(&self) -> Option<&[u8]> {
+        match self {
+            SBVersion::V4 { .. } => None,
+            SBVersion::V6 { salt, .. } => Some(&salt),
+        }
+    }
 }
 
 /// A Signature builder.

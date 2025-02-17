@@ -162,15 +162,17 @@ use std::borrow::Borrow;
 
 use crate::{
     cert::prelude::*,
-    crypto::{Signer, hash::{self, Hash}},
+    crypto::{Signer, hash::Hash},
     Error,
     KeyHandle,
     packet,
     packet::{
+        Key,
         Signature,
         Unknown,
         UserAttribute,
         UserID,
+        key::{PrimaryRole, PublicParts},
     },
     Result,
     policy::{
@@ -1653,12 +1655,6 @@ impl<'a> UserIDAmalgamation<'a> {
     {
         let time = time.into();
 
-        // Hash the components like in a binding signature.
-        let mut hash = HashAlgorithm::default().context()?
-            .for_signature(primary_signer.public().version());
-        self.cert().primary_key().key().hash(&mut hash)?;
-        self.userid().hash(&mut hash)?;
-
         // Check if there is a previous attestation.  If so, we need
         // that to robustly override it.
         let old = self.clone()
@@ -1667,7 +1663,9 @@ impl<'a> UserIDAmalgamation<'a> {
             .and_then(
                 |v| v.certification_approval_key_signatures().next().cloned());
 
-        approve_of_certifications_common(hash, old, time, primary_signer,
+        approve_of_certifications_common(self.cert().primary_key().key(),
+                                         self.userid(),
+                                         old, time, primary_signer,
                                          certifications)
     }
 }
@@ -1772,12 +1770,6 @@ impl<'a> UserAttributeAmalgamation<'a> {
     {
         let time = time.into();
 
-        // Hash the components like in a binding signature.
-        let mut hash = HashAlgorithm::default().context()?
-            .for_signature(primary_signer.public().version());
-        self.cert().primary_key().key().hash(&mut hash)?;
-        self.user_attribute().hash(&mut hash)?;
-
         // Check if there is a previous attestation.  If so, we need
         // that to robustly override it.
         let old = self.clone()
@@ -1786,13 +1778,16 @@ impl<'a> UserAttributeAmalgamation<'a> {
             .and_then(
                 |v| v.certification_approval_key_signatures().next().cloned());
 
-        approve_of_certifications_common(hash, old, time, primary_signer,
+        approve_of_certifications_common(self.cert().primary_key().key(),
+                                         self.user_attribute(),
+                                         old, time, primary_signer,
                                          certifications)
     }
 }
 
 /// Approves of third-party certifications.
-fn approve_of_certifications_common<C, S>(hash: hash::Context,
+fn approve_of_certifications_common<C, S>(key: &Key<PublicParts, PrimaryRole>,
+                                          component: &dyn Hash,
                                           old_attestation: Option<Signature>,
                                           time: Option<SystemTime>,
                                           primary_signer: &mut dyn Signer,
@@ -1809,8 +1804,9 @@ where C: IntoIterator<Item = S>,
     // Fix the time.
     let now = time.unwrap_or_else(crate::now);
 
-    let hash_algo = hash.algo();
-    let digest_size = hash.digest_size();
+    // Fix the algorithm.
+    let hash_algo = HashAlgorithm::default();
+    let digest_size = hash_algo.digest_size()?;
 
     let mut attestations = Vec::new();
     for certification in certifications.into_iter() {
@@ -1856,14 +1852,17 @@ where C: IntoIterator<Item = S>,
     };
 
     let template = template
-        .set_hash_algo(hash_algo)
-    // Important for size calculation.
-        .pre_sign(primary_signer)?;
+        .set_hash_algo(hash_algo);
 
     // Compute the available space in the hashed area.  For this,
     // it is important that template.pre_sign has been called.
-    let available_space =
-        SubpacketArea::MAX_SIZE - template.hashed_area().serialized_len();
+    let available_space = {
+        // But, we do it on a clone, so that `template` is still not
+        // initialized.
+        let t = template.clone().pre_sign(primary_signer)?;
+
+        SubpacketArea::MAX_SIZE - t.hashed_area().serialized_len()
+    };
 
     // Reserve space for the subpacket header, length and tag.
     const SUBPACKET_HEADER_MAX_LEN: usize = 5 + 1;
@@ -1875,20 +1874,43 @@ where C: IntoIterator<Item = S>,
     // Now create the signatures.
     let mut sigs = Vec::new();
     for digests in attestations.chunks(digests_per_sig) {
-        sigs.push(
-            template.clone()
-                .set_approved_certifications(digests)?
-                .sign_hash(primary_signer, hash.clone())?);
+        // Hash the components.  First, initialize the salt.
+        let t = template.clone().pre_sign(primary_signer)?;
+
+        let mut hash = hash_algo.context()?
+            .for_signature(primary_signer.public().version());
+
+        if let Some(salt) = t.sb_version.salt() {
+            hash.update(salt);
+        }
+        key.hash(&mut hash)?;
+        component.hash(&mut hash)?;
+
+        sigs.push(t
+                  .set_approved_certifications(digests)?
+                  .sign_hash(primary_signer, hash)?);
     }
 
     if attestations.is_empty() {
         // The certificate owner can withdraw attestations by issuing
         // an empty attestation key signature.
         assert!(sigs.is_empty());
-        sigs.push(
-            template
-                .set_approved_certifications(Option::<&[u8]>::None)?
-                .sign_hash(primary_signer, hash.clone())?);
+
+        // Hash the components.  First, initialize the salt.
+        let t = template.clone().pre_sign(primary_signer)?;
+
+        let mut hash = hash_algo.context()?
+            .for_signature(primary_signer.public().version());
+
+        if let Some(salt) = t.sb_version.salt() {
+            hash.update(salt);
+        }
+        key.hash(&mut hash)?;
+        component.hash(&mut hash)?;
+
+        sigs.push(t
+                  .set_approved_certifications(Option::<&[u8]>::None)?
+                  .sign_hash(primary_signer, hash.clone())?);
     }
 
     Ok(sigs)

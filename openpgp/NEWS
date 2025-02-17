@@ -10,6 +10,9 @@
    - ValidCert::fingerprint
    - ValidCert::keyid
 
+** Notable fixes
+   - Generation of v6 certification approval signatures is fixed
+
 * Changes in 2.0.0.alpha.1
 ** API changes
    - ComponentBundle::self_signatures2 renamed to ComponentBundle::self_signatures
