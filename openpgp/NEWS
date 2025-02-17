@@ -9,6 +9,8 @@
    - ValidCert::key_handle
    - ValidCert::fingerprint
    - ValidCert::keyid
+   - ValidComponentAmalgamation::amalgamation
+   - ValidKeyAmalgamation::amalgamation
 
 ** Notable fixes
    - Generation of v6 certification approval signatures is fixed

@@ -1670,6 +1670,38 @@ where
         self.binding_signature
     }
 
+    /// Returns the valid amalgamation's amalgamation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) = CertBuilder::new()
+    /// #     .add_userid("Alice")
+    /// #     .add_signing_subkey()
+    /// #     .add_transport_encryption_subkey()
+    /// #     .generate()?;
+    /// // Get a key amalgamation.
+    /// let ka = cert.primary_key();
+    ///
+    /// // Validate it, yielding a valid key amalgamation.
+    /// let vka = ka.with_policy(p, None)?;
+    ///
+    /// // And here we get the amalgamation back.
+    /// let ka2 = vka.amalgamation();
+    /// assert_eq!(&ka, ka2);
+    /// # Ok(()) }
+    /// ```
+    pub fn amalgamation(&self) -> &KeyAmalgamation<'a, P, R, R2> {
+        &self.ka
+    }
+
     /// Returns this amalgamation's bundle.
     pub fn bundle(&self) -> &'a crate::cert::ComponentBundle<Key<P, R>> {
         self.ka.bundle()

@@ -2088,6 +2088,38 @@ impl<'a, C> ValidComponentAmalgamation<'a, C> {
         self.binding_signature
     }
 
+    /// Returns the valid amalgamation's amalgamation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// use openpgp::policy::StandardPolicy;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) = CertBuilder::new()
+    /// #     .add_userid("Alice")
+    /// #     .add_signing_subkey()
+    /// #     .add_transport_encryption_subkey()
+    /// #     .generate()?;
+    /// // Get a user ID amalgamation.
+    /// let ua = cert.userids().next().expect("added one");
+    ///
+    /// // Validate it, yielding a valid component amalgamation.
+    /// let vua = ua.with_policy(p, None)?;
+    ///
+    /// // And here we get the amalgamation back.
+    /// let ua2 = vua.amalgamation();
+    /// assert_eq!(&ua, ua2);
+    /// # Ok(()) }
+    /// ```
+    pub fn amalgamation(&self) -> &ComponentAmalgamation<'a, C> {
+        &self.ca
+    }
+
     /// Returns this valid amalgamation's bundle.
     ///
     /// # Examples
