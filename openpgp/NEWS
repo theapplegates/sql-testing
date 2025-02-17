@@ -5,6 +5,9 @@
 
 
 * Changes in 2.0.0.alpha.2
+** API changes
+   - ValidKeyAmalgamation::into_key_amalgamation removed
+
 ** New functionality
    - ValidCert::key_handle
    - ValidCert::fingerprint

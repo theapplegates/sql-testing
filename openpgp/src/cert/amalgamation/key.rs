@@ -2308,37 +2308,6 @@ impl<'a, P, R, R2> ValidKeyAmalgamation<'a, P, R, R2>
             Ok(())
         }
     }
-
-    /// Returns the wrapped `KeyAmalgamation`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use sequoia_openpgp as openpgp;
-    /// # use openpgp::cert::prelude::*;
-    /// use openpgp::policy::StandardPolicy;
-    ///
-    /// # fn main() -> openpgp::Result<()> {
-    /// let p = &StandardPolicy::new();
-    ///
-    /// # let (cert, _) = CertBuilder::new()
-    /// #     .add_userid("Alice")
-    /// #     .add_signing_subkey()
-    /// #     .add_transport_encryption_subkey()
-    /// #     .generate()?;
-    /// let ka = cert.primary_key();
-    ///
-    /// // `with_policy` takes ownership of `ka`.
-    /// let vka = ka.with_policy(p, None)?;
-    ///
-    /// // And here we get it back:
-    /// let ka = vka.into_key_amalgamation();
-    /// # Ok(()) }
-    /// ```
-    pub fn into_key_amalgamation(self) -> KeyAmalgamation<'a, P, R, R2> {
-        self.ka
-    }
-
 }
 
 impl<'a, P, R, R2> ValidKeyAmalgamation<'a, P, R, R2>
