@@ -437,7 +437,7 @@ pub trait PrimaryKey<'a, P, R>: seal::Sealed
 /// [`Cert::keys`]: crate::cert::Cert::keys()
 /// [`ValidateAmalgamation`]: super::ValidateAmalgamation
 /// [`KeyAmalgamation::with_policy`]: super::ValidateAmalgamation::with_policy()
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct KeyAmalgamation<'a, P, R, R2>
     where P: 'a + key::KeyParts,
           R: 'a + key::KeyRole,
