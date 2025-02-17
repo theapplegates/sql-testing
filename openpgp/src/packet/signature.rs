@@ -2961,7 +2961,7 @@ impl Signature {
             let mut additional_issuers = Vec::with_capacity(0);
 
             let id = KeyHandle::from(key.keyid());
-            if ! issuers.contains(&id) {
+            if self.version() <= 4 && ! issuers.contains(&id) {
                 additional_issuers.push(id);
             }
 
