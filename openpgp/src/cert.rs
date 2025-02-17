@@ -4266,6 +4266,94 @@ impl<'a> ValidCert<'a> {
     {
         self.cert.revocation_keys(self.policy())
     }
+
+    /// Returns the certificate's fingerprint as a `KeyHandle`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// # use openpgp::KeyHandle;
+    /// # use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(Some("alice@example.org"))
+    /// #     .generate()?;
+    /// #
+    /// println!("{}", cert.with_policy(p, None)?.key_handle());
+    ///
+    /// // This always returns a fingerprint.
+    /// match cert.with_policy(p, None)?.key_handle() {
+    ///     KeyHandle::Fingerprint(_) => (),
+    ///     KeyHandle::KeyID(_) => unreachable!(),
+    /// }
+    /// #
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn key_handle(&self) -> KeyHandle {
+        self.cert().key_handle()
+    }
+
+    /// Returns the certificate's fingerprint.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// # use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(Some("alice@example.org"))
+    /// #     .generate()?;
+    /// #
+    /// println!("{}", cert.with_policy(p, None)?.fingerprint());
+    /// #
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn fingerprint(&self) -> Fingerprint {
+        self.cert().fingerprint()
+    }
+
+    /// Returns the certificate's Key ID.
+    ///
+    /// As a general rule of thumb, you should prefer the fingerprint
+    /// as it is possible to create keys with a colliding Key ID using
+    /// a [birthday attack].
+    ///
+    /// [birthday attack]: https://nullprogram.com/blog/2019/07/22/
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use sequoia_openpgp as openpgp;
+    /// # use openpgp::cert::prelude::*;
+    /// # use openpgp::policy::StandardPolicy;
+    /// #
+    /// # fn main() -> openpgp::Result<()> {
+    /// let p = &StandardPolicy::new();
+    ///
+    /// # let (cert, _) =
+    /// #     CertBuilder::general_purpose(Some("alice@example.org"))
+    /// #     .generate()?;
+    /// #
+    /// println!("{}", cert.with_policy(p, None)?.keyid());
+    /// #
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn keyid(&self) -> KeyID {
+        self.cert().keyid()
+    }
 }
 
 macro_rules! impl_pref {

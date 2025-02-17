@@ -4,6 +4,12 @@
 #+STARTUP: content hidestars
 
 
+* Changes in 2.0.0.alpha.2
+** New functionality
+   - ValidCert::key_handle
+   - ValidCert::fingerprint
+   - ValidCert::keyid
+
 * Changes in 2.0.0.alpha.1
 ** API changes
    - ComponentBundle::self_signatures2 renamed to ComponentBundle::self_signatures
