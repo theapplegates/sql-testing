@@ -125,6 +125,7 @@ use crate::{
     Fingerprint,
     HashAlgorithm,
     KeyID,
+    Profile,
     Result,
     crypto::Password,
     crypto::SessionKey,
@@ -170,6 +171,9 @@ struct Cookie {
 enum Private {
     Nothing,
     Signer,
+    Armorer {
+        set_profile: Option<Profile>,
+    },
 }
 
 impl Cookie {
@@ -500,9 +504,14 @@ impl<'a> Armorer<'a> {
     /// # Ok(()) }
     pub fn build(self) -> Result<Message<'a>> {
         let level = self.inner.as_ref().cookie_ref().level;
+        let mut cookie = Cookie::new(level + 1);
+        cookie.private = Private::Armorer {
+            set_profile: None,
+        };
+
         writer::Armorer::new(
             self.inner,
-            Cookie::new(level + 1),
+            cookie,
             self.kind,
             self.headers,
         )
@@ -1288,6 +1297,11 @@ impl<'a> Signer<'a> {
     {
         assert!(!self.signers.is_empty(), "The constructor adds a signer.");
         assert!(self.inner.is_some(), "The constructor adds an inner writer.");
+
+        // Possibly configure any armor writer above us.
+        if self.signers.iter().all(|(kp, _, _)| kp.public().version() > 4) {
+            writer::Armorer::set_profile(&mut self, Profile::RFC9580);
+        }
 
         for (keypair, signer_hash, signer_salt) in self.signers.iter_mut() {
             let algo = if let Some(a) = self.hash_algo {
@@ -3001,6 +3015,9 @@ impl<'a, 'b> Encryptor<'a, 'b> {
         }
 
         let aead = if let Some(algo) = self.aead_algo {
+            // Configure any armor writer above us.
+            writer::Armorer::set_profile(&mut self, Profile::RFC9580);
+
             let mut salt = [0u8; 32];
             crypto::random(&mut salt)?;
             Some(AEADParameters {
