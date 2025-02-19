@@ -355,6 +355,9 @@ pub struct CertBuilder<'a> {
     creation_time: Option<std::time::SystemTime>,
     ciphersuite: CipherSuite,
     profile: Profile,
+
+    /// Advertised features.
+    features: Features,
     primary: KeyBlueprint,
     subkeys: Vec<(Option<SignatureBuilder>, KeyBlueprint)>,
     userids: Vec<(Option<SignatureBuilder>, packet::UserID)>,
@@ -408,6 +411,7 @@ impl CertBuilder<'_> {
             creation_time: None,
             ciphersuite: CipherSuite::default(),
             profile: Default::default(),
+            features: Features::sequoia(),
             primary: KeyBlueprint{
                 flags: KeyFlags::empty().set_certification(),
                 validity: None,
@@ -654,7 +658,6 @@ impl CertBuilder<'_> {
     /// ```
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::cert::prelude::*;
-    /// use openpgp::types::PublicKeyAlgorithm;
     ///
     /// # fn main() -> openpgp::Result<()> {
     /// let (key, _) =
@@ -664,7 +667,7 @@ impl CertBuilder<'_> {
     /// assert_eq!(key.primary_key().key().version(), 6);
     ///
     /// let (key, _) =
-    ///     CertBuilder::general_purpose(Some("alice@example.org"))
+    ///     CertBuilder::general_purpose(Some("bob@example.org"))
     ///         .set_profile(openpgp::Profile::RFC4880)?
     ///         .generate()?;
     /// assert_eq!(key.primary_key().key().version(), 4);
@@ -673,6 +676,40 @@ impl CertBuilder<'_> {
     /// ```
     pub fn set_profile(mut self, profile: Profile) -> Result<Self> {
         self.profile = profile;
+        Ok(self)
+    }
+
+    /// Sets the features the certificate will advertise.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use sequoia_openpgp as openpgp;
+    /// use openpgp::cert::prelude::*;
+    /// use openpgp::types::Features;
+    ///
+    /// # fn main() -> openpgp::Result<()> {
+    /// let (key, _) =
+    ///     CertBuilder::general_purpose(Some("alice@example.org"))
+    ///         .set_profile(openpgp::Profile::RFC9580)?
+    ///         .generate()?;
+    /// assert_eq!(key.primary_key().key().version(), 6);
+    ///
+    /// // Bob is old-school: he needs this key to work on an old
+    /// // phone.  Therefore, he doesn't want to get SEIPDv2 messages,
+    /// // which his phone doesn't handle.  He advertises support for
+    /// // SEIPDv1 only.
+    /// let (key, _) =
+    ///     CertBuilder::general_purpose(Some("bob@example.org"))
+    ///         .set_profile(openpgp::Profile::RFC4880)?
+    ///         .set_features(Features::empty().set_seipdv1())?
+    ///         .generate()?;
+    /// assert_eq!(key.primary_key().key().version(), 4);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn set_features(mut self, features: Features) -> Result<Self> {
+        self.features = features;
         Ok(self)
     }
 
@@ -1723,7 +1760,7 @@ impl CertBuilder<'_> {
                                 -> Result<SignatureBuilder>
     {
         builder
-            .set_features(Features::sequoia())?
+            .set_features(self.features.clone())?
             .set_key_flags(self.primary.flags.clone())?
             .set_key_validity_period(self.primary.validity)?
             .set_preferred_hash_algorithms(vec![
