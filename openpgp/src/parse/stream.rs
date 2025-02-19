@@ -3030,7 +3030,7 @@ pub(crate) mod test {
     };
 
     /// Verification helper for the tests.
-    #[derive(Clone, PartialEq)]
+    #[derive(Clone)]
     pub struct VHelper {
         good: usize,
         unknown: usize,
@@ -3107,6 +3107,14 @@ pub(crate) mod test {
                 for_decryption: true,
                 error_out: true,
             }
+        }
+
+        /// Compares the stats.
+        pub fn assert_stats_eq(&self, other: &Self) {
+            assert_eq!(self.good, other.good);
+            assert_eq!(self.unknown, other.unknown);
+            assert_eq!(self.bad, other.bad);
+            assert_eq!(self.error, other.error);
         }
     }
 
@@ -3325,7 +3333,7 @@ pub(crate) mod test {
                     },
                 };
             assert!(v.message_processed());
-            assert_eq!(v.helper_ref(), r);
+            r.assert_stats_eq(v.helper_ref());
 
             if v.helper_ref().error > 0 {
                 // Expected error.  No point in trying to read
@@ -3356,7 +3364,7 @@ pub(crate) mod test {
                     },
                 };
             assert!(v.message_processed());
-            assert_eq!(v.helper_ref(), r);
+            r.assert_stats_eq(v.helper_ref());
 
             if v.helper_ref().error > 0 {
                 // Expected error.  No point in trying to read
