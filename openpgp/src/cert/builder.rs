@@ -1504,7 +1504,7 @@ impl CertBuilder<'_> {
     ///         .generate()?;
     /// # Ok(()) }
     /// ```
-    pub fn generate(self) -> Result<(Cert, Signature)> {
+    pub fn generate(mut self) -> Result<(Cert, Signature)> {
         use crate::Packet;
         use crate::types::ReasonForRevocation;
 
@@ -1552,12 +1552,12 @@ impl CertBuilder<'_> {
         let mut emitted_primary_user_thing = false;
 
         // Sign UserIDs.
-        for (template, uid) in self.userids.into_iter() {
+        for (template, uid) in std::mem::take(&mut self.userids).into_iter() {
             let sig = template.unwrap_or_else(
                 || SignatureBuilder::new(SignatureType::PositiveCertification));
             let sig = Self::signature_common(sig, creation_time,
                                              self.exportable)?;
-            let mut sig = Self::add_primary_key_metadata(sig, &self.primary)?;
+            let mut sig = self.add_primary_key_metadata(sig)?;
 
             // Make sure we mark exactly one User ID or Attribute as
             // primary.
@@ -1583,12 +1583,12 @@ impl CertBuilder<'_> {
         }
 
         // Sign UserAttributes.
-        for (template, ua) in self.user_attributes.into_iter() {
+        for (template, ua) in std::mem::take(&mut self.user_attributes) {
             let sig = template.unwrap_or_else(
                 || SignatureBuilder::new(SignatureType::PositiveCertification));
             let sig = Self::signature_common(
                 sig, creation_time, self.exportable)?;
-            let mut sig = Self::add_primary_key_metadata(sig, &self.primary)?;
+            let mut sig = self.add_primary_key_metadata(sig)?;
 
             // Make sure we mark exactly one User ID or Attribute as
             // primary.
@@ -1685,7 +1685,7 @@ impl CertBuilder<'_> {
         let sig = SignatureBuilder::new(SignatureType::DirectKey);
         let sig = Self::signature_common(
             sig, creation_time, self.exportable)?;
-        let mut sig = Self::add_primary_key_metadata(sig, &self.primary)?;
+        let mut sig = self.add_primary_key_metadata(sig)?;
 
         if let Some(ref revocation_keys) = self.revocation_keys {
             for k in revocation_keys.into_iter().cloned() {
@@ -1718,14 +1718,14 @@ impl CertBuilder<'_> {
 
 
     /// Adds primary key metadata to the signature.
-    fn add_primary_key_metadata(builder: SignatureBuilder,
-                                primary: &KeyBlueprint)
+    fn add_primary_key_metadata(&self,
+                                builder: SignatureBuilder)
                                 -> Result<SignatureBuilder>
     {
         builder
             .set_features(Features::sequoia())?
-            .set_key_flags(primary.flags.clone())?
-            .set_key_validity_period(primary.validity)?
+            .set_key_flags(self.primary.flags.clone())?
+            .set_key_validity_period(self.primary.validity)?
             .set_preferred_hash_algorithms(vec![
                 HashAlgorithm::SHA512,
                 HashAlgorithm::SHA256,
