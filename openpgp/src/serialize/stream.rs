@@ -3582,6 +3582,8 @@ mod test {
     fn test_aead_messages_v(algo: AEADAlgorithm, profile: Profile)
                             -> Result<()>
     {
+        eprintln!("Testing with {:?}", profile);
+
         if ! algo.is_supported() {
             eprintln!("Skipping because {} is not supported.", algo);
             return Ok(());
