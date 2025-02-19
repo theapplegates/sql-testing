@@ -145,6 +145,7 @@ use crate::types::{
     CompressionAlgorithm,
     CompressionLevel,
     DataFormat,
+    Features,
     SignatureType,
     SymmetricAlgorithm,
 };
@@ -2153,33 +2154,50 @@ impl<'a> writer::Stackable<'a, Cookie> for Compressor<'a> {
 #[derive(Debug)]
 pub struct Recipient<'a> {
     handle: Option<KeyHandle>,
+    features: Features,
     key: &'a Key<key::PublicParts, key::UnspecifiedRole>,
 }
 assert_send_and_sync!(Recipient<'_>);
 
-impl<'a, P, R> From<&'a Key<P, R>> for Recipient<'a>
-    where P: key::KeyParts,
-          R: key::KeyRole,
+impl<'a, P> From<ValidSubordinateKeyAmalgamation<'a, P>>
+    for Recipient<'a>
+where
+    P: key::KeyParts,
 {
-    fn from(key: &'a Key<P, R>) -> Self {
-        let handle: KeyHandle = if key.version() <= 4 {
-            key.keyid().into()
+    fn from(ka: ValidSubordinateKeyAmalgamation<'a, P>) -> Self {
+        let features = ka.valid_cert().features()
+            .unwrap_or_else(Features::empty);
+        let handle: KeyHandle = if features.supports_seipdv2() {
+            ka.key().fingerprint().into()
         } else {
-            key.fingerprint().into()
+            ka.key().keyid().into()
         };
 
-        Self::new(handle, key.parts_as_public().role_as_unspecified())
+        use crate::cert::Preferences;
+        use crate::cert::amalgamation::ValidAmalgamation;
+        Self::new(features, handle,
+                  ka.key().parts_as_public().role_as_unspecified())
     }
 }
 
-impl<'a, P, R, R2> From<ValidKeyAmalgamation<'a, P, R, R2>>
+impl<'a, P> From<ValidErasedKeyAmalgamation<'a, P>>
     for Recipient<'a>
-    where P: key::KeyParts,
-          R: key::KeyRole,
-          R2: Copy,
+where
+    P: key::KeyParts,
 {
-    fn from(ka: ValidKeyAmalgamation<'a, P, R, R2>) -> Self {
-        ka.key().into()
+    fn from(ka: ValidErasedKeyAmalgamation<'a, P>) -> Self {
+        let features = ka.valid_cert().features()
+            .unwrap_or_else(Features::empty);
+        let handle: KeyHandle = if features.supports_seipdv2() {
+            ka.key().fingerprint().into()
+        } else {
+            ka.key().keyid().into()
+        };
+
+        use crate::cert::Preferences;
+        use crate::cert::amalgamation::ValidAmalgamation;
+        Self::new(features, handle,
+                  ka.key().parts_as_public().role_as_unspecified())
     }
 }
 
@@ -2235,7 +2253,7 @@ impl<'a> Recipient<'a> {
     ///     // Or `for_storage_encryption()`, for data at rest.
     ///     .for_transport_encryption()
     ///     // Make an anonymous recipient.
-    ///     .map(|ka| Recipient::new(None, ka.key()));
+    ///     .map(|ka| Recipient::new(ka.valid_cert().features(), None, ka.key()));
     ///
     /// # let mut sink = vec![];
     /// let message = Message::new(&mut sink);
@@ -2243,13 +2261,16 @@ impl<'a> Recipient<'a> {
     /// # let _ = message;
     /// # Ok(()) }
     /// ```
-    pub fn new<H, P, R>(handle: H, key: &'a Key<P, R>) -> Recipient<'a>
+    pub fn new<F, H, P, R>(features: F, handle: H, key: &'a Key<P, R>)
+                           -> Recipient<'a>
     where
+        F: Into<Option<Features>>,
         H: Into<Option<KeyHandle>>,
         P: key::KeyParts,
         R: key::KeyRole,
     {
         Recipient {
+            features: features.into().unwrap_or_else(Features::sequoia),
             handle: handle.into(),
             key: key.parts_as_public().role_as_unspecified(),
         }
@@ -2652,7 +2673,9 @@ impl<'a, 'b> Encryptor<'a, 'b> {
     ///     Packet::from(p).serialize(&mut message)?;
     /// }
     /// let message = Encryptor::with_session_key(
-    ///     message, algo.unwrap_or_default(), sk)?.build()?;
+    ///     message, algo.unwrap_or_default(), sk)?
+    ///     .aead_algo(Default::default())
+    ///     .build()?;
     /// let mut w = LiteralWriter::new(message).build()?;
     /// w.write_all(b"Encrypted reply")?;
     /// w.finalize()?;
@@ -3024,11 +3047,7 @@ impl<'a, 'b> Encryptor<'a, 'b> {
             // See whether all recipients support SEIPDv2.
             if ! self.recipients.is_empty()
                 && self.recipients.iter().all(|r| {
-                    // XXX: We should be looking at the features, but
-                    // we don't have that context here.  Instead, we
-                    // infer support for SEIPDv2 by looking at the key
-                    // version.
-                    r.key.version() == 6
+                    r.features.supports_seipdv2()
                 })
             {
                 // This prefers OCB if supported.  OCB is MTI.
@@ -3588,19 +3607,16 @@ mod test {
         }
     }
 
-    #[ignore]
     #[test]
     fn aead_eax() -> Result<()> {
         test_aead_messages(AEADAlgorithm::EAX)
     }
 
-    #[ignore]
     #[test]
     fn aead_ocb() -> Result<()> {
         test_aead_messages(AEADAlgorithm::OCB)
     }
 
-    #[ignore]
     #[test]
     fn aead_gcm() -> Result<()> {
         test_aead_messages(AEADAlgorithm::GCM)
@@ -4291,5 +4307,90 @@ mod test {
 
             Ok(sink)
         }
+    }
+
+    /// Encrypts to a v4 and a v6 recipient using SEIPDv1.
+    #[test]
+    fn mixed_recipients_seipd1() -> Result<()> {
+        let alice = CertBuilder::general_purpose(Some("alice"))
+            .set_profile(Profile::RFC9580)?
+            .generate()?.0;
+        let bob = CertBuilder::general_purpose(Some("bob"))
+            .set_profile(Profile::RFC4880)?
+            .set_features(Features::empty().set_seipdv1())?
+            .generate()?.0;
+        mixed_recipients_intern(alice, bob, 1)
+    }
+
+    /// Encrypts to a v4 and a v6 recipient using SEIPDv2.
+    #[test]
+    fn mixed_recipients_seipd2() -> Result<()> {
+        let alice = CertBuilder::general_purpose(Some("alice"))
+            .set_profile(Profile::RFC9580)?
+            .generate()?.0;
+        let bob = CertBuilder::general_purpose(Some("bob"))
+            .set_profile(Profile::RFC4880)?
+            .generate()?.0;
+        mixed_recipients_intern(alice, bob, 2)
+    }
+
+    fn mixed_recipients_intern(alice: Cert, bob: Cert, seipdv: u8)
+                               -> Result<()>
+    {
+        use crate::policy::StandardPolicy;
+        use crate::parse::stream::{
+            DecryptorBuilder,
+            test::VHelper,
+        };
+
+        let p = StandardPolicy::new();
+        let recipients = [&alice, &bob].into_iter().flat_map(
+            |c| c.keys().with_policy(&p, None).for_storage_encryption());
+
+        let mut sink = vec![];
+        let message = Message::new(&mut sink);
+        let message =
+            Encryptor::for_recipients(message, recipients)
+            .build()?;
+        let mut message = LiteralWriter::new(message).build()?;
+        message.write_all(b"Hello world.")?;
+        message.finalize()?;
+
+        for key in [alice, bob] {
+            eprintln!("Decrypting with key version {}",
+                      key.primary_key().key().version());
+            let h = VHelper::for_decryption(0, 0, 0, 0, Vec::new(),
+                                            vec![key], Vec::new());
+            let mut d = DecryptorBuilder::from_bytes(&sink)?
+                .with_policy(&p, None, h)?;
+            assert!(d.message_processed());
+
+            let mut content = Vec::new();
+            d.read_to_end(&mut content).unwrap();
+            assert_eq!(&b"Hello world."[..], &content[..]);
+
+            use Packet::*;
+            match seipdv {
+                1 => d.helper_ref().packets.iter().for_each(
+                    |p| match p {
+                        PKESK(p) => assert_eq!(p.version(), 3),
+                        SKESK(p) => assert_eq!(p.version(), 4),
+                        SEIP(p) => assert_eq!(p.version(), 1),
+                        _ => (),
+                    }),
+
+                2 => d.helper_ref().packets.iter().for_each(
+                    |p| match p {
+                        PKESK(p) => assert_eq!(p.version(), 6),
+                        SKESK(p) => assert_eq!(p.version(), 6),
+                        SEIP(p) => assert_eq!(p.version(), 2),
+                        _ => (),
+                    }),
+
+                _ => unreachable!(),
+            }
+        }
+
+        Ok(())
     }
 }

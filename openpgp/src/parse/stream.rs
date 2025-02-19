@@ -3056,6 +3056,7 @@ pub(crate) mod test {
         passwords: Vec<Password>,
         for_decryption: bool,
         error_out: bool,
+        pub packets: Vec<Packet>,
     }
 
     impl std::fmt::Debug for VHelper {
@@ -3082,6 +3083,7 @@ pub(crate) mod test {
                 passwords: Default::default(),
                 for_decryption: false,
                 error_out: true,
+                packets: Default::default(),
             }
         }
     }
@@ -3101,6 +3103,7 @@ pub(crate) mod test {
                 passwords: Default::default(),
                 for_decryption: false,
                 error_out: true,
+                packets: Default::default(),
             }
         }
 
@@ -3121,6 +3124,7 @@ pub(crate) mod test {
                 passwords,
                 for_decryption: true,
                 error_out: true,
+                packets: Default::default(),
             }
         }
 
@@ -3134,6 +3138,11 @@ pub(crate) mod test {
     }
 
     impl VerificationHelper for VHelper {
+        fn inspect(&mut self, pp: &PacketParser<'_>) -> Result<()> {
+            self.packets.push(pp.packet.clone());
+            Ok(())
+        }
+
         fn get_certs(&mut self, _ids: &[crate::KeyHandle]) -> Result<Vec<Cert>> {
             Ok(self.certs.clone())
         }
