@@ -2351,8 +2351,23 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
         let mut skesks: Vec<packet::SKESK> = Vec::new();
 
         while let PacketParserResult::Some(mut pp) = ppr {
-            t!("Found a {:?} at depth {}", pp.packet.tag(),
-               pp.recursion_depth());
+            match &pp.packet {
+                Packet::PKESK(p) =>
+                    t!("Found a {:?}v{} at depth {}",
+                       pp.packet.tag(), p.version(),
+                       pp.recursion_depth()),
+                Packet::SKESK(p) =>
+                    t!("Found a {:?}v{} at depth {}",
+                       pp.packet.tag(), p.version(),
+                       pp.recursion_depth()),
+                Packet::SEIP(p) =>
+                    t!("Found a {:?}v{} at depth {}",
+                       pp.packet.tag(), p.version(),
+                       pp.recursion_depth()),
+                _ =>
+                    t!("Found a {:?} at depth {}", pp.packet.tag(),
+                       pp.recursion_depth()),
+            }
 
             // Check whether we are actually processing a cleartext
             // signature framework message.
