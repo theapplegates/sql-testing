@@ -14,6 +14,7 @@
    - ValidCert::keyid
    - ValidComponentAmalgamation::amalgamation
    - ValidKeyAmalgamation::amalgamation
+   - armor::Writer::set_profile
 
 ** Notable fixes
    - Generation of v6 certification approval signatures is fixed
