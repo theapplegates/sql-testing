@@ -3189,7 +3189,8 @@ FwPoSAbbsLkNS/iNN2MDGAVYvezYn2QZ
         let mut buf = p.to_vec().unwrap();
         // Avoid first two bytes so that we don't change the
         // type and reduce the chance of changing the length.
-        let bit = i.saturating_add(2 * 8) % (buf.len() * 8);
+        if buf.len() < 3 { return true; }
+        let bit = i % ((buf.len() - 2) * 8) + 16;
         buf[bit / 8] ^= 1 << (bit % 8);
         let ok = match Packet::from_bytes(&buf) {
             Ok(q) => p != q,
