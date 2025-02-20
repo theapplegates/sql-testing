@@ -2210,7 +2210,8 @@ pub struct Encrypted {
     /// how large its parameters are, so we cannot cleanly parse it,
     /// and have to accept that the S2K's body bleeds into the rest of
     /// the data.
-    ciphertext: std::result::Result<Box<[u8]>,  // IV + ciphertext.
+    ciphertext: std::result::Result<(usize, // IV length
+                                     Box<[u8]>),    // IV + ciphertext.
                                     Box<[u8]>>, // S2K body + IV + ciphertext.
 }
 
@@ -2272,7 +2273,7 @@ impl Encrypted {
                checksum: Option<mpi::SecretKeyChecksum>, ciphertext: Box<[u8]>)
         -> Self
     {
-        Self::new_raw(s2k, algo, checksum, Ok(ciphertext))
+        Self::new_raw(s2k, algo, checksum, Ok((0, ciphertext)))
     }
 
     /// Creates a new encrypted key object.
@@ -2288,14 +2289,14 @@ impl Encrypted {
             algo: sym_algo,
             aead: Some((aead_algo, aead_iv)),
             checksum: None,
-            ciphertext: Ok(ciphertext),
+            ciphertext: Ok((0, ciphertext)),
         }
     }
 
     /// Creates a new encrypted key object.
     pub(crate) fn new_raw(s2k: S2K, algo: SymmetricAlgorithm,
                           checksum: Option<mpi::SecretKeyChecksum>,
-                          ciphertext: std::result::Result<Box<[u8]>,
+                          ciphertext: std::result::Result<(usize, Box<[u8]>),
                                                           Box<[u8]>>)
         -> Self
     {
@@ -2341,7 +2342,7 @@ impl Encrypted {
     pub fn ciphertext(&self) -> Result<&[u8]> {
         self.ciphertext
             .as_ref()
-            .map(|ciphertext| &ciphertext[..])
+            .map(|(_cfb_iv_len, ciphertext)| &ciphertext[..])
             .map_err(|_| Error::MalformedPacket(
                 format!("Unknown S2K: {:?}", self.s2k)).into())
     }
@@ -2350,9 +2351,23 @@ impl Encrypted {
     /// the body of the S2K object.
     pub(crate) fn raw_ciphertext(&self) -> &[u8] {
         match self.ciphertext.as_ref() {
-            Ok(ciphertext) => &ciphertext[..],
+            Ok((_cfb_iv_len, ciphertext)) => &ciphertext[..],
             Err(s2k_ciphertext) => &s2k_ciphertext[..],
         }
+    }
+
+    /// Returns the length of the CFB IV, if used.
+    ///
+    /// In v6 key packets, we explicitly model the length of the IV,
+    /// but in Sequoia we store the IV and the ciphertext as one
+    /// block, due to how bad this was modeled in v4 key packets.
+    /// However, now that our in-core representation is less precise
+    /// to support v4, we need to track this length to uphold our
+    /// equality guarantee.
+    pub(crate) fn cfb_iv_len(&self) -> usize {
+        self.ciphertext.as_ref().ok()
+            .map(|(cfb_iv_len, _)| *cfb_iv_len)
+            .unwrap_or(0)
     }
 
     /// Decrypts the secret key material using `password`.
