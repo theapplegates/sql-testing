@@ -2224,15 +2224,20 @@ impl PartialEq for Encrypted {
         self.algo == other.algo
             && self.aead == other.aead
             && self.checksum == other.checksum
-            // Treat S2K and ciphertext as opaque blob.
-            && {
-                // XXX: This would be nicer without the allocations.
-                use crate::serialize::MarshalInto;
-                let mut a = self.s2k.to_vec().unwrap();
-                let mut b = other.s2k.to_vec().unwrap();
-                a.extend_from_slice(self.raw_ciphertext());
-                b.extend_from_slice(other.raw_ciphertext());
-                a == b
+            && match (&self.ciphertext, &other.ciphertext) {
+                (Ok(a), Ok(b)) =>
+                    self.s2k == other.s2k && a == b,
+                (Err(a_raw), Err(b_raw)) => {
+                    // Treat S2K and ciphertext as opaque blob.
+                    // XXX: This would be nicer without the allocations.
+                    use crate::serialize::MarshalInto;
+                    let mut a = self.s2k.to_vec().unwrap();
+                    let mut b = other.s2k.to_vec().unwrap();
+                    a.extend_from_slice(a_raw);
+                    b.extend_from_slice(b_raw);
+                    a == b
+                },
+                _ => false,
             }
     }
 }
@@ -2242,13 +2247,22 @@ impl Eq for Encrypted {}
 impl std::hash::Hash for Encrypted {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.algo.hash(state);
+        self.aead.hash(state);
         self.checksum.hash(state);
-        // Treat S2K and ciphertext as opaque blob.
-        // XXX: This would be nicer without the allocations.
-        use crate::serialize::MarshalInto;
-        let mut a = self.s2k.to_vec().unwrap();
-        a.extend_from_slice(self.raw_ciphertext());
-        a.hash(state);
+        match &self.ciphertext {
+            Ok(c) => {
+                self.s2k.hash(state);
+                c.hash(state);
+            },
+            Err(c) => {
+                // Treat S2K and ciphertext as opaque blob.
+                // XXX: This would be nicer without the allocations.
+                use crate::serialize::MarshalInto;
+                let mut a = self.s2k.to_vec().unwrap();
+                a.extend_from_slice(c);
+                a.hash(state);
+            },
+        }
     }
 }
 
