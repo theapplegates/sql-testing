@@ -3412,10 +3412,17 @@ pub(crate) mod test {
             "nistp256", "nistp384", "nistp521",
             "brainpoolP256r1", "brainpoolP384r1", "brainpoolP512r1",
             "secp256k1",
+            "x448",
         ] {
             eprintln!("Test vector {:?}...", alg);
             let key = Cert::from_bytes(crate::tests::message(
                 &format!("encrypted/{}.sec.pgp", alg)))?;
+            if ! key.primary_key().key().pk_algo().is_supported() {
+                eprintln!("Skipping {} because we don't support {}",
+                          alg, key.primary_key().key().pk_algo());
+                continue;
+            }
+
             if let Some(k) =
                 key.with_policy(&p, None)?.keys().subkeys().supported().next()
             {
