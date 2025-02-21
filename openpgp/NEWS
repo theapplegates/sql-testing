@@ -19,6 +19,7 @@
      From<ValidErasedKeyAmalgamation>
    - KeyAmalgamationIter::key_handles2 renamed to key_handles
    - ValidKeyAmalgamationIter::key_handles2 renamed to key_handles
+   - Cert::insert_packets2 renamed to insert_packets
 
 ** New functionality
    - ValidCert::key_handle
