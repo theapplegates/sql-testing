@@ -33,6 +33,8 @@
    - Key encryption now only uses AEAD by default for v6 keys
    - Messages using SEIPDv1 for a v6 recipient, and those using
      SEIPDv2 for a v4 recipient are now correctly encrypted
+   - stream::padding::Padder now emits padding packets when creating
+     RFC9580 messages, and nothing when creating RFC4880 messages
 
 * Changes in 2.0.0.alpha.1
 ** API changes
