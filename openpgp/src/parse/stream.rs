@@ -2801,7 +2801,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
                         let no_issuers = issuers.is_empty();
 
                         for ka in self.certs.iter().flat_map(
-                            |c| c.keys().key_handles2(issuers.clone()))
+                            |c| c.keys().key_handles(issuers.clone()))
                         {
                             if no_issuers {
                                 // Slightly awkward control flow
@@ -3212,7 +3212,7 @@ pub(crate) mod test {
             for pkesk in pkesks.iter().filter(|p| p.recipient().is_some()) {
                 for key in &self.keys {
                     for subkey in key.with_policy(&p, None)?.keys().secret()
-                        .key_handles2(pkesk.recipient())
+                        .key_handles(pkesk.recipient())
                     {
                         t!("Trying to decrypt {:?} with {:?}", pkesk, subkey);
                         if let Some((algo, sk)) =

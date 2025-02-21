@@ -2722,7 +2722,7 @@ impl<'a, 'b> Encryptor<'a, 'b> {
     ///         for pkesk in pkesks { // Try each PKESK until we succeed.
     ///             for ka in self.key.keys().with_policy(p, None)
     ///                 .supported().unencrypted_secret()
-    ///                 .key_handles2(pkesk.recipient())
+    ///                 .key_handles(pkesk.recipient())
     ///                 .for_storage_encryption().for_transport_encryption()
     ///             {
     ///                 let mut pair = ka.key().clone().into_keypair().unwrap();

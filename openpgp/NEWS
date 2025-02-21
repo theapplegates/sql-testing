@@ -17,7 +17,8 @@
    - serialize::stream::Recipient now only implements
      From<ValidSubordinateKeyAmalgamation> and
      From<ValidErasedKeyAmalgamation>
-
+   - KeyAmalgamationIter::key_handles2 renamed to key_handles
+   - ValidKeyAmalgamationIter::key_handles2 renamed to key_handles
 
 ** New functionality
    - ValidCert::key_handle
