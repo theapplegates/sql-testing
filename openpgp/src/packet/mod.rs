@@ -233,9 +233,6 @@ pub use self::padding::Padding;
 /// the packet's [tag].  See the [module-level documentation] for
 /// details.
 ///
-/// Note: This enum cannot be exhaustively matched to allow future
-/// extensions.
-///
 /// # A note on equality
 ///
 /// We define equality on `Packet` as the equality of the serialized
@@ -947,9 +944,6 @@ fn packet_path_iter() {
 /// [certifications of User Attributes]: user_attribute::UserAttribute::certify()
 /// [`SignatureBuilder`]: signature::SignatureBuilder
 ///
-/// Note: This enum cannot be exhaustively matched to allow future
-/// extensions.
-///
 /// # A note on equality
 ///
 /// Two `Signature` packets are considered equal if their serialized
@@ -1078,9 +1072,6 @@ impl DerefMut for Signature {
 /// The different `Key` packets are described in [Section 5.5 of RFC 4880].
 ///
 ///   [Section 5.5 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.5
-///
-/// Note: This enum cannot be exhaustively matched to allow future
-/// extensions.
 ///
 /// # Key Variants
 ///
@@ -2052,9 +2043,6 @@ impl<P: key::KeyParts, R: key::KeyRole> Key<P, R> {
 /// cases, you'll create one as a side effect of encrypting a message
 /// using the [streaming serializer], or parsing an encrypted message
 /// using the [`PacketParser`].
-///
-/// Note: This enum cannot be exhaustively matched to allow future
-/// extensions.
 ///
 /// [Section 5.13 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.13
 /// [streaming serializer]: crate::serialize::stream
