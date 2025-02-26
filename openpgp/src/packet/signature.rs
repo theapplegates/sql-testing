@@ -2154,9 +2154,13 @@ impl From<Signature3> for SignatureBuilder {
 ///   [version 3]: https://www.rfc-editor.org/rfc/rfc9580.html#section-5.2
 ///   [`Signature`]: super::Signature
 ///
-/// Note: Per RFC 4880, v3 signatures should not be generated, but
-/// they should be accepted.  As such, support for version 3
-/// signatures is limited to verifying them, but not generating them.
+/// Note: Per [Section 5.2 of RFC 9580], v3 signatures should not be
+/// generated, but they should be accepted.  As such, support for
+/// version 3 signatures is limited to verifying them, but not
+/// generating them.
+///
+/// [Section 5.2 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#section-5.2
+
 #[derive(Clone)]
 pub struct Signature3 {
     pub(crate) intern: Signature4,

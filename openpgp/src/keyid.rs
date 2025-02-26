@@ -11,19 +11,21 @@ use crate::Result;
 
 /// A short identifier for certificates and keys.
 ///
-/// A `KeyID` identifies a public key.  It is used, for example, to
-/// reference the issuing key of a signature in its [`Issuer`]
-/// subpacket.
+/// A `KeyID` identifies a public key.  It was used in [RFC 4880]: for
+/// example to reference the issuing key of a signature in its
+/// [`Issuer`] subpacket.  You should prefer [`Fingerprint`] over
+/// [`KeyID`] in data structures, interfaces, and wire formats, unless
+/// space is of the utmost concern.
 ///
-/// Currently, Sequoia supports *version 4* fingerprints and Key IDs
-/// only.  *Version 3* fingerprints and Key IDs were deprecated by
-/// [RFC 4880] in 2007.
+/// Currently, Sequoia supports *version 6* fingerprints and Key IDs,
+/// and *version 4* fingerprints and Key IDs.  *Version 3*
+/// fingerprints and Key IDs were deprecated by [RFC 4880] in 2007.
 ///
-/// A *v4* `KeyID` is defined as a fragment (the lower 8 bytes) of the
-/// key's fingerprint, which in turn is essentially a SHA-1 hash of
-/// the public key packet.  As a general rule of thumb, you should
-/// prefer the fingerprint as it is possible to create keys with a
-/// colliding KeyID using a [birthday attack].
+/// *Version 6* and *version 4* [`KeyID`]s are a truncated version of
+/// the key's fingerprint, which in turn is hash of the public key
+/// packet.  As a general rule of thumb, you should prefer the
+/// fingerprint as it is possible to create keys with a colliding
+/// KeyID using a [birthday attack].
 ///
 /// For more details about how a `KeyID` is generated, see [Section
 /// 5.5.4 of RFC 9580].

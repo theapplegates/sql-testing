@@ -2863,7 +2863,7 @@ impl<'a, P, R, R2> ValidKeyAmalgamation<'a, P, R, R2>
     /// Returns the key's `Key Flags`.
     ///
     /// A Key's [`Key Flags`] holds information about the key.  As of
-    /// RFC 4880, this information is primarily concerned with the
+    /// RFC 9580, this information is primarily concerned with the
     /// key's capabilities (e.g., whether it may be used for signing).
     /// The other information that has been defined is: whether the
     /// key has been split using something like [SSS], and whether the

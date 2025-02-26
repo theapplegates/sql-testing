@@ -118,7 +118,7 @@
 //! Instead of trying to come up with a definition of equality that is
 //! reasonable for all situations, we use a conservative definition:
 //! two packets are considered equal if the serialized forms of their
-//! packet bodies as defined by RFC 4880 are equal.  That is, two
+//! packet bodies as defined by RFC 9580 are equal.  That is, two
 //! packets are considered equal if and only if their serialized forms
 //! are equal modulo the OpenPGP framing ([`CTB`] and [length style],
 //! potential [partial body encoding]).  This definition will avoid
@@ -219,7 +219,7 @@ pub use self::padding::Padding;
 /// # A note on equality
 ///
 /// We define equality on `Packet` as the equality of the serialized
-/// form of their packet bodies as defined by RFC 4880.  That is, two
+/// form of their packet bodies as defined by RFC 9580.  That is, two
 /// packets are considered equal if and only if their serialized forms
 /// are equal, modulo the OpenPGP framing ([`CTB`] and [length style],
 /// potential [partial body encoding]).
