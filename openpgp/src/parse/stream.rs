@@ -3603,8 +3603,10 @@ pub(crate) mod test {
 
     #[test]
     fn detached_verifier() -> Result<()> {
-        lazy_static::lazy_static! {
-            static ref ZEROS: Vec<u8> = vec![0; 100 * 1024 * 1024];
+        fn zeros() -> &'static [u8] {
+            use std::sync::OnceLock;
+            static ZEROS: OnceLock<Vec<u8>> = OnceLock::new();
+            ZEROS.get_or_init(|| vec![0; 100 * 1024 * 1024])
         }
 
         let p = P::new();
@@ -3639,7 +3641,7 @@ pub(crate) mod test {
                 sig: crate::tests::message(
                     "emmelie-dorothea-dina-samantha-awina-detached-signature-of-100MB-of-zeros.sig")
                     .to_vec(),
-                content: &ZEROS[..],
+                content: zeros(),
                 reference:
                 crate::types::Timestamp::try_from(1572602018).unwrap().into(),
             },
