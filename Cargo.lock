@@ -279,7 +279,6 @@ version = "1.4.0"
 dependencies = [
  "bzip2",
  "flate2",
- "lazy_static",
  "libc",
 ]
 
