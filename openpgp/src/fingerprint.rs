@@ -18,7 +18,7 @@ use crate::Result;
 /// [RFC 4880] in 2007.
 ///
 /// Essentially, a *v4* fingerprint is a SHA-1 hash over the key's
-/// public key packet.  For details, see [Section 12.2 of RFC 4880].
+/// public key packet.  For details, see [Section 5.5.4 of RFC 9580].
 ///
 /// Fingerprints are used, for example, to reference the issuing key
 /// of a signature in its [`IssuerFingerprint`] subpacket.  As a
@@ -28,7 +28,7 @@ use crate::Result;
 /// See also [`KeyID`] and [`KeyHandle`].
 ///
 ///   [RFC 4880]: https://tools.ietf.org/html/rfc4880
-///   [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
+///   [Section 5.5.4 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#section-5.5.4
 ///   [`IssuerFingerprint`]: crate::packet::signature::subpacket::SubpacketValue::IssuerFingerprint
 ///   [birthday attack]: https://nullprogram.com/blog/2019/07/22/
 ///   [`KeyID`]: crate::KeyID

@@ -26,7 +26,7 @@ use crate::Result;
 /// colliding KeyID using a [birthday attack].
 ///
 /// For more details about how a `KeyID` is generated, see [Section
-/// 12.2 of RFC 4880].
+/// 5.5.4 of RFC 9580].
 ///
 /// In previous versions of OpenPGP, the Key ID used to be called
 /// "long Key ID", as there even was a "short Key ID". At only 4 bytes
@@ -37,7 +37,7 @@ use crate::Result;
 /// See also [`Fingerprint`] and [`KeyHandle`].
 ///
 ///   [RFC 4880]: https://tools.ietf.org/html/rfc4880
-///   [Section 12.2 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-12.2
+///   [Section 5.5.4 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#section-5.5.4
 ///   [birthday attack]: https://nullprogram.com/blog/2019/07/22/
 ///   [`Issuer`]: crate::packet::signature::subpacket::SubpacketValue::Issuer
 ///   [`Fingerprint`]: crate::Fingerprint
@@ -259,9 +259,9 @@ impl KeyID {
 
     /// Creates a wildcard `KeyID`.
     ///
-    /// Refer to [Section 5.1 of RFC 4880] for details.
+    /// Refer to [Section 5.1 of RFC 9580] for details.
     ///
-    ///   [Section 5.1 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.1
+    ///   [Section 5.1 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#section-5.1
     ///
     /// # Examples
     ///
@@ -277,9 +277,9 @@ impl KeyID {
 
     /// Returns `true` if this is the wildcard `KeyID`.
     ///
-    /// Refer to [Section 5.1 of RFC 4880] for details.
+    /// Refer to [Section 5.1 of RFC 9580] for details.
     ///
-    ///   [Section 5.1 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.1
+    ///   [Section 5.1 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#section-5.1
     ///
     /// # Examples
     ///

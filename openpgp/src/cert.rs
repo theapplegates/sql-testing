@@ -108,7 +108,7 @@
 //! `ComponentBundle`, and that would create a self-referential data
 //! structure, which is currently not supported in Rust.
 //!
-//! [Section 11.1]: https://tools.ietf.org/html/rfc4880#section-11.1
+//! [Section 11.1]: https://www.rfc-editor.org/rfc/rfc9580.html#section-10.1
 //! [`ComponentBundle`]: bundle::ComponentBundle
 //! [`ComponentAmalgamation`]: amalgamation::ComponentAmalgamation
 //! [`Parser` implementation]: struct.Cert.html#impl-Parse%3C%27a%2C%20Cert%3E
@@ -267,7 +267,7 @@ impl fmt::Display for Cert {
 /// instance, by its fingerprint, then the primary User ID's
 /// self signature is checked.  If the subpacket is also not there,
 /// then the direct key signature is checked.  This policy and its
-/// justification are described in [Section 5.2.3.3 of RFC 4880].
+/// justification are described in [Section 5.2.3.10 of RFC 9580].
 ///
 /// Note: User IDs may be stripped.  For instance, the [WKD] standard
 /// requires User IDs that are unrelated to the WKD's domain be
@@ -278,7 +278,7 @@ impl fmt::Display for Cert {
 /// [without any User ID packets].  To handle this case, certificates
 /// should also create a direct key signature with this information.
 ///
-/// [Section 5.2.3.3 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.2.3.3
+/// [Section 5.2.3.10 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#section-5.2.3.10
 /// [WKD]: https://tools.ietf.org/html/draft-koch-openpgp-webkey-service-09#section-5
 /// [without any User ID packets]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09#section-11.1
 ///
@@ -387,7 +387,7 @@ pub trait Preferences<'a>: seal::Sealed {
 /// associated self signatures, self revocations, third-party
 /// signatures, and third-party revocations, as well as useful methods.
 ///
-/// [TPK and TSK data structures]: https://tools.ietf.org/html/rfc4880#section-11
+/// [TPK and TSK data structures]: https://www.rfc-editor.org/rfc/rfc9580.html#section-10
 /// [`Key`]: crate::packet::Key
 /// [`UserID`]: crate::packet::UserID
 /// [`UserAttribute`]: crate::packet::user_attribute::UserAttribute
@@ -423,7 +423,7 @@ pub trait Preferences<'a>: seal::Sealed {
 /// valid signatures that only differ in their unhashed data.
 ///
 /// [their `Eq` implementation]: crate::packet::Signature#a-note-on-equality
-/// [the unhashed data]: https://tools.ietf.org/html/rfc4880#section-5.2.3
+/// [the unhashed data]: https://www.rfc-editor.org/rfc/rfc9580.html#section-5.2.3
 ///
 /// Self signatures and self revocations are checked for validity by
 /// making sure that the signature is *mathematically* correct.  At
@@ -2699,7 +2699,7 @@ impl Cert {
     /// updated.  Alternatively, changed means that the serialized
     /// form has changed.
     ///
-    /// [Known packets that don't belong in a TPK or TSK]: https://tools.ietf.org/html/rfc4880#section-11
+    /// [Known packets that don't belong in a TPK or TSK]: https://www.rfc-editor.org/rfc/rfc9580.html#section-10
     /// [unknown components]: Cert::unknowns()
     ///
     /// # Examples
@@ -3767,9 +3767,9 @@ impl<'a> ValidCert<'a> {
     /// reference time.
     ///
     /// Subpackets on direct key signatures apply to all components of
-    /// the certificate, cf. [Section 5.2.3.3 of RFC 4880].
+    /// the certificate, cf. [Section 5.2.3.10 of RFC 9580].
     ///
-    /// [Section 5.2.3.3 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.2.3.3
+    /// [Section 5.2.3.10 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#section-5.2.3.10
     ///
     /// # Examples
     ///
@@ -4007,7 +4007,7 @@ impl<'a> ValidCert<'a> {
     /// (currently, we order the value of the User IDs
     /// lexographically, but you shouldn't rely on this).
     ///
-    /// [marked as being the primary User ID]: https://tools.ietf.org/html/rfc4880#section-5.2.3.19
+    /// [marked as being the primary User ID]: https://www.rfc-editor.org/rfc/rfc9580.html#section-5.2.3.27
     ///
     /// # Examples
     ///
