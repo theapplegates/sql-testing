@@ -2319,7 +2319,7 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
         let tolerance = time
             .map(|_| time::Duration::new(0, 0))
             .unwrap_or(
-                *crate::packet::signature::subpacket::CLOCK_SKEW_TOLERANCE);
+                crate::packet::signature::subpacket::CLOCK_SKEW_TOLERANCE);
         let time = time.unwrap_or_else(crate::now);
 
         let mut ppr = PacketParserBuilder::from_cookie_reader(bio)?
