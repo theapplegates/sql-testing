@@ -62,7 +62,7 @@ pub fn sign(bytes: &[u8], sender: &Cert) -> openpgp::Result<Vec<u8>> {
         .into_keypair()?;
 
     let message = Message::new(&mut sink);
-    let message = Signer::new(message, signing_keypair).build()?;
+    let message = Signer::new(message, signing_keypair)?.build()?;
     let mut w = LiteralWriter::new(message).build()?;
     w.write_all(bytes)?;
     w.finalize()?;
@@ -100,7 +100,7 @@ pub fn encrypt_to_cert_and_sign(
     let message = Message::new(&mut sink);
     let message = Armorer::new(message).build()?;
     let message = Encryptor::for_recipients(message, recipients).build()?;
-    let message = Signer::new(message, signing_keypair)
+    let message = Signer::new(message, signing_keypair)?
         //.add_intended_recipient(&recipient)
         .build()?;
     let mut w = LiteralWriter::new(message).build()?;
