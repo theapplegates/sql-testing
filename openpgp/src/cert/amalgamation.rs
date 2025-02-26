@@ -481,7 +481,7 @@ pub trait ValidAmalgamation<'a, C: 'a>: seal::Sealed
     /// This does *not* check whether the certificate has been
     /// revoked.  For that, use `Cert::revocation_status()`.
     ///
-    /// Note, as per [RFC 4880], a key is considered to be revoked at
+    /// Note, as per [Section 5.2.3.23 of RFC 4880], a key is considered to be revoked at
     /// some time if there were no soft revocations created as of that
     /// time, and no hard revocations:
     ///
@@ -489,7 +489,7 @@ pub trait ValidAmalgamation<'a, C: 'a>: seal::Sealed
     /// > created by that key are suspect.  However, if it was merely
     /// > superseded or retired, old signatures are still valid.
     ///
-    /// [RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.2.3.23
+    /// [Section 5.2.3.23 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.2.3.23
     ///
     /// # Examples
     ///

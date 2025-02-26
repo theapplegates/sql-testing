@@ -267,7 +267,7 @@ impl fmt::Display for Cert {
 /// instance, by its fingerprint, then the primary User ID's
 /// self signature is checked.  If the subpacket is also not there,
 /// then the direct key signature is checked.  This policy and its
-/// justification are described in [Section 5.2.3.3] of RFC 4880.
+/// justification are described in [Section 5.2.3.3 of RFC 4880].
 ///
 /// Note: User IDs may be stripped.  For instance, the [WKD] standard
 /// requires User IDs that are unrelated to the WKD's domain be
@@ -278,7 +278,7 @@ impl fmt::Display for Cert {
 /// [without any User ID packets].  To handle this case, certificates
 /// should also create a direct key signature with this information.
 ///
-/// [Section 5.2.3.3]: https://tools.ietf.org/html/rfc4880#section-5.2.3.3
+/// [Section 5.2.3.3 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-5.2.3.3
 /// [WKD]: https://tools.ietf.org/html/draft-koch-openpgp-webkey-service-09#section-5
 /// [without any User ID packets]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09#section-11.1
 ///

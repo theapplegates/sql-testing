@@ -10,7 +10,8 @@
 //! ignore signatures that rely on these algorithms even though [RFC
 //! 4880] says that "\[i\]mplementations MUST implement SHA-1."  When
 //! trying to decrypt old archives, however, users probably don't want
-//! to ignore keys using MD5, even though [RFC 4880] deprecates MD5.
+//! to ignore keys using MD5, even though [Section 9.4 of RFC 4880]
+//! deprecates MD5.
 //!
 //! Rather than not provide this mid-level functionality, the `Policy`
 //! trait allows callers to specify their preferred policy.  This can be
@@ -23,7 +24,7 @@
 //! to determine whether a given `Signature` is valid, it must always
 //! return the same value.
 //!
-//! [RFC 4880]: https://tools.ietf.org/html/rfc4880#section-9.4
+//! [Section 9.4 of RFC 4880]: https://tools.ietf.org/html/rfc4880#section-9.4
 //! [pure]: https://en.wikipedia.org/wiki/Pure_function
 use std::fmt;
 use std::time::{SystemTime, Duration};

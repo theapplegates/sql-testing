@@ -160,7 +160,7 @@ pub use v4::Key4;
 /// [secret keys]: https://tools.ietf.org/html/rfc4880#section-5.5.1.3
 /// [public subkeys]: https://tools.ietf.org/html/rfc4880#section-5.5.1.2
 /// [secret subkeys]: https://tools.ietf.org/html/rfc4880#section-5.5.1.4
-/// [`Cert::keys`]: super::Cert::keys()
+/// [`Cert::keys`]: crate::Cert::keys
 ///
 /// ## Examples
 ///
@@ -223,7 +223,7 @@ pub use v4::Key4;
 ///
 /// It is also possible to use `From`.
 ///
-/// [`Signer`]: super::crypto::Signer
+/// [`Signer`]: crate::crypto::Signer
 /// [`Key::parts_as_secret`]: Key::parts_as_secret()
 /// [`Key::parts_into_public`]: Key::parts_into_public()
 /// [`Key::parts_as_public`]: Key::parts_as_public()
@@ -276,7 +276,7 @@ pub use v4::Key4;
 /// converted to a secret key.  This is necessary, for instance, when
 /// creating a [`Signer`]:
 ///
-/// [`Cert`]: super::Cert
+/// [`Cert`]: crate::Cert
 ///
 /// ```rust
 /// use std::time;

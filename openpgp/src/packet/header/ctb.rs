@@ -138,10 +138,8 @@ impl CTBOld {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidArgument`] if the tag or the body
-    /// length cannot be expressed using an old-style CTB.
-    ///
-    /// [`Error::InvalidArgument`]: super::super::Error::InvalidArgument
+    /// Returns [`crate::Error::InvalidArgument`] if the tag or the
+    /// body length cannot be expressed using an old-style CTB.
     pub fn new(tag: Tag, length: BodyLength) -> Result<Self> {
         let n: u8 = tag.into();
 
