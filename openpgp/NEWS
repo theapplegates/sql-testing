@@ -5,6 +5,9 @@
 
 
 * Changes in 2.0.0.alpha.2
+** Notable changes
+   - Our MSRV is now 1.79.
+
 ** API changes
    - ValidKeyAmalgamation::into_key_amalgamation removed
    - serialize::stream::Recipient::new now takes a KeyHandle
