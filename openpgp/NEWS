@@ -29,6 +29,7 @@
      a std::time::Duration
    - cert::Preferences::preferred_aead_algorithms removed
    - Curve::len removed
+   - PacketParser::encrypted removed
 
 ** New functionality
    - ValidCert::key_handle

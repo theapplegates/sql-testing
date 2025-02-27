@@ -4786,15 +4786,6 @@ impl <'a> PacketParser<'a> {
         self.processed
     }
 
-    /// Returns whether the packet's contents are encrypted.
-    ///
-    /// This function has been obsoleted by the negation of
-    /// [`PacketParser::processed`].
-    #[deprecated(since = "1.10.0", note = "Use !processed()")]
-    pub fn encrypted(&self) -> bool {
-        !self.processed()
-    }
-
     /// Returns the path of the last packet.
     ///
     /// This function returns the path (see [`PacketPile::path_ref`]
