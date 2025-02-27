@@ -7109,20 +7109,6 @@ impl signature::SignatureBuilder {
         Ok(self)
     }
 
-    /// Sets the Preferred AEAD Algorithms subpacket.
-    #[deprecated(note = "Use set_preferred_aead_ciphersuites instead")]
-    pub fn set_preferred_aead_algorithms(mut self,
-                                         preferences: Vec<AEADAlgorithm>)
-        -> Result<Self>
-    {
-        #[allow(deprecated)]
-        self.hashed_area.replace(Subpacket::new(
-            SubpacketValue::PreferredAEADAlgorithms(preferences),
-            false)?)?;
-
-        Ok(self)
-    }
-
     /// Sets the Intended Recipient subpacket.
     ///
     /// Replaces any [Intended Recipient subpacket] in the hashed
