@@ -30,6 +30,7 @@
    - cert::Preferences::preferred_aead_algorithms removed
    - Curve::len removed
    - PacketParser::encrypted removed
+   - StandardPolicy::packet_tag_cutoff removed
 
 ** New functionality
    - ValidCert::key_handle
