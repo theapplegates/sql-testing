@@ -2832,7 +2832,6 @@ dependencies = [
  "nettle",
  "num-bigint-dig",
  "ocb3",
- "once_cell",
  "openssl",
  "openssl-sys",
  "p256",
