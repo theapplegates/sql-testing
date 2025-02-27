@@ -27,6 +27,7 @@
    - KeyID no longer implements Borrow<[u8]>
    - packet::signature::subpacket::CLOCK_SKEW_TOLERANCE is now simply
      a std::time::Duration
+   - cert::Preferences::preferred_aead_algorithms removed
 
 ** New functionality
    - ValidCert::key_handle
