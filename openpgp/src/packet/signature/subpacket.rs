@@ -3366,26 +3366,6 @@ impl SubpacketAreas {
         }
     }
 
-    /// Returns the value of the Preferred AEAD Algorithms subpacket.
-    #[deprecated(note = "Use preferred_aead_ciphersuites instead")]
-    pub fn preferred_aead_algorithms(&self)
-                                     -> Option<&[AEADAlgorithm]> {
-        // array of one-octet values
-        #[allow(deprecated)]
-        if let Some(sb)
-                = self.subpacket(
-                    SubpacketTag::PreferredAEADAlgorithms) {
-            if let SubpacketValue::PreferredAEADAlgorithms(v)
-                    = &sb.value {
-                Some(v)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
     /// Returns the value of the Key Server Preferences subpacket.
     ///
     /// The [Key Server Preferences subpacket] indicates to key

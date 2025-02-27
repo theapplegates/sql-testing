@@ -35,6 +35,7 @@
    - Features::set_mdc removed
    - Features::clear_mdc removed
    - SignatureBuilder::set_preferred_aead_algorithms removed
+   - SubpacketAreas::preferred_aead_algorithms removed
 
 ** New functionality
    - ValidCert::key_handle
