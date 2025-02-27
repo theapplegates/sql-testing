@@ -2820,7 +2820,6 @@ dependencies = [
  "ed25519",
  "ed25519-dalek",
  "flate2",
- "generic-array 0.14.7",
  "getrandom",
  "hkdf",
  "idea",
