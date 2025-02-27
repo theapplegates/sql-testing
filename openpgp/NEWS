@@ -31,6 +31,9 @@
    - Curve::len removed
    - PacketParser::encrypted removed
    - StandardPolicy::packet_tag_cutoff removed
+   - Features::supports_mdc removed
+   - Features::set_mdc removed
+   - Features::clear_mdc removed
 
 ** New functionality
    - ValidCert::key_handle
