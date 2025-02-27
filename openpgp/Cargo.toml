@@ -42,7 +42,7 @@ nettle = { version = "7.3", optional = true }
 regex = "1"
 regex-syntax = "0.8"
 sha1collisiondetection = { version = "0.3.1", default-features = false, features = ["std"] }
-thiserror = "1.0.2"
+thiserror = ">=1, <3"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
 
 # At least 0.10.55 is needed due `no-ocb` check:
