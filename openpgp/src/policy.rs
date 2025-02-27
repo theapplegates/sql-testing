@@ -706,7 +706,7 @@ a_cutoff_list!(SubpacketTagCutoffList, SubpacketTag, 40,
                    REJECT,                 // 31. SignatureTarget.
                    ACCEPT,                 // 32. EmbeddedSignature.
                    ACCEPT,                 // 33. IssuerFingerprint.
-                   REJECT,                 // 34. PreferredAEADAlgorithms.
+                   REJECT,                 // 34. Reserved (PreferredAEADAlgorithms).
                    ACCEPT,                 // 35. IntendedRecipient.
                    REJECT,                 // 36. Reserved.
                    ACCEPT,                 // 37. ApprovedCertifications.

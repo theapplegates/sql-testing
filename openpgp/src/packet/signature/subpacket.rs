@@ -1692,14 +1692,6 @@ pub enum SubpacketValue {
     ///  [Section 5.2.3.35 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#name-issuer-fingerprint
     IssuerFingerprint(Fingerprint),
 
-    /// The AEAD algorithms that the certificate holder prefers (deprecated).
-    ///
-    /// See [Section 5.2.3.8 of draft-ietf-openpgp-rfc4880bis-09] for details.
-    ///
-    ///  [Section 5.2.3.8 of draft-ietf-openpgp-rfc4880bis-09]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#section-5.2.3.8
-    #[deprecated(note = "Use PreferredAEADCiphersuites instead")]
-    PreferredAEADAlgorithms(Vec<AEADAlgorithm>),
-
     /// Who the signed message was intended for.
     ///
     /// See [Section 5.2.3.36 of RFC 9580] for details.
@@ -1786,7 +1778,10 @@ impl ArbitraryBounded for SubpacketValue {
                 22 => EmbeddedSignature(
                     ArbitraryBounded::arbitrary_bounded(g, depth - 1)),
                 23 => IssuerFingerprint(Arbitrary::arbitrary(g)),
-                24 => PreferredAEADAlgorithms(Arbitrary::arbitrary(g)),
+                24 => Unknown {
+                    tag: SubpacketTag::PreferredAEADAlgorithms,
+                    body: Arbitrary::arbitrary(g),
+                },
                 25 => IntendedRecipient(Arbitrary::arbitrary(g)),
                 26 => PreferredAEADCiphersuites(Arbitrary::arbitrary(g)),
                 _ => unreachable!(),
@@ -1833,8 +1828,6 @@ impl SubpacketValue {
             SignatureTarget { .. } => SubpacketTag::SignatureTarget,
             EmbeddedSignature(_) => SubpacketTag::EmbeddedSignature,
             IssuerFingerprint(_) => SubpacketTag::IssuerFingerprint,
-            PreferredAEADAlgorithms(_) =>
-                SubpacketTag::PreferredAEADAlgorithms,
             IntendedRecipient(_) => SubpacketTag::IntendedRecipient,
             ApprovedCertifications(_) => SubpacketTag::ApprovedCertifications,
             PreferredAEADCiphersuites(_) =>

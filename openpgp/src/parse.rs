@@ -1962,10 +1962,6 @@ impl Subpacket {
                 SubpacketValue::IssuerFingerprint(
                     Fingerprint::from_bytes(version, &bytes)?)
             },
-            SubpacketTag::PreferredAEADAlgorithms =>
-                SubpacketValue::PreferredAEADAlgorithms(
-                    php.parse_bytes("pref aead algos", len)?
-                        .iter().map(|o| (*o).into()).collect()),
             SubpacketTag::IntendedRecipient => {
                 if len == 0 {
                     return Err(Error::MalformedPacket(
@@ -2029,6 +2025,7 @@ impl Subpacket {
 
             SubpacketTag::Reserved(_)
                 | SubpacketTag::PlaceholderForBackwardCompatibility
+                | SubpacketTag::PreferredAEADAlgorithms
                 | SubpacketTag::Private(_)
                 | SubpacketTag::Unknown(_) =>
                 SubpacketValue::Unknown {
