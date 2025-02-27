@@ -297,11 +297,7 @@ pub enum SubpacketTag {
     ///  [Section 5.2.3.35 of RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html#name-issuer-fingerprint
     IssuerFingerprint,
 
-    /// The AEAD algorithms that the certificate holder prefers (deprecated).
-    ///
-    /// See [Section 5.2.3.8 of draft-ietf-openpgp-rfc4880bis-09] for details.
-    ///
-    ///  [Section 5.2.3.8 of draft-ietf-openpgp-rfc4880bis-09]: https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-09.html#section-5.2.3.8
+    /// Reserved (was: AEAD algorithms that the certificate holder prefers).
     #[deprecated(note = "Use PreferredAEADCiphersuites instead")]
     PreferredAEADAlgorithms,
 
