@@ -8,6 +8,8 @@
 ** Notable fixes
    - We now gracefully handle memory allocation failures when
      computing Argon2.
+   - We fixed an internal mapping from asymmetric algorithm to slots
+     in a policy data structure.
 
 * Changes in 2.0.0.alpha.2
 ** Notable changes
