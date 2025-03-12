@@ -2824,7 +2824,7 @@ impl Key4<key::UnspecifiedParts, key::UnspecifiedRole>
             -> Result<Key4<key::PublicParts, R>>
             where R: key::KeyRole
         {
-            Key4::make(creation_time, pk_algo, mpis, None)
+            Key4::make(creation_time.into(), pk_algo, mpis, None)
         }
         fn s<R>(creation_time: u32,
                 pk_algo: PublicKeyAlgorithm,
@@ -2833,7 +2833,7 @@ impl Key4<key::UnspecifiedParts, key::UnspecifiedRole>
             -> Result<Key4<key::SecretParts, R>>
             where R: key::KeyRole
         {
-            Key4::make(creation_time, pk_algo, mpis, Some(secret))
+            Key4::make(creation_time.into(), pk_algo, mpis, Some(secret))
         }
 
         let tag = php.header.ctb().tag();
@@ -3036,7 +3036,7 @@ impl Key6<key::UnspecifiedParts, key::UnspecifiedRole>
             -> Result<Key6<key::PublicParts, R>>
             where R: key::KeyRole
         {
-            Key6::make(creation_time, pk_algo, mpis, None)
+            Key6::make(creation_time.into(), pk_algo, mpis, None)
         }
         fn s<R>(creation_time: u32,
                 pk_algo: PublicKeyAlgorithm,
@@ -3045,7 +3045,7 @@ impl Key6<key::UnspecifiedParts, key::UnspecifiedRole>
             -> Result<Key6<key::SecretParts, R>>
             where R: key::KeyRole
         {
-            Key6::make(creation_time, pk_algo, mpis, Some(secret))
+            Key6::make(creation_time.into(), pk_algo, mpis, Some(secret))
         }
 
         let tag = php.header.ctb().tag();
