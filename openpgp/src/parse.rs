@@ -6214,8 +6214,11 @@ impl<'a> PacketParser<'a> {
                 let bl = algo.block_size()?;
 
                 {
+                    let cur = buffered_reader::Memory::with_cookie(
+                        &self.data_hard(bl + 2)?[..bl + 2],
+                        Default::default());
                     let mut dec = Decryptor::new(
-                        algo, key, &self.data_hard(bl + 2)?[..bl + 2])?;
+                        algo, key, cur)?;
                     let mut header = vec![ 0u8; bl + 2 ];
                     dec.read_exact(&mut header)?;
 

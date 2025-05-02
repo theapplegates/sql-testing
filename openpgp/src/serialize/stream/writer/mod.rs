@@ -467,7 +467,7 @@ assert_send_and_sync!(Encryptor<'_, C> where C);
 impl<'a> Encryptor<'a, Cookie> {
     /// Makes an encrypting writer.
     pub fn new(inner: Message<'a>, cookie: Cookie, algo: SymmetricAlgorithm,
-               key: &[u8])
+               key: &SessionKey)
         -> Result<Message<'a>>
     {
         Ok(Message::from(Box::new(Encryptor {

@@ -8,6 +8,7 @@ use crate::Result;
 use crate::SymmetricAlgorithm;
 use crate::vec_resize;
 use crate::{
+    crypto::SessionKey,
     parse::Cookie,
 };
 
@@ -54,30 +55,17 @@ assert_send_and_sync!(Decryptor<'_>);
 
 impl<'a> Decryptor<'a> {
     /// Instantiate a new symmetric decryptor.
-    ///
-    /// `reader` is the source to wrap.
-    pub fn new<R>(algo: SymmetricAlgorithm, key: &[u8], source: R)
+    pub fn new<R>(algo: SymmetricAlgorithm, key: &SessionKey, source: R)
                   -> Result<Self>
     where
-        R: io::Read + Send + Sync + 'a,
-    {
-        Self::from_cookie_reader(
-            algo, key,
-            Box::new(buffered_reader::Generic::with_cookie(
-                source, None, Default::default())))
-    }
-
-    /// Instantiate a new symmetric decryptor.
-    fn from_cookie_reader(algo: SymmetricAlgorithm, key: &[u8],
-                            source: Box<dyn BufferedReader<Cookie> + 'a>)
-                            -> Result<Self>
+        R: BufferedReader<Cookie> + 'a,
     {
         let block_size = algo.block_size()?;
         let iv = vec![0; block_size];
         let dec = algo.make_decrypt_cfb(key, iv)?;
 
         Ok(Decryptor {
-            source,
+            source: source.into_boxed(),
             dec,
             block_size,
             buffer: Vec::with_capacity(block_size),
@@ -176,14 +164,14 @@ impl<'a> BufferedReaderDecryptor<'a> {
     /// Like `new()`, but sets a cookie, which can be retrieved using
     /// the `cookie_ref` and `cookie_mut` methods, and set using
     /// the `cookie_set` method.
-    pub fn with_cookie(algo: SymmetricAlgorithm, key: &[u8],
+    pub fn with_cookie(algo: SymmetricAlgorithm, key: &SessionKey,
                        reader: Box<dyn BufferedReader<Cookie> + 'a>,
                        cookie: Cookie)
         -> Result<Self>
     {
         Ok(BufferedReaderDecryptor {
             reader: buffered_reader::Generic::with_cookie(
-                Decryptor::from_cookie_reader(algo, key, reader)?,
+                Decryptor::new(algo, key, reader)?,
                 None, cookie),
         })
     }
@@ -296,7 +284,7 @@ assert_send_and_sync!(Encryptor<W> where W: io::Write);
 
 impl<W: io::Write> Encryptor<W> {
     /// Instantiate a new symmetric encryptor.
-    pub fn new(algo: SymmetricAlgorithm, key: &[u8], sink: W) -> Result<Self> {
+    pub fn new(algo: SymmetricAlgorithm, key: &SessionKey, sink: W) -> Result<Self> {
         let block_size = algo.block_size()?;
         let iv = vec![0; block_size];
         let cipher = algo.make_encrypt_cfb(key, iv)?;
@@ -478,11 +466,13 @@ mod tests {
             for i in 0..key.len() {
                 key[0] = i as u8;
             }
+            let key = key.into();
 
             let filename = &format!(
                     "raw/a-cypherpunks-manifesto.aes{}.key_ascending_from_0",
                 algo.key_size().unwrap() * 8);
-            let ciphertext = Cursor::new(crate::tests::file(filename));
+            let ciphertext = buffered_reader::Memory::with_cookie(
+                crate::tests::file(filename), Default::default());
             let decryptor = Decryptor::new(*algo, &key, ciphertext).unwrap();
 
             // Read bytewise to test the buffer logic.
@@ -507,6 +497,7 @@ mod tests {
             for i in 0..key.len() {
                 key[0] = i as u8;
             }
+            let key = key.into();
 
             let mut ciphertext = Vec::new();
             {
@@ -532,8 +523,6 @@ mod tests {
     /// This test tries to encrypt, then decrypt some data.
     #[test]
     fn roundtrip() {
-        use std::io::Cursor;
-
         #[allow(deprecated)]
         for algo in [SymmetricAlgorithm::TripleDES,
                      SymmetricAlgorithm::CAST5,
@@ -547,8 +536,7 @@ mod tests {
                      SymmetricAlgorithm::Camellia256]
                      .iter()
                      .filter(|x| x.is_supported()) {
-            let mut key = vec![0; algo.key_size().unwrap()];
-            crate::crypto::random(&mut key).unwrap();
+            let key = SessionKey::new(algo.key_size().unwrap()).unwrap();
 
             let mut ciphertext = Vec::new();
             {
@@ -560,8 +548,10 @@ mod tests {
 
             let mut plaintext = Vec::new();
             {
-                let mut decryptor = Decryptor::new(*algo, &key,
-                                                   Cursor::new(&mut ciphertext))
+                let cur = buffered_reader::Memory::with_cookie(
+                    &ciphertext, Default::default());
+
+                let mut decryptor = Decryptor::new(*algo, &key, cur)
                     .unwrap();
 
                 decryptor.read_to_end(&mut plaintext).unwrap();

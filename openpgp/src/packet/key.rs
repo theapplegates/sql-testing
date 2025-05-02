@@ -2436,7 +2436,7 @@ impl Encrypted {
         P: KeyParts,
         R: KeyRole,
     {
-        use std::io::{Cursor, Read};
+        use std::io::Read;
         use crate::crypto;
 
         constrain_encryption_methods(
@@ -2466,7 +2466,8 @@ impl Encrypted {
             mpi::SecretKeyMaterial::from_bytes(
                 key.pk_algo(), &secret).map(|m| m.into())
         } else {
-            let cur = Cursor::new(ciphertext);
+            let cur = buffered_reader::Memory::with_cookie(
+                ciphertext, Default::default());
             let mut dec =
                 crypto::symmetric::Decryptor::new(self.algo, &derived_key, cur)?;
 
