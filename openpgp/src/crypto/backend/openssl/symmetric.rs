@@ -1,4 +1,4 @@
-use crate::crypto::symmetric::Mode;
+use crate::crypto::symmetric::Context;
 
 use crate::types::SymmetricAlgorithm;
 use crate::{Error, Result};
@@ -16,7 +16,7 @@ impl OpenSslMode {
     }
 }
 
-impl Mode for OpenSslMode {
+impl Context for OpenSslMode {
     fn block_size(&self) -> usize {
         self.ctx.block_size()
     }
@@ -76,7 +76,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a OpenSSL context for encrypting in CFB mode.
-    pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Context>> {
         let cipher = self.make_cfb_cipher()?;
         let mut ctx = CipherCtx::new()?;
         ctx.encrypt_init(Some(cipher), Some(key), Some(&iv))?;
@@ -84,7 +84,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a OpenSSL context for decrypting in CFB mode.
-    pub(crate) fn make_decrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_decrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Context>> {
         let cipher = self.make_cfb_cipher()?;
         let mut ctx = CipherCtx::new()?;
         ctx.decrypt_init(Some(cipher), Some(key), Some(&iv))?;
@@ -92,7 +92,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a OpenSSL context for encrypting in ECB mode.
-    pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Context>> {
         let cipher = self.make_ecb_cipher()?;
         let mut ctx = CipherCtx::new()?;
         ctx.encrypt_init(Some(cipher), Some(key), None)?;
@@ -101,7 +101,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a OpenSSL context for decrypting in ECB mode.
-    pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Context>> {
         let cipher = self.make_ecb_cipher()?;
         let mut ctx = CipherCtx::new()?;
         ctx.decrypt_init(Some(cipher), Some(key), None)?;

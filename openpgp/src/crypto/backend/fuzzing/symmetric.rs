@@ -1,11 +1,11 @@
-use crate::crypto::symmetric::Mode;
+use crate::crypto::symmetric::Context;
 
 use crate::Result;
 use crate::types::SymmetricAlgorithm;
 
 struct NullCipher(usize);
 
-impl Mode for NullCipher {
+impl Context for NullCipher {
     fn block_size(&self) -> usize {
         self.0
     }
@@ -53,23 +53,23 @@ impl SymmetricAlgorithm {
 
     /// Creates a Nettle context for encrypting in CFB mode.
     pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>)
-                                   -> Result<Box<dyn Mode>> {
+                                   -> Result<Box<dyn Context>> {
         Ok(Box::new(NullCipher(self.block_size().unwrap_or(16))))
     }
 
     /// Creates a Nettle context for decrypting in CFB mode.
     pub(crate) fn make_decrypt_cfb(self, key: &[u8], iv: Vec<u8>)
-                                   -> Result<Box<dyn Mode>> {
+                                   -> Result<Box<dyn Context>> {
         Ok(Box::new(NullCipher(self.block_size().unwrap_or(16))))
     }
 
     /// Creates a Nettle context for encrypting in ECB mode.
-    pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Context>> {
         Ok(Box::new(NullCipher(self.block_size().unwrap_or(16))))
     }
 
     /// Creates a Nettle context for decrypting in ECB mode.
-    pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Context>> {
         Ok(Box::new(NullCipher(self.block_size().unwrap_or(16))))
     }
 }

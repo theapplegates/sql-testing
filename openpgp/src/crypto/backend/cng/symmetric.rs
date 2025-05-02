@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use win_crypto_ng::symmetric as cng;
 
 use crate::crypto::mem::Protected;
-use crate::crypto::symmetric::Mode;
+use crate::crypto::symmetric::Context;
 
 use crate::{Error, Result};
 use crate::types::SymmetricAlgorithm;
@@ -23,7 +23,7 @@ impl KeyWrapper {
     }
 }
 
-impl Mode for KeyWrapper {
+impl Context for KeyWrapper {
     fn block_size(&self) -> usize {
         self.key.lock().expect("Mutex not to be poisoned")
             .block_size().expect("CNG not to fail internally")
@@ -34,7 +34,7 @@ impl Mode for KeyWrapper {
         dst: &mut [u8],
         src: &[u8],
     ) -> Result<()> {
-        let block_size = Mode::block_size(self);
+        let block_size = Context::block_size(self);
         // If necessary, round up to the next block size and pad with zeroes
         // NOTE: In theory CFB doesn't need this but CNG always requires
         // passing full blocks.
@@ -60,7 +60,7 @@ impl Mode for KeyWrapper {
         dst: &mut [u8],
         src: &[u8],
     ) -> Result<()> {
-        let block_size = Mode::block_size(self);
+        let block_size = Context::block_size(self);
         // If necessary, round up to the next block size and pad with zeroes
         // NOTE: In theory CFB doesn't need this but CNG always requires
         // passing full blocks.
@@ -121,7 +121,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a symmetric cipher context for encrypting in CFB mode.
-    pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Context>> {
         let (algo, _) = TryFrom::try_from(self)?;
 
         let algo = cng::SymmetricAlgorithm::open(algo, cng::ChainingMode::Cfb)?;
@@ -134,12 +134,12 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a symmetric cipher context for decrypting in CFB mode.
-    pub(crate) fn make_decrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_decrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Context>> {
         Self::make_encrypt_cfb(self, key, iv)
     }
 
     /// Creates a symmetric cipher context for encrypting in ECB mode.
-    pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Context>> {
         let (algo, _) = TryFrom::try_from(self)?;
 
         let algo = cng::SymmetricAlgorithm::open(algo, cng::ChainingMode::Ecb)?;
@@ -149,7 +149,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a symmetric cipher context for decrypting in ECB mode.
-    pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Context>> {
         Self::make_encrypt_ecb(self, key)
     }
 }

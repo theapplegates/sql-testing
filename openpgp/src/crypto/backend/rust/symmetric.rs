@@ -7,7 +7,7 @@ use cipher::KeyIvInit;
 use cipher::generic_array::{ArrayLength, GenericArray};
 
 use crate::{Error, Result};
-use crate::crypto::symmetric::Mode;
+use crate::crypto::symmetric::Context;
 use crate::types::SymmetricAlgorithm;
 
 use super::GenericArrayExt;
@@ -102,7 +102,7 @@ macro_rules! impl_block_size {
 
 macro_rules! impl_enc_mode {
     ($mode:ident) => {
-        impl Mode for $mode
+        impl Context for $mode
         {
             impl_block_size!($mode);
 
@@ -235,7 +235,7 @@ macro_rules! impl_enc_mode {
 
 macro_rules! impl_dec_mode {
     ($mode:ident) => {
-        impl Mode for $mode
+        impl Context for $mode
         {
             impl_block_size!($mode);
 
@@ -385,8 +385,8 @@ where
 /// Creates a context for encrypting/decrypting in CFB/ECB mode.
 macro_rules! make_mode {
     ($fn:ident, $enum:ident, $mode:ident::$mode2:ident $(, $iv:ident:$ivt:ty)?) => {
-        pub(crate) fn $fn(self, key: &[u8], $($iv: $ivt)?) -> Result<Box<dyn Mode>> {
-          zero_stack!(8192 bytes after running || -> Result<Box<dyn Mode>> {
+        pub(crate) fn $fn(self, key: &[u8], $($iv: $ivt)?) -> Result<Box<dyn Context>> {
+          zero_stack!(8192 bytes after running || -> Result<Box<dyn Context>> {
             use cipher::generic_array::GenericArray as GA;
 
             use SymmetricAlgorithm::*;

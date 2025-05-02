@@ -1,11 +1,11 @@
-use crate::crypto::symmetric::Mode;
+use crate::crypto::symmetric::Context;
 
 use crate::{Error, Result};
 use crate::types::SymmetricAlgorithm;
 
 struct Ecb(botan::BlockCipher, usize);
 
-impl Mode for Ecb {
+impl Context for Ecb {
     fn block_size(&self) -> usize {
         self.1
     }
@@ -29,7 +29,7 @@ impl Mode for Ecb {
 
 struct Cfb(botan::Cipher, usize);
 
-impl Mode for Cfb {
+impl Context for Cfb {
     fn block_size(&self) -> usize {
         self.1
     }
@@ -86,7 +86,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a context for encrypting in CFB mode.
-    pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Context>> {
         let mut cipher = botan::Cipher::new(
             &format!("{}/CFB", self.botan_name()?),
             botan::CipherDirection::Encrypt)?;
@@ -98,7 +98,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a context for decrypting in CFB mode.
-    pub(crate) fn make_decrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_decrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Context>> {
         let mut cipher = botan::Cipher::new(
             &format!("{}/CFB", self.botan_name()?),
             botan::CipherDirection::Decrypt)?;
@@ -110,7 +110,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a context for encrypting in ECB mode.
-    pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Context>> {
         let mut cipher = botan::BlockCipher::new(self.botan_name()?)?;
 
         cipher.set_key(key)?;
@@ -119,7 +119,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a context for decrypting in ECB mode.
-    pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Context>> {
         self.make_encrypt_ecb(key)
     }
 }

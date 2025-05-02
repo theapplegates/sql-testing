@@ -2,7 +2,7 @@ use nettle::cipher::{self, Cipher};
 use nettle::mode::{self};
 
 use crate::crypto::mem::Protected;
-use crate::crypto::symmetric::Mode;
+use crate::crypto::symmetric::Context;
 
 use crate::{Error, Result};
 use crate::types::SymmetricAlgorithm;
@@ -17,7 +17,7 @@ impl<M> ModeWrapper<M>
 where
     M: nettle::mode::Mode + Send + Sync + 'static,
 {
-    fn new(mode: M, iv: Vec<u8>) -> Box<dyn Mode> {
+    fn new(mode: M, iv: Vec<u8>) -> Box<dyn Context> {
         Box::new(ModeWrapper {
             mode,
             iv: iv.into(),
@@ -25,7 +25,7 @@ where
     }
 }
 
-impl<M> Mode for ModeWrapper<M>
+impl<M> Context for ModeWrapper<M>
 where
     M: nettle::mode::Mode + Send + Sync,
 {
@@ -52,7 +52,7 @@ where
     }
 }
 
-impl<C> Mode for C
+impl<C> Context for C
 where
     C: Cipher + Send + Sync,
 {
@@ -94,7 +94,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a Nettle context for encrypting in CFB mode.
-    pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_encrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Context>> {
         #[allow(deprecated)]
         match self {
             SymmetricAlgorithm::TripleDES =>
@@ -132,7 +132,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a Nettle context for decrypting in CFB mode.
-    pub(crate) fn make_decrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_decrypt_cfb(self, key: &[u8], iv: Vec<u8>) -> Result<Box<dyn Context>> {
         #[allow(deprecated)]
         match self {
             SymmetricAlgorithm::TripleDES =>
@@ -170,7 +170,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a Nettle context for encrypting in ECB mode.
-    pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_encrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Context>> {
         #[allow(deprecated)]
         match self {
             SymmetricAlgorithm::TripleDES => Ok(Box::new(cipher::Des3::with_encrypt_key(key)?)),
@@ -188,7 +188,7 @@ impl SymmetricAlgorithm {
     }
 
     /// Creates a Nettle context for decrypting in ECB mode.
-    pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Mode>> {
+    pub(crate) fn make_decrypt_ecb(self, key: &[u8]) -> Result<Box<dyn Context>> {
         #[allow(deprecated)]
         match self {
             SymmetricAlgorithm::TripleDES => Ok(Box::new(cipher::Des3::with_decrypt_key(key)?)),

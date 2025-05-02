@@ -14,10 +14,9 @@ use crate::{
 
 use buffered_reader::BufferedReader;
 
-/// Block cipher mode of operation.
-///
-/// Block modes govern how a block cipher processes data spanning multiple blocks.
-pub(crate) trait Mode: Send + Sync {
+/// A context representing symmetric algorithm state and block cipher
+/// mode.
+pub(crate) trait Context: Send + Sync {
     /// Block size of the underlying cipher in bytes.
     #[allow(dead_code)] // Used in some backends.
     fn block_size(&self) -> usize;
@@ -46,7 +45,7 @@ pub struct Decryptor<'a> {
     // The encrypted data.
     source: Box<dyn BufferedReader<Cookie> + 'a>,
 
-    dec: Box<dyn Mode>,
+    dec: Box<dyn Context>,
     block_size: usize,
     // Up to a block of unread data.
     buffer: Vec<u8>,
@@ -273,7 +272,7 @@ impl<'a> BufferedReader<Cookie> for BufferedReaderDecryptor<'a> {
 pub struct Encryptor<W: io::Write> {
     inner: Option<W>,
 
-    cipher: Box<dyn Mode>,
+    cipher: Box<dyn Context>,
     block_size: usize,
     // Up to a block of unencrypted data.
     buffer: Vec<u8>,
