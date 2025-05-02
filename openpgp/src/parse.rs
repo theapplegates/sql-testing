@@ -6299,6 +6299,10 @@ impl<'a> PacketParser<'a> {
                         + seip.aead().digest_size()? as u64)?;
 
                     let data = self.data(amount)?;
+                    let cur = buffered_reader::Memory::with_cookie(
+                        &data[..cmp::min(data.len(), amount)],
+                        Default::default());
+
                     let (message_key, schedule) = aead::SEIPv2Schedule::new(
                         key,
                         seip.symmetric_algo(),
@@ -6309,7 +6313,7 @@ impl<'a> PacketParser<'a> {
                     let dec = aead::Decryptor::new(
                         seip.symmetric_algo(), seip.aead(), chunk_size,
                         schedule, message_key,
-                        &data[..cmp::min(data.len(), amount)])?;
+                        cur)?;
                     let mut chunk = Vec::new();
                     dec.take(seip.chunk_size() as u64).read_to_end(&mut chunk)?;
                 }
