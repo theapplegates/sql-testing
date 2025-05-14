@@ -81,8 +81,7 @@ impl AEADAlgorithm {
                     SymmetricAlgorithm::AES128 |
                     SymmetricAlgorithm::AES192 |
                     SymmetricAlgorithm::AES256 |
-                    // XXX: Skipping Twofish until Twofish implements Clone
-                    // SymmetricAlgorithm::Twofish |
+                    SymmetricAlgorithm::Twofish |
                     SymmetricAlgorithm::Camellia128 |
                     SymmetricAlgorithm::Camellia192 |
                     SymmetricAlgorithm::Camellia256 => true,
@@ -94,8 +93,7 @@ impl AEADAlgorithm {
                     SymmetricAlgorithm::AES128 |
                     SymmetricAlgorithm::AES192 |
                     SymmetricAlgorithm::AES256 |
-                    // XXX: Skipping Twofish until Twofish implements Clone
-                    // SymmetricAlgorithm::Twofish |
+                    SymmetricAlgorithm::Twofish |
                     SymmetricAlgorithm::Camellia128 |
                     SymmetricAlgorithm::Camellia192 |
                     SymmetricAlgorithm::Camellia256 => true,
