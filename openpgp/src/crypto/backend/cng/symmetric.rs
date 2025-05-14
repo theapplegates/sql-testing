@@ -50,7 +50,7 @@ impl crypto::backend::interface::Symmetric for super::Backend {
                 let (algo, _) = TryFrom::try_from(algo)?;
 
                 let algo = cng::SymmetricAlgorithm::open(algo, cng::ChainingMode::Cbc)?;
-                let mut key = algo.new_key(key)?;
+                let key = algo.new_key(key)?;
 
                 Ok(Box::new(KeyWrapper::new(key, block_size,
                                             Some(iv.into_owned()))))
