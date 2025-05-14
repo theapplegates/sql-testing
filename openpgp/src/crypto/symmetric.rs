@@ -126,10 +126,6 @@ pub enum UnpaddingMode {
 /// A context representing symmetric algorithm state and block cipher
 /// mode.
 pub(crate) trait Context: Send + Sync {
-    /// Block size of the underlying cipher in bytes.
-    #[allow(dead_code)] // Used in some backends.
-    fn block_size(&self) -> usize;
-
     /// Encrypt a single block `src` to a ciphertext block `dst`.
     /// The `dst` and `src` buffers are expected to be at least as large as
     /// the block size of the underlying cipher.
