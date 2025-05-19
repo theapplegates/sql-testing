@@ -656,7 +656,7 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
     }
 
     /// Finish encryption and write last partial chunk.
-    pub fn finish(&mut self) -> Result<W> {
+    pub fn finalize(&mut self) -> Result<W> {
         if let Some(mut inner) = self.inner.take() {
             if !self.buffer.is_empty() {
                 let mut aead =
@@ -740,9 +740,9 @@ impl<W: io::Write, S: Schedule> io::Write for Encryptor<W, S> {
 impl<W: io::Write, S: Schedule> Drop for Encryptor<W, S> {
     fn drop(&mut self) {
         // Unfortunately, we cannot handle errors here.  If error
-        // handling is a concern, call finish() and properly handle
+        // handling is a concern, call finalize() and properly handle
         // errors there.
-        let _ = self.finish();
+        let _ = self.finalize();
     }
 }
 

@@ -406,7 +406,7 @@ mod has_access_to_prekey {
                                          io::Cursor::new(&mut ciphertext[..]))
                     .expect("Mandatory algorithm unsupported");
                 encryptor.write_all(&p).unwrap();
-                encryptor.finish().unwrap();
+                encryptor.finalize().unwrap();
             }
 
             Ok(Encrypted {

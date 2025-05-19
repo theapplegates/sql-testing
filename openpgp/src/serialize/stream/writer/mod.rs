@@ -579,7 +579,7 @@ impl<'a, C: 'a, S: aead::Schedule> io::Write for AEADEncryptor<'a, C, S> {
 
 impl<'a, C: 'a, S: aead::Schedule> Stackable<'a, C> for AEADEncryptor<'a, C, S> {
     fn into_inner(mut self: Box<Self>) -> Result<Option<BoxStack<'a, C>>> {
-        let inner = self.inner.inner.finish()?;
+        let inner = self.inner.inner.finalize()?;
         Ok(Some(inner))
     }
     fn pop(&mut self) -> Result<Option<BoxStack<'a, C>>> {
