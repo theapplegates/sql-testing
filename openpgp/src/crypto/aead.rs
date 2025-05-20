@@ -107,31 +107,39 @@ impl AEADAlgorithm {
     }
 }
 
-/// Schedules nonce and additional authenticated data for use with
-/// each AEAD chunk.
+/// Schedules nonce and additional authenticated data (AAD) for use
+/// with chunked AEAD encryption.
 pub trait Schedule: Send + Sync {
-    /// Calls `fun` with the appropriate nonce and additional
-    /// authenticated data.
+    /// Compute nonce and AAD for a chunk.
     ///
-    /// This is appropriate for all but the last chunk.
+    /// For every chunk, implementations must produce a nonce and the
+    /// additional authenticated data (AAD), then invoke `fun` with
+    /// nonce and AAD.
     ///
     /// `index` is the current chunk index.
-    fn next_chunk(&self,
-                  index: u64,
-                  fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<Context>)
-                  -> Result<Context>;
+    fn chunk(&self,
+             index: u64,
+             fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<Context>)
+             -> Result<Context>;
 
-    /// Calls `fun` with the appropriate nonce and additional
-    /// authenticated data for the last chunk.
+    /// Compute nonce and AAD for the final authentication tag.
     ///
-    /// This is appropriate for the last chunk.
+    /// When doing chunked AEAD, we need to protect against truncation
+    /// of the chunked stream.  In OpenPGP this is done by adding a
+    /// final empty chunk that includes the length of the stream in
+    /// the additional authenticated data (AAD).
     ///
-    /// `index` is the current chunk index.
-    fn final_chunk(&self,
-                   index: u64,
-                   length: u64,
-                   fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<Context>)
-                   -> Result<Context>;
+    /// Implementations must produce a nonce and the AAD (which SHOULD
+    /// include the length of the stream), then invoke `fun` with
+    /// nonce and AAD.
+    ///
+    /// `index` is the current chunk index. `length` is the total
+    /// length of the stream.
+    fn finalizer(&self,
+                 index: u64,
+                 length: u64,
+                 fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<Context>)
+                 -> Result<Context>;
 }
 
 const SEIP2AD_PREFIX_LEN: usize = 5;
@@ -179,10 +187,10 @@ impl SEIPv2Schedule {
 }
 
 impl Schedule for SEIPv2Schedule {
-    fn next_chunk(&self,
-                  index: u64,
-                  fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<Context>)
-                  -> Result<Context>
+    fn chunk(&self,
+             index: u64,
+             fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<Context>)
+             -> Result<Context>
     {
         // The nonce is the NONCE (NONCE_LEN - 8 bytes taken from the
         // KDF) concatenated with the chunk index.
@@ -195,11 +203,11 @@ impl Schedule for SEIPv2Schedule {
         fun(nonce, &self.ad)
     }
 
-    fn final_chunk(&self,
-                   index: u64,
-                   length: u64,
-                   fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<Context>)
-                   -> Result<Context>
+    fn finalizer(&self,
+                 index: u64,
+                 length: u64,
+                 fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<Context>)
+                 -> Result<Context>
     {
         // Prepare the associated data.
         let mut ad = [0u8; SEIP2AD_PREFIX_LEN + 8];
@@ -359,7 +367,7 @@ impl<'a, 's> Decryptor<'a, 's> {
                 // A chunk has to include at least one byte and a tag.
                 return Err(Error::ManipulatedMessage.into());
             } else {
-                let mut aead = self.schedule.next_chunk(
+                let mut aead = self.schedule.chunk(
                     self.chunk_index,
                     &mut |iv, ad| {
                         self.aead.context(self.sym_algo, &self.key, ad, iv,
@@ -407,7 +415,7 @@ impl<'a, 's> Decryptor<'a, 's> {
 
             if check_final_tag {
                 // We read the whole ciphertext, now check the final digest.
-                let mut aead = self.schedule.final_chunk(
+                let mut aead = self.schedule.finalizer(
                     self.chunk_index, self.bytes_decrypted,
                     &mut |iv, ad| {
                         self.aead.context(self.sym_algo, &self.key, ad, iv,
@@ -632,7 +640,7 @@ impl<'s, W: io::Write> Encryptor<'s, W> {
             // And possibly encrypt the chunk.
             if self.buffer.len() == self.chunk_size {
                 let mut aead =
-                    self.schedule.next_chunk(self.chunk_index, &mut |iv, ad| {
+                    self.schedule.chunk(self.chunk_index, &mut |iv, ad| {
                         self.aead.context(self.sym_algo, &self.key, ad, iv,
                                           CipherOp::Encrypt)
                             .map(Context)
@@ -655,7 +663,7 @@ impl<'s, W: io::Write> Encryptor<'s, W> {
             if chunk.len() == self.chunk_size {
                 // Complete chunk.
                 let mut aead =
-                    self.schedule.next_chunk(self.chunk_index, &mut |iv, ad| {
+                    self.schedule.chunk(self.chunk_index, &mut |iv, ad| {
                         self.aead.context(self.sym_algo, &self.key, ad, iv,
                                           CipherOp::Encrypt)
                             .map(Context)
@@ -683,7 +691,7 @@ impl<'s, W: io::Write> Encryptor<'s, W> {
         if let Some(mut inner) = self.inner.take() {
             if !self.buffer.is_empty() {
                 let mut aead =
-                    self.schedule.next_chunk(self.chunk_index, &mut |iv, ad| {
+                    self.schedule.chunk(self.chunk_index, &mut |iv, ad| {
                         self.aead.context(self.sym_algo, &self.key, ad, iv,
                                           CipherOp::Encrypt)
                             .map(Context)
@@ -706,7 +714,7 @@ impl<'s, W: io::Write> Encryptor<'s, W> {
             }
 
             // Write final digest.
-            let mut aead = self.schedule.final_chunk(
+            let mut aead = self.schedule.finalizer(
                 self.chunk_index, self.bytes_encrypted,
                 &mut |iv, ad| {
                     self.aead.context(self.sym_algo, &self.key, ad, iv,

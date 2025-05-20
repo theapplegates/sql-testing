@@ -455,10 +455,10 @@ mod has_access_to_prekey {
     }
 
     impl aead::Schedule for CounterSchedule {
-        fn next_chunk(&self,
-                      index: u64,
-                      fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<aead::Context>)
-                      -> Result<aead::Context>
+        fn chunk(&self,
+                 index: u64,
+                 fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<aead::Context>)
+                 -> Result<aead::Context>
         {
             // The nonce is a simple counter.
             let mut nonce_store = [0u8; aead::MAX_NONCE_LEN];
@@ -473,11 +473,11 @@ mod has_access_to_prekey {
             fun(nonce, &[])
         }
 
-        fn final_chunk(&self,
-                       index: u64,
-                       length: u64,
-                       fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<aead::Context>)
-                       -> Result<aead::Context>
+        fn finalizer(&self,
+                     index: u64,
+                     length: u64,
+                     fun: &mut dyn FnMut(&[u8], &[u8]) -> Result<aead::Context>)
+                     -> Result<aead::Context>
         {
             // The nonce is a simple counter.
             let mut nonce_store = [0u8; aead::MAX_NONCE_LEN];
