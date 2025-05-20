@@ -219,14 +219,14 @@ impl Schedule for SEIPv2Schedule {
 }
 
 /// A `Read`er for decrypting AEAD-encrypted data.
-pub struct Decryptor<'a, S: Schedule> {
+pub struct Decryptor<'a, 's> {
     // The encrypted data.
     source: Box<dyn BufferedReader<Cookie> + 'a>,
 
     sym_algo: SymmetricAlgorithm,
     aead: AEADAlgorithm,
     key: SessionKey,
-    schedule: S,
+    schedule: Box<dyn Schedule + 's>,
 
     digest_size: usize,
     chunk_size: usize,
@@ -235,25 +235,27 @@ pub struct Decryptor<'a, S: Schedule> {
     // Up to a chunk of unread data.
     buffer: Vec<u8>,
 }
-assert_send_and_sync!(Decryptor<'_, S> where S: Schedule);
+assert_send_and_sync!(Decryptor<'_, '_>);
 
 
-impl<'a, S: Schedule> Decryptor<'a, S> {
+impl<'a, 's> Decryptor<'a, 's> {
     /// Instantiate a new AEAD decryptor.
     ///
     /// `source` is the source to wrap.
-    pub fn new<R>(sym_algo: SymmetricAlgorithm,
-                  aead: AEADAlgorithm, chunk_size: usize,
-                  schedule: S, key: SessionKey, source: R)
+    pub fn new<R, S>(sym_algo: SymmetricAlgorithm,
+                     aead: AEADAlgorithm, chunk_size: usize,
+                     schedule: S, key: SessionKey, source: R)
         -> Result<Self>
-        where R: BufferedReader<Cookie> + 'a,
+    where
+        R: BufferedReader<Cookie> + 'a,
+        S: Schedule + 's,
     {
         Ok(Decryptor {
             source: source.into_boxed(),
             sym_algo,
             aead,
             key,
-            schedule,
+            schedule: Box::new(schedule),
             digest_size: aead.digest_size()?,
             chunk_size,
             chunk_index: 0,
@@ -432,7 +434,7 @@ impl<'a, S: Schedule> Decryptor<'a, S> {
 // gratuitiously do a short read.  Specifically, if the return value
 // is less than `plaintext.len()`, then it is either because we
 // reached the end of the input or an error occurred.
-impl<'a, S: Schedule> io::Read for Decryptor<'a, S> {
+impl io::Read for Decryptor<'_, '_> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.read_helper(buf) {
             Ok(n) => Ok(n),
@@ -448,19 +450,24 @@ impl<'a, S: Schedule> io::Read for Decryptor<'a, S> {
 
 /// A `BufferedReader` that decrypts AEAD-encrypted data as it is
 /// read.
-pub(crate) struct BufferedReaderDecryptor<'a, S: Schedule> {
-    reader: buffered_reader::Generic<Decryptor<'a, S>, Cookie>,
+pub(crate) struct BufferedReaderDecryptor<'a, 's> {
+    reader: buffered_reader::Generic<Decryptor<'a, 's>, Cookie>,
 }
 
-impl<'a, S: Schedule> BufferedReaderDecryptor<'a, S> {
+impl<'a, 's> BufferedReaderDecryptor<'a, 's> {
     /// Like `new()`, but sets a cookie, which can be retrieved using
     /// the `cookie_ref` and `cookie_mut` methods, and set using
     /// the `cookie_set` method.
-    pub fn with_cookie(sym_algo: SymmetricAlgorithm,
-                       aead: AEADAlgorithm, chunk_size: usize, schedule: S,
-                       key: SessionKey, source: Box<dyn BufferedReader<Cookie> + 'a>,
-                       cookie: Cookie)
-        -> Result<Self>
+    pub fn with_cookie<S>(sym_algo: SymmetricAlgorithm,
+                          aead: AEADAlgorithm,
+                          chunk_size: usize,
+                          schedule: S,
+                          key: SessionKey,
+                          source: Box<dyn BufferedReader<Cookie> + 'a>,
+                          cookie: Cookie)
+                          -> Result<Self>
+    where
+        S: Schedule + 's,
     {
         Ok(BufferedReaderDecryptor {
             reader: buffered_reader::Generic::with_cookie(
@@ -471,19 +478,19 @@ impl<'a, S: Schedule> BufferedReaderDecryptor<'a, S> {
     }
 }
 
-impl<'a, S: Schedule> io::Read for BufferedReaderDecryptor<'a, S> {
+impl io::Read for BufferedReaderDecryptor<'_, '_> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.reader.read(buf)
     }
 }
 
-impl<'a, S: Schedule> fmt::Display for BufferedReaderDecryptor<'a, S> {
+impl fmt::Display for BufferedReaderDecryptor<'_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "BufferedReaderDecryptor")
     }
 }
 
-impl<'a, S: Schedule> fmt::Debug for BufferedReaderDecryptor<'a, S> {
+impl fmt::Debug for BufferedReaderDecryptor<'_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("BufferedReaderDecryptor")
             .field("reader", &self.get_ref().unwrap())
@@ -491,7 +498,7 @@ impl<'a, S: Schedule> fmt::Debug for BufferedReaderDecryptor<'a, S> {
     }
 }
 
-impl<'a, S: Schedule> BufferedReader<Cookie> for BufferedReaderDecryptor<'a, S> {
+impl BufferedReader<Cookie> for BufferedReaderDecryptor<'_, '_> {
     fn buffer(&self) -> &[u8] {
         self.reader.buffer()
     }
@@ -564,13 +571,13 @@ impl<'a, S: Schedule> BufferedReader<Cookie> for BufferedReaderDecryptor<'a, S> 
 }
 
 /// A `Write`r for AEAD encrypting data.
-pub struct Encryptor<W: io::Write, S: Schedule> {
+pub struct Encryptor<'s, W: io::Write> {
     inner: Option<W>,
 
     sym_algo: SymmetricAlgorithm,
     aead: AEADAlgorithm,
     key: SessionKey,
-    schedule: S,
+    schedule: Box<dyn Schedule + 's>,
 
     digest_size: usize,
     chunk_size: usize,
@@ -582,19 +589,22 @@ pub struct Encryptor<W: io::Write, S: Schedule> {
     // A place to write encrypted data into.
     scratch: Vec<u8>,
 }
-assert_send_and_sync!(Encryptor<W, S> where W: io::Write, S: Schedule);
+assert_send_and_sync!(Encryptor<'_, W> where W: io::Write);
 
-impl<W: io::Write, S: Schedule> Encryptor<W, S> {
+impl<'s, W: io::Write> Encryptor<'s, W> {
     /// Instantiate a new AEAD encryptor.
-    pub fn new(sym_algo: SymmetricAlgorithm, aead: AEADAlgorithm,
-               chunk_size: usize, schedule: S, key: SessionKey, sink: W)
-               -> Result<Self> {
+    pub fn new<S>(sym_algo: SymmetricAlgorithm, aead: AEADAlgorithm,
+                  chunk_size: usize, schedule: S, key: SessionKey, sink: W)
+                  -> Result<Self>
+    where
+        S: Schedule + 's,
+    {
         Ok(Encryptor {
             inner: Some(sink),
             sym_algo,
             aead,
             key,
-            schedule,
+            schedule: Box::new(schedule),
             digest_size: aead.digest_size()?,
             chunk_size,
             chunk_index: 0,
@@ -726,7 +736,7 @@ impl<W: io::Write, S: Schedule> Encryptor<W, S> {
     }
 }
 
-impl<W: io::Write, S: Schedule> io::Write for Encryptor<W, S> {
+impl<W: io::Write> io::Write for Encryptor<'_, W> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match self.write_helper(buf) {
             Ok(n) => Ok(n),
@@ -752,7 +762,7 @@ impl<W: io::Write, S: Schedule> io::Write for Encryptor<W, S> {
     }
 }
 
-impl<W: io::Write, S: Schedule> Drop for Encryptor<W, S> {
+impl<W: io::Write> Drop for Encryptor<'_, W> {
     fn drop(&mut self) {
         // Unfortunately, we cannot handle errors here.  If error
         // handling is a concern, call finalize() and properly handle
