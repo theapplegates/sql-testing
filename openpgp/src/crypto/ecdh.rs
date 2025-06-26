@@ -209,8 +209,8 @@ fn pkcs5_unpad(sk: Protected) -> Result<Protected> {
     let mut target_len = 0;
 
     let padding = buf[buf.len() - 1];
-    if padding as usize > buf.len() {
-        // The padding can't be longer than the buffer.
+    if padding == 0 || padding as usize > buf.len() {
+        // The padding can't be "0" or longer than the buffer.
         good = false
     } else {
         target_len = buf.len() - padding as usize;
@@ -442,6 +442,9 @@ mod tests {
 
         // Invalid padding.
         let v = Protected::from(&[0, 0, 100][..]);
+        assert!(pkcs5_unpad(v).is_err());
+
+        let v = Protected::from(&[1, 0][..]);
         assert!(pkcs5_unpad(v).is_err());
     }
 
