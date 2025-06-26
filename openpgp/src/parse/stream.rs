@@ -2410,8 +2410,21 @@ impl<'a, H: VerificationHelper + DecryptionHelper> Decryptor<'a, H> {
             match pp.packet {
                 Packet::CompressedData(ref p) =>
                     v.structure.new_compression_layer(p.algo()),
-                Packet::SEIP(_) if v.mode == Mode::Decrypt => {
+                Packet::SEIP(ref seip) if v.mode == Mode::Decrypt => {
                     t!("Found the encryption container");
+
+                    // Bail early (and provide a useful error message)
+                    // if we can't decrypt the SEIP packet.
+                    if let SEIP::V2(seipv2) = seip {
+                        if ! seipv2.symmetric_algo().is_supported() {
+                            return Err(Error::UnsupportedSymmetricAlgorithm(
+                                seipv2.symmetric_algo()).into());
+                        }
+                        if ! seipv2.aead().is_supported() {
+                            return Err(Error::UnsupportedAEADAlgorithm(
+                                seipv2.aead()).into());
+                        }
+                    }
 
                     // Get the symmetric algorithm from the decryption
                     // proxy function.  This is necessary because we
