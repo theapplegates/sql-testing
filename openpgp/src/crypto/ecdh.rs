@@ -204,11 +204,19 @@ fn pkcs5_unpad(sk: Protected) -> Result<Protected> {
     }
 
     let mut buf: Vec<u8> = sk.expose_into_unprotected_vec();
+
     let mut good = true;
+    let mut target_len = 0;
+
     let padding = buf[buf.len() - 1];
-    let target_len = buf.len() - padding as usize;
-    for &b in &buf[target_len..] {
-        good = b == padding && good;
+    if padding as usize > buf.len() {
+        // The padding can't be longer than the buffer.
+        good = false
+    } else {
+        target_len = buf.len() - padding as usize;
+        for &b in &buf[target_len..] {
+            good = b == padding && good;
+        }
     }
 
     if good {
@@ -431,6 +439,10 @@ mod tests {
         assert_eq!(&v, &Protected::from(&[8, 8, 8, 8, 8, 8, 8, 8][..]));
         let v = pkcs5_unpad(v).unwrap();
         assert_eq!(&v, &Protected::from(&[][..]));
+
+        // Invalid padding.
+        let v = Protected::from(&[0, 0, 100][..]);
+        assert!(pkcs5_unpad(v).is_err());
     }
 
     #[test]
