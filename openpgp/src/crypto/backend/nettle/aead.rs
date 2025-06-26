@@ -93,15 +93,21 @@ impl crate::crypto::backend::interface::Aead for super::Backend {
                 _ => false,
             },
 
-            AEADAlgorithm::OCB => match symm {
-                SymmetricAlgorithm::AES128 |
-                SymmetricAlgorithm::AES192 |
-                SymmetricAlgorithm::AES256 |
-                SymmetricAlgorithm::Twofish |
-                SymmetricAlgorithm::Camellia128 |
-                SymmetricAlgorithm::Camellia192 |
-                SymmetricAlgorithm::Camellia256 => true,
-                _ => false,
+            AEADAlgorithm::OCB => {
+                if nettle::aead::OCB_IS_SUPPORTED {
+                    match symm {
+                        SymmetricAlgorithm::AES128 |
+                        SymmetricAlgorithm::AES192 |
+                        SymmetricAlgorithm::AES256 |
+                        SymmetricAlgorithm::Twofish |
+                        SymmetricAlgorithm::Camellia128 |
+                        SymmetricAlgorithm::Camellia192 |
+                        SymmetricAlgorithm::Camellia256 => true,
+                        _ => false,
+                    }
+                } else {
+                    false
+                }
             },
 
             AEADAlgorithm::GCM => match symm {
