@@ -253,8 +253,9 @@ impl SymmetricAlgorithm {
     /// use sequoia_openpgp as openpgp;
     /// use openpgp::types::SymmetricAlgorithm;
     ///
+    /// assert!(SymmetricAlgorithm::AES128.is_supported());
+    /// assert!(SymmetricAlgorithm::AES192.is_supported());
     /// assert!(SymmetricAlgorithm::AES256.is_supported());
-    /// assert!(SymmetricAlgorithm::TripleDES.is_supported());
     ///
     /// assert!(!SymmetricAlgorithm::Unencrypted.is_supported());
     /// assert!(!SymmetricAlgorithm::Private(101).is_supported());
