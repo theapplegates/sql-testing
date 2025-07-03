@@ -120,19 +120,37 @@ pub trait Asymmetric {
     /// Returns a tuple containing the parameters `p`, `q`, `g`, the
     /// public key `y`, and the secret key `x`.
     fn dsa_generate_key(p_bits: usize)
-                        -> Result<(MPI, MPI, MPI, MPI, ProtectedMPI)>;
+                        -> Result<(MPI, MPI, MPI, MPI, ProtectedMPI)>
+    {
+        let _ = p_bits;
+        #[allow(deprecated)]
+        Err(Error::UnsupportedPublicKeyAlgorithm(
+            PublicKeyAlgorithm::DSA).into())
+    }
 
     /// Creates a DSA signature.
     fn dsa_sign(x: &ProtectedMPI,
                 p: &MPI, q: &MPI, g: &MPI, y: &MPI,
                 digest: &[u8])
-                -> Result<(MPI, MPI)>;
+                -> Result<(MPI, MPI)>
+    {
+        let _ = (x, p, q, g, y, digest);
+        #[allow(deprecated)]
+        Err(Error::UnsupportedPublicKeyAlgorithm(
+            PublicKeyAlgorithm::DSA).into())
+    }
 
     /// Verifies a DSA signature.
     fn dsa_verify(p: &MPI, q: &MPI, g: &MPI, y: &MPI,
                   digest: &[u8],
                   r: &MPI, s: &MPI)
-                  -> Result<bool>;
+                  -> Result<bool>
+    {
+        let _ = (p, q, g, y, digest, r, s);
+        #[allow(deprecated)]
+        Err(Error::UnsupportedPublicKeyAlgorithm(
+            PublicKeyAlgorithm::DSA).into())
+    }
 
     /// Generates an ElGamal key pair.
     ///
