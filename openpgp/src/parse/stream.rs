@@ -3974,6 +3974,7 @@ EK8=
         for (m, c) in [
             ("InRelease", "InRelease.signers.pgp"),
             ("InRelease.msft", "InRelease.msft.signers.pgp"),
+            ("InRelease.v3", "InRelease.v3.signers.pgp"),
         ] {
             let certs = crate::cert::CertParser::from_bytes(
                 crate::tests::key(c))?.collect::<Result<Vec<_>>>()?;

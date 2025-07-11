@@ -135,7 +135,7 @@ impl<'a> std::convert::TryFrom<&'a Signature> for OnePassSig {
 
     fn try_from(s: &'a Signature) -> Result<Self> {
         match s.version() {
-            4 => OnePassSig3::try_from(s).map(Into::into),
+            3 | 4 => OnePassSig3::try_from(s).map(Into::into),
             6 => OnePassSig6::try_from(s).map(Into::into),
             n => Err(Error::InvalidOperation(
                 format!("Unsupported signature version {}", n)).into()),
