@@ -792,7 +792,7 @@ where
                     // p > q, swap!
                     std::mem::swap(&mut key.p, &mut key.q);
                 }
-                let u = key.u()?;
+                let u = key.inverse_p_mod_q()?;
 
                 Self::with_secret(
                     ctime.unwrap_or_else(crate::now),
