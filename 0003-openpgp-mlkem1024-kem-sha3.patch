@@ -1,0 +1,142 @@
+From 333333333 Mon Sep 17 00:00:00 2001
+Subject: [openpgp][openssl] Add ML-KEM-1024 KEM (EVP) + SLH-DSA-256s IDs and
+ SHA3-512 hybrid combiner (feature: pqc-experimental)
+
+diff --git a/openpgp/Cargo.toml b/openpgp/Cargo.toml
+--- a/openpgp/Cargo.toml
++++ b/openpgp/Cargo.toml
+@@
+ [features]
+ default = []
+ crypto-openssl = ["dep:openssl"]
+ allow-experimental-crypto = []
++pqc-experimental = ["allow-experimental-crypto", "crypto-openssl"]
+
+diff --git a/openpgp/src/types/public_key.rs b/openpgp/src/types/public_key.rs
+--- a/openpgp/src/types/public_key.rs
++++ b/openpgp/src/types/public_key.rs
+@@
+     X448,
++    /// SLH-DSA-SHAKE-256s (experimental signing)
++    #[cfg(feature = "pqc-experimental")]
++    SlhDsaShake256s,
++    /// ML-KEM-1024 (experimental KEM / key transport)
++    #[cfg(feature = "pqc-experimental")]
++    MlKem1024,
+ }
+ 
+ impl PublicKeyAlgorithm {
+@@
+     pub fn is_signing(self) -> bool {
+         matches!(self,
+             Self::RsaEncryptSign | Self::RsaSign | Self::Dsa | Self::EcDsa | Self::EdDSA
+-        )
++            | #[cfg(feature="pqc-experimental")] Self::SlhDsaShake256s
++        )
+     }
+@@
+     pub fn is_key_transport(self) -> bool {
+         matches!(self,
+             Self::RsaEncryptSign | Self::RsaEncrypt | Self::ElgamalEncrypt
+-            | Self::Ecdh | Self::X25519 | Self::X448
++            | Self::Ecdh | Self::X25519 | Self::X448
++            | #[cfg(feature="pqc-experimental")] Self::MlKem1024
+         )
+     }
+ }
+ 
+diff --git a/openpgp/src/crypto/backend/openssl/asymmetric.rs b/openpgp/src/crypto/backend/openssl/asymmetric.rs
+--- a/openpgp/src/crypto/backend/openssl/asymmetric.rs
++++ b/openpgp/src/crypto/backend/openssl/asymmetric.rs
+@@
+ use openssl::pkey::{PKey, Private, Public};
+ use openssl::error::ErrorStack;
+ use crate::Result as OgpResult;
+ 
+ #[derive(Clone, Debug)]
+ pub enum Error {
+     Unsupported(&'static str),
+     Crypto(&'static str),
+ }
+ 
+ #[derive(Clone, Debug)]
+ pub enum EvpPkeyType {
+     // existing:
+     Ed25519, Ed448, X25519, X448,
++    #[cfg(feature="pqc-experimental")]
++    SlhDsaShake256s,
++    #[cfg(feature="pqc-experimental")]
++    MlKem1024,
+ }
+ 
+ impl EvpPkeyType {
+     pub fn name(&self) -> &'static str {
+         match self {
+             // existing…
+             Self::Ed448 => "ED448",
+             Self::X448 => "X448",
++            #[cfg(feature="pqc-experimental")]
++            Self::SlhDsaShake256s => "SLH-DSA-SHAKE-256s",
++            #[cfg(feature="pqc-experimental")]
++            Self::MlKem1024 => "ML-KEM-1024",
+         }
+     }
+ }
+ 
+ pub fn generate_keypair(t: EvpPkeyType) -> Result<PKey<Private>, Error> {
+     match t {
+         // existing curves…
++        #[cfg(feature="pqc-experimental")]
++        EvpPkeyType::SlhDsaShake256s | EvpPkeyType::MlKem1024 => {
++            PKey::generate_named(&t.name())
++                .map_err(|_| Error::Unsupported("oqs/native PQC not available (load provider)"))
++        }
+         _ => Err(Error::Unsupported("Algorithm not supported by OpenSSL backend")),
+     }
+ }
+ 
++// ---------- ML-KEM-1024 KEM (EVP) ----------
++#[cfg(feature="pqc-experimental")]
++pub fn mlkem1024_encapsulate(pubkey: &PKey<Public>) -> Result<(Vec<u8>, Vec<u8>), Error> {
++    use openssl::pkey_ctx::PkeyCtx;
++    let mut ctx = PkeyCtx::new(pubkey).map_err(|_| Error::Crypto("ctx"))?;
++    ctx.kem_encapsulate_init().map_err(|_| Error::Crypto("kem_encapsulate_init"))?;
++    let ct_len = ctx.kem_out_len().map_err(|_| Error::Crypto("kem_out_len"))?;
++    let ss_len = ctx.kem_shared_secret_len().map_err(|_| Error::Crypto("kem_shared_secret_len"))?;
++    let mut ct = vec![0u8; ct_len];
++    let mut ss = vec![0u8; ss_len];
++    ctx.kem_encapsulate(&mut ct, &mut ss).map_err(|_| Error::Crypto("kem_encapsulate"))?;
++    Ok((ct, ss))
++}
++
++#[cfg(feature="pqc-experimental")]
++pub fn mlkem1024_decapsulate(privkey: &PKey<Private>, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
++    use openssl::pkey_ctx::PkeyCtx;
++    let mut ctx = PkeyCtx::new(privkey).map_err(|_| Error::Crypto("ctx"))?;
++    ctx.kem_decapsulate_init().map_err(|_| Error::Crypto("kem_decapsulate_init"))?;
++    let ss_len = ctx.kem_shared_secret_len().map_err(|_| Error::Crypto("kem_shared_secret_len"))?;
++    let mut ss = vec![0u8; ss_len];
++    ctx.kem_decapsulate(ciphertext, &mut ss).map_err(|_| Error::Crypto("kem_decapsulate"))?;
++    Ok(ss)
++}
++
++/// Hybrid KEK derivation: HKDF(SHA3-512) over concat(secrets)
++#[cfg(feature="pqc-experimental")]
++pub fn hybrid_kek_sha3_512(secrets: &[&[u8]]) -> OgpResult<Vec<u8>> {
++    use openssl::pkey::Id;
++    use openssl::pkey_ctx::PkeyCtx;
++    use openssl::hash::MessageDigest;
++    // Concatenate inputs
++    let concat: Vec<u8> = secrets.iter().flat_map(|s| s.iter().copied()).collect();
++    // HKDF with SHA3-512 to 32 bytes (AES-256 KEK)
++    let mut ctx = PkeyCtx::new_id(Id::HKDF).map_err(|_| anyhow::anyhow!("hkdf ctx"))?;
++    ctx.hkdf_mode(openssl::pkey_ctx::HkdfMode::EXTRACT_THEN_EXPAND)
++        .map_err(|_| anyhow::anyhow!("hkdf mode"))?;
++    ctx.hkdf_md(MessageDigest::sha3_512()).map_err(|_| anyhow::anyhow!("hkdf md"))?;
++    ctx.hkdf_salt(b"OpenPGP-Hybrid-MLKEM1024+X448-v1").map_err(|_| anyhow::anyhow!("hkdf salt"))?;
++    ctx.hkdf_key(&concat).map_err(|_| anyhow::anyhow!("hkdf key"))?;
++    ctx.hkdf_info(b"KEK").map_err(|_| anyhow::anyhow!("hkdf info"))?;
++    let mut out = [0u8; 32];
++    ctx.derive(Some(&mut out)).map_err(|_| anyhow::anyhow!("hkdf derive"))?;
++    Ok(out.to_vec())
++}
