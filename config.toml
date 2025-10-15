@@ -1,0 +1,126 @@
+# Configuration template for sq 1.3.1
+
+# To use it, edit it to your liking and write it to
+# /Users/thor3/Library/Application Support/org.Sequoia-PGP.sequoia/sq/config.toml
+
+[ui]
+#verbosity = "default" # or "verbose" or "quiet"
+#hints = true
+
+[encrypt]
+for-self = ["fingerprint of your key"]
+profile = "rfc9580"
+
+[sign]
+signer-self = ["fingerprint of your key"]
+
+[pki.vouch]
+#certifier-self = "fingerprint of your key"
+#expiration = "10y"
+
+[key.generate]
+cipher-suite = "cv25519"
+profile = "rfc9580"
+
+[network]
+#keyservers = ["hkps://keys.openpgp.org", "hkps://mail-api.proton.me", "hkps://keys.mailvelope.com", "hkps://keyserver.ubuntu.com", "hkps://sks.pod01.fleetstreetops.com"]
+
+[network.search]
+#iterations = 3
+#use-wkd = true
+#use-dane = true
+
+[servers]
+#path = "/usr/local/lib/sequoia"
+
+[policy]
+#path = "/etc/crypto-policies/back-ends/sequoia.config"
+
+# The policy can be inlined, either alternatively, or additionally,
+# like so:
+
+[policy.hash_algorithms]
+#md5.second_preimage_resistance = 2004-02-01
+#md5.collision_resistance = 1997-02-01
+#sha1.second_preimage_resistance = 2023-02-01
+#sha1.collision_resistance = 2013-02-01
+#ripemd160 = 2013-02-01
+sha256 = "always"
+sha384 = "always"
+sha512 = "always"
+sha224 = "always"
+sha3-256 = "always"
+sha3-512 = "always"
+
+[policy.symmetric_algorithms]
+#idea = 2025-02-01
+#tripledes = 2017-02-01
+#cast5 = 2025-02-01
+#blowfish = "always"
+#aes128 = "always"
+#aes192 = "always"
+#aes256 = "always"
+#twofish = "always"
+#camellia128 = "always"
+#camellia192 = "always"
+#camellia256 = "always"
+
+[policy.asymmetric_algorithms]
+#rsa1024 = 2014-02-01
+#rsa2048 = "always"
+#rsa3072 = "always"
+#rsa4096 = "always"
+#elgamal1024 = 2014-02-01
+#elgamal2048 = 2025-02-01
+#elgamal3072 = 2025-02-01
+#elgamal4096 = 2025-02-01
+#dsa1024 = 2014-02-01
+#dsa2048 = 2030-02-01
+#dsa3072 = 2030-02-01
+dsa4096 = 2030-02-01
+#nistp256 = "always"
+#nistp384 = "always"
+#nistp521 = "always"
+#brainpoolp256 = "always"
+#brainpoolp384 = "always"
+#brainpoolp512 = "always"
+cv25519 = "always"
+x25519 = "always"
+x448 = "always"
+ed25519 = "always"
+ed448 = "always"
+mldsa65-ed25519 = "always"
+mldsa87-ed448 = "always"
+slhdsa128s = "always"
+slhdsa128f = "always"
+slhdsa256s = "always"
+mlkem768-x25519 = "always"
+mlkem1024-x448 = "always"
+
+[policy.aead_algorithms]
+#eax = "always"
+#ocb = "always"
+#gcm = "always"
+
+[policy.packets]
+#pkesk = "always"
+signature.default_disposition = "always"
+signature.v5 = "never"
+signature.v3 = 2021-02-01
+#skesk = "always"
+#onepasssig = "always"
+#secretkey = "always"
+#publickey = "always"
+#secretsubkey = "always"
+#compresseddata = "always"
+#sed = 2004-02-01
+#marker = "always"
+#literal = "always"
+#trust = "always"
+#userid = "always"
+#publicsubkey = "always"
+#userattribute = "always"
+#seip = "always"
+#mdc = "always"
+#aed = "never"
+#padding = "always"
