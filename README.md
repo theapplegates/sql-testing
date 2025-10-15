@@ -1,337 +1,273 @@
-Sequoia PGP
-===========
+# Post-Quantum PGP Tool
 
-Sequoia is a complete implementation of OpenPGP as defined by [RFC
-9580] as well as the deprecated OpenPGP as defined by [RFC 4880], and
-various related standards.
+A full-stack web application for experimenting with **Post-Quantum Cryptography (PQC)** using rPGP with **SLH-DSA signatures**.
 
-OpenPGP is a standard by the IETF.  It was derived from the PGP
-software, which was created by Phil Zimmermann in 1991.
+## 🌟 Features
 
-[RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html
-[RFC 4880]: https://tools.ietf.org/html/rfc4880
+- **RFC9580 v6 OpenPGP Keys** - Latest OpenPGP standard
+- **SLH-DSA-SHAKE-512s Signatures** - Post-quantum digital signatures
+- **X25519 Encryption** - Modern elliptic curve encryption
+- **Ed25519 Primary Keys** - For certification
+- **Full Web Interface** - Easy-to-use React frontend
+- **RESTful API** - FastAPI backend with complete OpenPGP operations
 
-Sequoia consists of several crates, providing both a low-level and a
-high-level API for dealing with OpenPGP data.
+## 🚀 Quick Start
 
-Low-level API
--------------
-
-The low-level API can be found in the [openpgp](./openpgp) crate.
-This crate aims to provide a complete implementation of OpenPGP as
-defined by [RFC 9580] as well as the deprecated OpenPGP as defined by
-[RFC 4880].  This includes support for unbuffered message processing.
-
-The [openpgp](./openpgp) crate tries hard to avoid dictating how
-OpenPGP should be used.  This doesn't mean that we don't have opinions
-about how OpenPGP should be used in a number of common scenarios (for
-instance, message validation).
-
-Mid-level API
--------------
-
-Sequoia's mid-level API is implemented in various crates.  For
-historical reasons, some are maintained in this repository, and some
-are maintained outside of this repository.  These are the most
-important crates:
-
-  - [sequoia-cert-store](http://docs.rs/sequoia-cert-store): A store
-    for certificates.
-  - [sequoia-keystore](http://docs.rs/sequoia-keystore): A store for
-    secret keys.
-  - [sequoia-wot](http://docs.rs/sequoia-wot): An implementation of
-    the Web-of-Trust, a PKI engine.
-  - [sequoia-policy-config](http://docs.rs/sequoia-policy-config):
-    Loads cryptographic policies from files.
-  - [sequoia-net](./net): Network services for OpenPGP.
-  - [sequoia-ipc](./ipc): Low-level IPC services for Sequoia and
-    GnuPG.
-  - [sequoia-autocrypt](./autocrypt): Low-level Autocrypt support.
-
-High-level API
---------------
-
-As of this writing, we still don't have a single, simple, easy to use
-interface for Sequoia.  This is something we want to work on in the
-near term.  The plan is to extract the functionality from `sq` and put
-it into a crate which will become the high-level interface.
-
-We maintain a [SOP] implementation called [sequoia-sop].  SOP is a
-high level interface, but has a very narrow scope.
-
-[SOP]: https://datatracker.ietf.org/doc/draft-dkg-openpgp-stateless-cli/
-[sequoia-sop]: http://docs.rs/sequoia-sop
-
-Command line interface
-----------------------
-
-We maintain `sq`, a command line interface use OpenPGP conveniently
-from the command line.  See the [sq user documentation] for
-instructions, or browse the [manual pages].  `sq` is packaged for most
-Linux distributions and should be easy to install.
-
-[sq user documentation]: https://book.sequoia-pgp.org
-[manual pages]: https://sequoia-pgp.gitlab.io/sequoia-sq/man/
-
-We also maintain a minimalist command-line verification tool for
-detached signatures called ['sqv'].
-
-['sqv']: https://gitlab.com/sequoia-pgp/sequoia-sqv
- The foreign function interface provides a C API for some of Sequoia's
-low- and high-level interfaces, but it is incomplete.
-
-Sequoia for GnuPG users
------------------------
-
-The Sequoia crates and `sq` provide good compatibility with existing
-GnuPG installations.  For example, `sq` will discover all certificates
-in GnuPG's keyrings, and can make of secret keys managed by
-`gpg-agent`, all without additional configuration.
-
-For anyone directly or indirectly using GnuPG who wants to migrate to
-Sequoia, there is a re-implementation and drop-in replacement of `gpg`
-and `gpgv` called the [Sequoia Chameleon] (or just `gpg-sq` and
-`gpgv-sq`).
-
-[Sequoia Chameleon]: https://gitlab.com/sequoia-pgp/sequoia-chameleon-gnupg
-
-LICENSE
-=======
-
-Sequoia is licensed under the GNU Library General Public License
-version 2 or any later version.  See the file
-[LICENSE.txt](LICENSE.txt) or visit
-https://www.gnu.org/licenses/lgpl-2.0.html for details.
-
-Using Sequoia
-=============
-
-If you want to use Sequoia from Rust in a binary crate, you can simply
-register the dependency in your `Cargo.toml` file as with any other
-project.  Please see [this guide] on how to use Sequoia in a library
-crate, or how to control the cryptographic backend used by Sequoia.
-
-```toml
-sequoia-openpgp = "*"
-```
-
-Note that we depend on a number of C libraries, which must be present
-along with their development packages. See **Requirements** section
-below.
-
-Besides being a Rust crate, we also provide a C API, and bindings to
-other languages, see **Bindings**.
-
-[this guide]: openpgp/README.md#feature-flags
-
-Features
---------
-
-Sequoia is currently supported on a variety of platforms.
-
-### Cryptography
-
-By default it uses the Nettle cryptographic library (version 3.9.1 or
-up) but it can be used with different cryptographic backends. At the
-time of writing, it also supports the native Windows [Cryptographic
-API: Next Generation (CNG)].
-
-Various backends can be enabled via Cargo features,
-e.g. `crypto-nettle` or `crypto-cng` and exactly one can be enabled at
-a time.
-
-Currently, the `crypto-nettle` feature is enabled by default -
-regardless of the operating system used. If you choose to enable a
-different backend, please make sure to disable the default first.
-
-See [openpgp/README.md#features-flags] for more information.
-
-Building Sequoia
-================
-
-Using Cargo
------------
-
-To build all Sequoia components, simply execute `cargo build
-[--release] --all`.  Individual components may be built independently,
-e.g. to build `sq`, run `cargo build [--release] -p sequoia-sq`, or
-build `sequoia-openpgp-ffi` to build a shared object with the C API.
-
-## Requirements and MSRV
-
-The minimum supported Rust version (MSRV) is 1.67.  Sequoia aims to always be
-compatible with the version included in [Debian testing], the MSRV follows what
-is available there.  Increasing the MSRV will be accompanied by a raise in
-the minor version of all crates.
-
-[Debian testing]: https://tracker.debian.org/pkg/rustc
-
-Building Sequoia requires a few libraries, notably the Nettle cryptographic library
-version 3.9.1 or up.  Please see below for OS-specific commands to install the
-needed libraries:
-
-### Debian
-
-```shell
-# apt install cargo clang git nettle-dev pkg-config libssl-dev
-```
-
-Notes:
-
-  - You need at least `rustc` version 1.79.  The version of Rust
-    included in Debian 13 (trixie) is fine.  You can use [rustup] if
-    your distribution only includes an older Rust version.
-  - You need at least Nettle 3.9.1.  Debian 13 (trixie) and up is
-    fine.
-  - `libssl-dev` is only required by the `sequoia-net` crate and
-    crates depending on it (`sq`).
-
-[rustup]: https://rustup.rs/
-
-### Arch Linux
-
-```shell
-# pacman -S clang git pkgconf rustup --needed
-```
-
-### Fedora
-
-```shell
-# dnf install cargo clang git nettle-devel openssl-devel
-```
-
-Notes:
-
-  - `openssl-devel` is only required by the `sequoia-net` crate and
-    crates depending on it (`sq`).
-
-### NixOS
-
-Development environment for use with `nix-shell` or `direnv`:
-<details>
-  <summary>
-    `shell.nix`
-  </summary>
-
-```nix
-let
-  oxalica_overlay = import (builtins.fetchTarball
-    "https://github.com/oxalica/rust-overlay/archive/master.tar.gz");
-  nixpkgs = import <nixpkgs> { overlays = [ oxalica_overlay ]; };
-  rust_channel = nixpkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain;
-in with nixpkgs;
-pkgs.mkShell {
-  buildInputs = [
-    nettle
-    openssl
-  ];
-
-  nativeBuildInputs = [
-    (rust_channel.override{
-        extensions = [ "rust-src" "rust-std" ];
-    })
-
-    llvmPackages.clang
-    pkgconfig
-
-    # tools
-    codespell
-  ];
-
-  RUST_BACKTRACE = 1;
-
-  # compilation of -sys packages requires manually setting LIBCLANG_PATH
-  LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
-}
-```
-
-</details>
-
-
-### macOS
-
-#### MacPorts
-
-```shell
-$ sudo port install cargo nettle pkgconfig
-```
-
-#### Brew
-
-```shell
-$ brew install rust nettle
-```
-
-### Windows
-
-Please make sure to preserve line-endings when cloning the Sequoia
-repository.  The relevant git option is `core.autocrlf` which must be
-set to `false`.
-
-Due to Windows Runners being somewhat slow, we only run them
-automatically for MRs, which contain `windows` in the branch
-name. Please name your branch accordingly when contributing a patch
-which might affect Windows.
-
-#### CNG
-
-On Windows Sequoia PGP can use one of several cryptographic backends.
-The recommended one is Windows Cryptography API (CNG) as it doesn't
-require any additional dependencies.  The standard tooling required to
-build native dependencies ([Visual Studio Build Tools][]) is still
-needed.
-
-[Visual Studio Build Tools]: https://visualstudio.microsoft.com/downloads?q=build+tools
-
-When building, make sure to disable default features (to disable
-Nettle) and enable the CNG via `crypto-cng` Cargo feature:
+### 1. Build and Export Docker Images (First Time Only)
 
 ```bash
-$ cargo build --no-default-features --features crypto-cng,compression # Only change crypto backend
+./export-images.sh
 ```
 
-#### Nettle
+This will:
+- Build the backend (Python FastAPI + Rust PGP tools)
+- Build the frontend (React application)
+- Export both as .tar files for quick loading
 
-It is also possible to use Sequoia's default backend (Nettle) on
-Windows through [MSYS2][].
+### 2. Launch the Application
 
-[MSYS2]: https://www.msys2.org
-
-You can install the needed libraries with the following command:
-
-```shell
-$ pacman -S mingw-w64-x86_64-{bzip2,clang,gcc,pkg-config,nettle}
+```bash
+./quantum
 ```
 
-#### Other
+This loads the pre-built images and starts both services.
 
-MSYS2 can also be used to build Sequoia with the Windows-native CNG
-backend.  The list of packages is the same as for Nettle with the
-exception of `mingw-w64-x86_64-nettle` which is not needed.  Build
-command is the same as for the CNG backend.
+### 3. Access the Application
 
-Sequoia PGP can also be built for 32-bit Windows.  See
-`.gitlab-ci.yml` for detailed example.
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000/docs (Swagger UI)
 
-Additionally, the experimental Rust backend can also be used on
-Windows. See the `sequoia-openpgp` crate's documentation for details.
+## 🔧 Development Mode
 
-Getting help
-============
+For hot-reload development with volume mounts:
 
-Sequoia's documentation is hosted here: https://docs.sequoia-pgp.org/
+```bash
+./pq
+```
 
-You can join our mailing list by sending a mail to
-devel-subscribe@lists.sequoia-pgp.org.
+This mounts your local code directories:
+- `./backend` → Backend container
+- `./frontend` → Frontend container
 
-You can talk to us using IRC on [OFTC](https://www.oftc.net/) in `#sequoia`.
+Changes to your code will be reflected immediately without rebuilding.
 
-Reporting bugs
-==============
+## 🛑 Reset Environment
 
-Please report bug and feature requests to [our bugtracker].  If you
-find a security vulnerability, please refer to our [security
-vulnerability guide].
+To stop containers and remove images:
 
-  [our bugtracker]: https://gitlab.com/sequoia-pgp/sequoia/issues
-  [security vulnerability guide]: https://gitlab.com/sequoia-pgp/sequoia/-/blob/main/doc/security-vulnerabilities.md
+```bash
+./reset
+```
+
+## 📖 Usage Guide
+
+### Generate a Key
+
+1. Navigate to the "Generate Key" tab
+2. Enter your User ID (e.g., "John Doe <john@example.com>")
+3. Optionally set a password
+4. Click "Generate Key"
+5. Download your secret and public keys as `.asc` files
+
+**Key Details:**
+- Primary Key: Ed25519 (v6) - for certification
+- Signing Subkey: SLH-DSA-SHAKE-256s (v6) - Post-quantum signatures
+- Encryption Subkey: X25519 (v6) - for encryption
+
+### Sign a Message
+
+1. Navigate to the "Sign" tab
+2. Paste your secret key
+3. Enter your password (if key is encrypted)
+4. Type your message
+5. Click "Sign Message"
+6. Download the signed message as `.asc`
+
+### Verify a Signature
+
+1. Navigate to the "Verify" tab
+2. Paste the public key
+3. Paste the signed message
+4. Click "Verify Signature"
+5. View verification result and extracted message
+
+### Encrypt a Message
+
+1. Navigate to the "Encrypt" tab
+2. Paste the recipient's public key
+3. Type your message
+4. Click "Encrypt Message"
+5. Download the encrypted message as `.asc`
+
+### Decrypt a Message
+
+1. Navigate to the "Decrypt" tab
+2. Paste your secret key
+3. Enter your password (if key is encrypted)
+4. Paste the encrypted message
+5. Click "Decrypt Message"
+6. View the decrypted plaintext
+
+## 🏗️ Architecture
+
+### Backend (`/backend`)
+
+Python FastAPI service that orchestrates Rust PGP operations:
+- `main.py` - FastAPI application with REST endpoints
+- `bin/` - Compiled Rust PGP tools
+  - `pgp-keygen` - Generate v6 keys
+  - `pgp-sign` - Sign messages
+  - `pgp-verify` - Verify signatures
+  - `pgp-encrypt` - Encrypt messages
+  - `pgp-decrypt` - Decrypt messages
+
+### Frontend (`/frontend`)
+
+React application with modern UI:
+- Single-page application
+- Tabbed interface for all operations
+- File download capabilities
+- Real-time error handling
+
+### rPGP Library (`/rpgp`)
+
+Modified rPGP Rust library:
+- Forked from https://github.com/rpgp/rpgp
+- Feature flag: `draft-pqc` (enables Post-Quantum algorithms)
+- Implements draft-ietf-openpgp-pqc-12
+
+### Rust Tools (`/rpgp-tools`)
+
+Standalone CLI binaries that wrap the rPGP library:
+- Built with `--release` flag for performance
+- All tools export/import `.asc` (ASCII armored) files
+- Command-line interface for automation
+
+## 🔐 Cryptographic Details
+
+### Key Structure (v6)
+
+```
+Primary Key (Ed25519)
+├── User ID
+├── Signing Subkey (SLH-DSA-SHAKE-128s) ← Post-Quantum!
+└── Encryption Subkey (X25519)
+```
+
+### Algorithms Used
+
+- **Signatures**: SLH-DSA-SHAKE-256s (Post-Quantum)
+- **Encryption**: X25519 with AES256
+- **Hash**: SH3-512 for signatures
+- **AEAD**: SEIPD v1 with AES256
+
+### Key Format
+
+All keys are exported as **ASCII Armored** (`.asc`) files:
+- `-----BEGIN PGP PRIVATE KEY BLOCK-----`
+- `-----BEGIN PGP PUBLIC KEY BLOCK-----`
+- `-----BEGIN PGP MESSAGE-----`
+- `-----BEGIN PGP SIGNATURE-----`
+
+## 📦 Project Structure
+
+```
+pgp-tool-final/
+├── backend/               # FastAPI backend
+│   ├── bin/              # Rust PGP tool binaries
+│   ├── main.py           # FastAPI application
+│   └── Dockerfile
+├── frontend/             # React frontend
+│   ├── src/
+│   │   ├── App.js       # Main application
+│   │   ├── App.css      # Styling
+│   │   └── index.js     # Entry point
+│   ├── public/
+│   └── Dockerfile
+├── rpgp/                 # rPGP Rust library (modified)
+├── rpgp-tools/           # Rust CLI tools (source)
+│   └── src/
+│       ├── keygen.rs
+│       ├── sign.rs
+│       ├── verify.rs
+│       ├── encrypt.rs
+│       └── decrypt.rs
+├── docker-compose.yml    # Production compose
+├── docker-compose.override.yml  # Development volumes
+├── quantum               # Launch script (production)
+├── pq                    # Launch script (development)
+├── reset                 # Cleanup script
+├── export-images.sh      # Build and export images
+└── README.md
+```
+
+## ⚠️ Security Notice
+
+**THIS IS AN EXPERIMENTAL IMPLEMENTATION**
+
+- Uses `draft-pqc` feature (draft-ietf-openpgp-pqc-12)
+- **DO NOT USE IN PRODUCTION**
+- For research and experimentation only
+- Post-quantum algorithms are still being standardized
+
+## 🧪 API Documentation
+
+Once running, visit http://localhost:8000/docs for interactive API documentation (Swagger UI).
+
+### Endpoints
+
+- `POST /generate-key` - Generate new v6 key pair
+- `POST /sign` - Sign a message
+- `POST /verify` - Verify a signature
+- `POST /encrypt` - Encrypt a message
+- `POST /decrypt` - Decrypt a message
+- `GET /health` - Health check
+- `GET /` - API information
+
+## 🛠️ Development
+
+### Building Rust Tools
+
+```bash
+cd rpgp-tools
+cargo build --release
+```
+
+Binaries will be in `target/release/`.
+
+### Running Backend Locally
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python main.py
+```
+
+### Running Frontend Locally
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+## 📚 References
+
+- [RFC 9580 - OpenPGP](https://www.rfc-editor.org/rfc/rfc9580.html)
+- [rPGP Library](https://github.com/rpgp/rpgp)
+- [SLH-DSA Specification](https://csrc.nist.gov/pubs/fips/205/ipd)
+- [Draft OpenPGP PQC](https://datatracker.ietf.org/doc/draft-ietf-openpgp-pqc/)
+
+## 📝 License
+
+This project uses rPGP which is licensed under MIT OR Apache-2.0.
+
+## 🤝 Contributing
+
+This is an experimental project. Feel free to explore, experiment, and learn!
+
+---
+
+**Built with** Rust 🦀 • Python 🐍 • React ⚛️ • Docker 🐳
